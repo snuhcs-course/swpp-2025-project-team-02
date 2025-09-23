@@ -73,9 +73,3 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Claude and MCP
-.claude
-.mcp.json
-CLAUDE.md
-AGENT.md
