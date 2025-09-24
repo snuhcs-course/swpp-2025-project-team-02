@@ -22,122 +22,606 @@
         }
     </style>
 </head>
-<body style="overflow-y: scroll; margin: 20px 0 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 20px; align-items: center; min-height: 100vh; background-color: #333;">
-    <div class="top" style="display: flex; gap: 20px;">
-<div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
+<body style="overflow-x: auto; overflow-y: scroll; margin: 20px 0 0; padding: 0 40px; display: flex; flex-direction: column; justify-content: flex-start; gap: 40px; align-items: flex-start; min-height: 100vh; min-width: 2000px; background-color: #333;">
 
-        <header style="width: 100%; text-align: center; flex-shrink: 0; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Fortuna</h1>
-            </div>
-            <div style="padding: 12px 20px; display: inline-block;">
-                <h1 style="margin: 50px 0 30px; font-size: 16px; font-weight: 500;">회원가입</h1>
-            </div>
-        </header>
+    <!-- 처음 접속 시 - 로그인 & 정보 입력 -->
+    <div class="onboarding-section" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        <h2 style="color: #FFFFFF; font-size: 20px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left;">처음 접속 시</h2>
+        <div style="display: flex; gap: 20px; justify-content: flex-start; overflow-x: visible;">
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
 
-        <main style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; width: 100%;">
-            <form style="width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 18px;">
-                
-                <div style="display: flex; width: 100%;">
-                    <input type="email" placeholder="이메일 주소" style="flex-grow: 1; background-color: #1e1e1e; border: 1px solid #444; color: #FFFFFF; padding: 14px; border-radius: 8px 0 0 8px; font-size: 16px; outline: none; border-right: none;" />
-                    <button type="button" style="padding: 0 20px; background-color: #333333; color: #FFFFFF; border: 1px solid #444; border-left: none; border-radius: 0 8px 8px 0; font-size: 16px; cursor: pointer; font-weight: 500;">인증</button>
+                <header style="width: 100%; text-align: center; flex-shrink: 0; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Fortuna</h1>
+                    </div>
+                    <div style="padding: 20px; display: inline-block; text-align: center;">
+                        <p style="margin: 30px 0 10px; font-size: 18px; font-weight: 500; color: #FFFFFF;">[대충 fortuna]</p>
+                    </div>
+                </header>
+
+                <main style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                    <div style="width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+
+                        <button type="button" style="width: 100%; background-color: #FFFFFF; color: #000000; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            </svg>
+                            구글로 로그인
+                        </button>
+
+                    </div>
+                </main>
+
+                <div style="height: 50px; flex-shrink: 0;"></div>
+
+            </div>
+            <!-- Step 1: 이름 입력 -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
+
+                <header style="display: flex; align-items: center; margin-bottom: 40px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 10px;">
+                        <path d="M15 18L9 12L15 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 style="margin: 0; font-size: 18px; font-weight: 600; flex-grow: 1; text-align: center; color: #FFFFFF;">사주정보 입력</h1>
+                    <div style="width: 24px;"></div>
+                </header>
+
+                <div style="margin-bottom: 30px;">
+                    <p style="margin: 0; font-size: 14px; color: #6B46C1; font-weight: 600;">STEP 1 / 4</p>
                 </div>
-                
-                <input type="password" placeholder="비밀번호" style="width: 100%; background-color: #1e1e1e; border: 1px solid #444; color: #FFFFFF; padding: 14px; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;" />
-                
-                <input type="password" placeholder="비밀번호 확인" style="width: 100%; background-color: #1e1e1e; border: 1px solid #444; color: #FFFFFF; padding: 14px; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;" />
-                
-                <button type="submit" style="width: 100%; background-color: #FFFFFF; color: #000000; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px;">가입하기</button>
 
-            </form>
-        </main>
-        
-        <div style="height: 50px; flex-shrink: 0;"></div>
+                <main style="flex-grow: 1; padding-top: 20px;">
+                    <h2 style="margin: 0 0 40px 0; font-size: 24px; font-weight: 700; line-height: 1.3; color: #FFFFFF;">
+                        어떤 이름으로<br>
+                        불러 드릴까요?
+                    </h2>
 
+                    <form style="display: flex; flex-direction: column; gap: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #AAAAAA;">이름</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="김창애"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <button type="button" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: #333333; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="#AAAAAA" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #888888;">한글 최대 6자</p>
+                        </div>
+                    </form>
+                </main>
+
+                <footer style="padding: 20px 0;">
+                    <button style="width: 100%; background-color: #FFFFFF; color: #000000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                        다음
+                    </button>
+                </footer>
+            </div>
+
+            <!-- Step 2: 생년월일, 성별 -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
+
+                <header style="display: flex; align-items: center; margin-bottom: 40px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 10px;">
+                        <path d="M15 18L9 12L15 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 style="margin: 0; font-size: 18px; font-weight: 600; flex-grow: 1; text-align: center; color: #FFFFFF;">사주정보 입력</h1>
+                    <div style="width: 24px;"></div>
+                </header>
+
+                <div style="margin-bottom: 30px;">
+                    <p style="margin: 0; font-size: 14px; color: #6B46C1; font-weight: 600;">STEP 2 / 4</p>
+                </div>
+
+                <main style="flex-grow: 1; padding-top: 20px;">
+                    <h2 style="margin: 0 0 40px 0; font-size: 24px; font-weight: 700; line-height: 1.3; color: #FFFFFF;">
+                        김창아님의<br>
+                        사주정보를 알려주세요.
+                    </h2>
+
+                    <form style="display: flex; flex-direction: column; gap: 30px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">생년월일</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="1998.01.01"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 8px;">
+                                    <span style="background: #FFFFFF; color: #000000; padding: 4px 8px; border-radius: 12px; font-size: 12px;">양력</span>
+                                    <span style="background: #333333; color: #AAAAAA; padding: 4px 8px; border-radius: 12px; font-size: 12px;">음력</span>
+                                </div>
+                            </div>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #888888;">사주정보는 만 나이로 정확하게</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">성별</label>
+                            <div style="display: flex; gap: 12px;">
+                                <button type="button" style="flex: 1; padding: 16px; background: #FFFFFF; color: #000000; border: none; border-radius: 25px; font-size: 16px; font-weight: 500;">
+                                    남자
+                                </button>
+                                <button type="button" style="flex: 1; padding: 16px; background: #333333; color: #AAAAAA; border: none; border-radius: 25px; font-size: 16px; font-weight: 500;">
+                                    여자
+                                </button>
+                            </div>
+                            <p style="margin: 12px 0 0 0; font-size: 12px; color: #888888;">태음력 사주는 성별에 따라 달라져요</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">이름</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="김창아"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <button type="button" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: #333333; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M18 6L6 18M6 6L18 18" stroke="#AAAAAA" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #888888;">한글 최대 6자</p>
+                        </div>
+                    </form>
+                </main>
+
+                <footer style="padding: 20px 0;">
+                    <p style="margin: 0 0 12px 0; font-size: 14px; color: #888888; text-align: center;">생년월일을 입력해주세요</p>
+                </footer>
+            </div>
+
+            <!-- Step 3: 출생시간 -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
+
+                <header style="display: flex; align-items: center; margin-bottom: 40px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 10px;">
+                        <path d="M15 18L9 12L15 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 style="margin: 0; font-size: 18px; font-weight: 600; flex-grow: 1; text-align: center; color: #FFFFFF;">사주정보 입력</h1>
+                    <div style="width: 24px;"></div>
+                </header>
+
+                <div style="margin-bottom: 30px;">
+                    <p style="margin: 0; font-size: 14px; color: #6B46C1; font-weight: 600;">STEP 3 / 4</p>
+                </div>
+
+                <main style="flex-grow: 1; padding-top: 20px;">
+                    <h2 style="margin: 0 0 40px 0; font-size: 24px; font-weight: 700; line-height: 1.3; color: #FFFFFF;">
+                        김창아님의<br>
+                        사주정보를 알려주세요.
+                    </h2>
+
+                    <form style="display: flex; flex-direction: column; gap: 30px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">태어난 시간</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="00:00"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: #333333; color: #AAAAAA; padding: 8px 12px; border-radius: 4px; font-size: 12px;">
+                                    시간 모름
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">생년월일</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="2002.07.15"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 8px;">
+                                    <span style="background: #FFFFFF; color: #000000; padding: 4px 8px; border-radius: 12px; font-size: 12px;">양력</span>
+                                    <span style="background: #333333; color: #AAAAAA; padding: 4px 8px; border-radius: 12px; font-size: 12px;">음력</span>
+                                </div>
+                            </div>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #888888;">정확한 정보를 입력하여</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">성별</label>
+                            <div style="display: flex; gap: 12px;">
+                                <button type="button" style="flex: 1; padding: 16px; background: #FFFFFF; color: #000000; border: none; border-radius: 25px; font-size: 16px; font-weight: 500;">
+                                    남자
+                                </button>
+                                <button type="button" style="flex: 1; padding: 16px; background: #333333; color: #AAAAAA; border: none; border-radius: 25px; font-size: 16px; font-weight: 500;">
+                                    여자
+                                </button>
+                            </div>
+                            <p style="margin: 12px 0 0 0; font-size: 12px; color: #888888;">대운의 시기는 성별에 따라 달라져요</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">이름</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="김창아"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                            </div>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #888888;">한글 최대 6자</p>
+                        </div>
+                    </form>
+                </main>
+
+                <footer style="padding: 20px 0;">
+                    <p style="margin: 0 0 12px 0; font-size: 14px; color: #888888; text-align: center;">태어난 시간을 선택해 주세요</p>
+                </footer>
+            </div>
+
+            <!-- Step 4: 이용약관 동의 (모달 포함) -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a; position: relative;">
+
+                <header style="display: flex; align-items: center; margin-bottom: 40px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 10px;">
+                        <path d="M15 18L9 12L15 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 style="margin: 0; font-size: 18px; font-weight: 600; flex-grow: 1; text-align: center; color: #FFFFFF;">사주정보 입력</h1>
+                    <div style="width: 24px;"></div>
+                </header>
+
+                <div style="margin-bottom: 30px;">
+                    <p style="margin: 0; font-size: 14px; color: #6B46C1; font-weight: 600;">STEP 4 / 4</p>
+                </div>
+
+                <main style="flex-grow: 1; padding-top: 20px;">
+                    <h2 style="margin: 0 0 40px 0; font-size: 24px; font-weight: 700; line-height: 1.3; color: #FFFFFF;">
+                        김창아님의<br>
+                        사주정보를 알려주세요.
+                    </h2>
+
+                    <form style="display: flex; flex-direction: column; gap: 30px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">태어난 시간</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="시간 모름"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: #FFFFFF; color: #000; padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: 600;">
+                                    ✓ 시간 모름
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">생년월일</label>
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    value="2002.07.15"
+                                    style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                                />
+                                <div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; gap: 8px;">
+                                    <span style="background: #FFFFFF; color: #000000; padding: 4px 8px; border-radius: 12px; font-size: 12px;">양력</span>
+                                    <span style="background: #333333; color: #AAAAAA; padding: 4px 8px; border-radius: 12px; font-size: 12px;">음력</span>
+                                </div>
+                            </div>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #888888;">정확한 정보를 입력하여</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">성별</label>
+                            <div style="display: flex; gap: 12px;">
+                                <button type="button" style="flex: 1; padding: 16px; background: #FFFFFF; color: #000000; border: none; border-radius: 25px; font-size: 16px; font-weight: 500;">
+                                    남자
+                                </button>
+                                <button type="button" style="flex: 1; padding: 16px; background: #333333; color: #AAAAAA; border: none; border-radius: 25px; font-size: 16px; font-weight: 500;">
+                                    여자
+                                </button>
+                            </div>
+                            <p style="margin: 12px 0 0 0; font-size: 12px; color: #888888;">대운의 시기는 성별에 따라 달라져요</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; margin-bottom: 12px; font-size: 14px; color: #AAAAAA;">이름</label>
+                            <input
+                                type="text"
+                                value="김창아"
+                                style="width: 100%; padding: 16px; border: none; border-bottom: 2px solid #444444; background: transparent; font-size: 16px; color: #FFFFFF; outline: none; box-sizing: border-box;"
+                            />
+                        </div>
+                    </form>
+                </main>
+
+                <!-- 이용약관 동의 모달 -->
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1a1a1a; border-radius: 20px 20px 0 0; padding: 30px; box-shadow: 0 -4px 20px rgba(0,0,0,0.5);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #FFFFFF;">이용약관 동의</h3>
+                        <button style="background: none; border: none; font-size: 24px; cursor: pointer; color: #AAAAAA;">×</button>
+                    </div>
+                    <p style="margin: 0 0 20px 0; font-size: 14px; color: #AAAAAA; line-height: 1.5;">
+                        아래 사항에서 누르신 점신의 서비스 이용약관<br>
+                        및 개인정보 처리방침에 동의하는 것으로 간주합니다.
+                    </p>
+                    <button style="width: 100%; background-color: #FFFFFF; color: #000000; padding: 16px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                        시작하기
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
 
-        <header style="width: 100%; text-align: center; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 1px;">Fortuna</h1>
-            </div>
-            <div style="padding: 12px 20px; display: inline-block;">
-                <h1 style="margin: 50px 0 30px; font-size: 16px; font-weight: 500;">정보 입력</h1>
-            </div>
-        </header>
+    <!-- 로그인 후 메인화면 - 사진 한 장도 안올렸을 때 -->
+    <div class="main-screen-section" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        <h2 style="color: #FFFFFF; font-size: 20px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left;">로그인 후 메인화면 - 사진 한 장도 안올렸을 때</h2>
+        <div style="display: flex; gap: 20px; justify-content: flex-start; overflow-x: visible;">
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
 
-        <main style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; width: 100%; padding-top: 40px;">
-            <form style="width: 100%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 25px;">
+                <header style="width: 100%; text-align: center; flex-shrink: 0; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Fortuna</h1>
+                    </div>
+                </header>
 
-                <div style="width: 100%;">
-                    <label style="display: block; text-align: left; margin-bottom: 10px; font-size: 16px; font-weight: 500;">생일</label>
-                    <div style="display: flex; width: 100%; gap: 8px;">
-                        <select style="flex: 2; background-color: #1e1e1e; color: #FFFFFF; border: 1px solid #444; padding: 12px 8px; border-radius: 8px; font-size: 16px; outline: none;">
-                            <option>2000년</option>
-                            <option>1999년</option>
-                            <option>1998년</option>
-                        </select>
-                        <select style="flex: 1.5; background-color: #1e1e1e; color: #FFFFFF; border: 1px solid #444; padding: 12px 8px; border-radius: 8px; font-size: 16px; outline: none;">
-                            <option>1월</option>
-                            <option>2월</option>
-                            <option>3월</option>
-                        </select>
-                        <select style="flex: 1.5; background-color: #1e1e1e; color: #FFFFFF; border: 1px solid #444; padding: 12px 8px; border-radius: 8px; font-size: 16px; outline: none;">
-                            <option>1일</option>
-                            <option>2일</option>
-                            <option>3일</option>
-                        </select>
-                        <select style="flex: 1.5; background-color: #1e1e1e; color: #FFFFFF; border: 1px solid #444; padding: 12px 8px; border-radius: 8px; font-size: 16px; outline: none;">
-                            <option>00시</option>
-                            <option>01시</option>
-                            <option>02시</option>
-                        </select>
+                <main style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center;">
+
+                    <div style="margin-bottom: 30px;">
+                        <p style="margin: 0 0 10px 0; font-size: 16px; color: #AAAAAA;">오늘은 2025년 09월 19일 정유일(🔥)</p>
+                        <p style="margin: 0; font-size: 16px; color: #AAAAAA;">지금은 14시 30분(미시🐑)</p>
+                    </div>
+
+                    <div style="margin-bottom: 50px;">
+                        <p style="margin: 0; font-size: 20px; font-weight: 500; color: #FFFFFF; line-height: 1.4;">
+                            내일 운세를 위해<br>
+                            지금 당신을 보여주세요
+                        </p>
+                    </div>
+
+                    <div style="width: 80px; height: 80px; background-color: rgba(255, 255, 255, 0.1); border: 2px solid #FFFFFF; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V9C3 8.44772 3.44772 8 4 8Z" stroke="white" fill="none" stroke-width="1.5" stroke-linejoin="round"/>
+                            <path d="M9 8V6C9 4.89543 9.89543 4 11 4H13C14.1046 4 15 4.89543 15 6V8" stroke="white" stroke-width="1.5"/>
+                            <circle cx="12" cy="13.5" r="3" stroke="white" fill="none" stroke-width="1.5"/>
+                            <circle cx="12" cy="13.5" r="1.5" fill="white"/>
+                        </svg>
+                    </div>
+
+                </main>
+
+                <!-- 하단 탭 네비게이션 -->
+                <div style="width: 100%; display: flex; justify-content: space-around; align-items: center; padding: 15px 0; background-color: rgba(26, 26, 26, 0.9); border-radius: 25px 25px 0 0;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9L12 2L21 9V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span style="font-size: 11px; color: #FFFFFF; font-weight: 500;">홈</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;">
+                        <div style="width: 60px; height: 60px; background-color: #FFFFFF; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 3px solid #000000;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V9C3 8.44772 3.44772 8 4 8Z" stroke="#000000" fill="none" stroke-width="1.5" stroke-linejoin="round"/>
+                                <path d="M9 8V6C9 4.89543 9.89543 4 11 4H13C14.1046 4 15 4.89543 15 6V8" stroke="#000000" stroke-width="1.5"/>
+                                <circle cx="12" cy="13.5" r="2.5" stroke="#000000" fill="none" stroke-width="1.5"/>
+                                <circle cx="12" cy="13.5" r="1" fill="#000000"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#888888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="7" r="4" stroke="#888888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span style="font-size: 11px; color: #888888; font-weight: 500;">프로필</span>
                     </div>
                 </div>
 
-                <div style="width: 100%;">
-                    <label style="display: block; text-align: left; margin-bottom: 10px; font-size: 16px; font-weight: 500;">성별</label>
-                    <div style="display: flex; gap: 10px; width: 100%;">
-                        <input type="radio" id="male" name="gender" style="display: none;">
-                        <label for="male" style="flex: 1; padding: 12px; border: 1px solid #444; border-radius: 8px; text-align: center; cursor: pointer;">남성</label>
-                        
-                        <input type="radio" id="female" name="gender" style="display: none;">
-                        <label for="female" style="flex: 1; padding: 12px; border: 1px solid #444; border-radius: 8px; text-align: center; cursor: pointer;">여성</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 사진 찍기 페이지 -->
+    <div class="photo-section" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        <h2 style="color: #FFFFFF; font-size: 20px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left;">사진 찍기</h2>
+        <div style="display: flex; gap: 20px; justify-content: flex-start; overflow-x: visible;">
+            <div style="
+                width: 375px;
+                height: 812px;
+                background-color: #000000;
+                color: #FFFFFF;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 20px;
+                box-sizing: border-box;
+                border-radius: 40px;
+                border: 10px solid #1a1a1a;
+                position: relative;
+                overflow: hidden;
+                background-image: url('1000017146.webp');
+                background-size: cover;
+                background-position: center;
+                ">
+
+                <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
+                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
+                        <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+
+                <!-- 상단 질문 텍스트 -->
+                <div style="position: absolute; top: 120px; left: 50%; transform: translateX(-50%); z-index: 20; background-color: rgba(0, 0, 0, 0.7); padding: 15px 25px; border-radius: 20px; backdrop-filter: blur(3px); width: 320px; max-width: 90%;">
+                    <p style="margin: 0; font-size: 16px; color: #FFFFFF; font-weight: 500; text-align: center; line-height: 1.4;">오늘은 어떤 옷을 입으셨나요?<br>당신에게 필요한 물 원소를 모아보세요</p>
+                </div>
+
+                <!-- 물 이모지 오버레이 -->
+                <div style="position: absolute; top: 75%; left: 30%; transform: translate(-50%, -50%); z-index: 30; font-size: 32px;">
+                    💧
+                </div>
+
+                <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10;">
+                    <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(3px);">
+                        <div style="width: 58px; height: 58px; background-color: #FFFFFF; border-radius: 50%; border: 3px solid #000000;">
+                        </div>
                     </div>
                 </div>
 
-                <div style="width: 100%;">
-                    <label for="nickname" style="display: block; text-align: left; margin-bottom: 10px; font-size: 16px; font-weight: 500;">닉네임</label>
-                    <input id="nickname" type="text" placeholder="닉네임을 입력하세요" style="width: 100%; background-color: #1e1e1e; border: 1px solid #444; color: #FFFFFF; padding: 14px; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none;" />
-                </div>
-                
-                <button type="submit" style="width: 100%; background-color: #FFFFFF; color: #000000; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px;">저장하기</button>
-
-            </form>
-        </main>
-        
-        <div style="height: 50px; flex-shrink: 0;"></div>
-
-    </div>
-    <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
-
-        <header style="width: 100%; text-align: center; flex-shrink: 0;">
-            <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 1px;">Fortuna</h1>
             </div>
-        </header>
+
+            <!-- 포즈 가이드 화면 -->
+            <div style="
+                width: 375px;
+                height: 812px;
+                background-color: #000000;
+                color: #FFFFFF;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 20px;
+                box-sizing: border-box;
+                border-radius: 40px;
+                border: 10px solid #1a1a1a;
+                position: relative;
+                overflow: hidden;
+                background-image: url('1000017146.webp');
+                background-size: cover;
+                background-position: center;
+                ">
+
+                <div style="position: absolute; top: 40px; left: 25px; z-index: 30;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
+                        <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 20; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+
+                    <p style="color: white; font-size: 20px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.7); position: absolute; top: 15%;">
+                        해당 포즈를 취해보세요!
+                    </p>
+
+                    <svg width="60%" height="60%" viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
+                        <g class="pose-guideline" stroke="white" stroke-width="5" stroke-linecap="round" fill="none">
+                            <circle cx="30" cy="145" r="15"/>
+                            <line x1="40" y1="135" x2="80" y2="100"/>
+                            <line x1="40" y1="135" x2="40" y2="175"/>
+                            <line x1="55" y1="125" x2="65" y2="145"/>
+                            <line x1="80" y1="100" x2="60" y2="70"/>
+                            <line x1="80" y1="100" x2="95" y2="60"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10;">
+                    <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(3px);">
+                        <div style="width: 58px; height: 58px; background-color: #FFFFFF; border-radius: 50%; border: 3px solid #000000;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 미션 성공 화면 -->
+            <div style="
+                width: 375px;
+                height: 812px;
+                background-color: #000000;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                position: relative;
+                border-radius: 40px;
+                border: 10px solid #1a1a1a;
+                overflow: hidden;
+                ">
+
+                <div style="width: 100%; height: 100%; background-image: url('1000017146.webp'); background-size: cover; background-position: center;"></div>
+
+                <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
+                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
+                        <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10;">
+                    <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(3px);">
+                        <div style="width: 58px; height: 58px; background-color: #FFFFFF; border-radius: 50%; border: 3px solid #000000;"></div>
+                    </div>
+                </div>
+
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+
+                    <div style="width: 100%; max-width: 330px; background: linear-gradient(160deg, #2c2c2e, #1c1c1e); border: 1px solid #444; border-radius: 20px; padding: 30px; box-sizing: border-box; position: relative; text-align: center;">
+
+                        <div style="position: absolute; top: 15px; right: 15px; cursor: pointer;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 6L6 18" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6 6L18 18" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                                <div style="font-size: 17px; line-height: 1.6; color: #FFFFFF;">
+                                    미션 성공! <span style="color: #4CAF50; font-weight: bold;">나무</span> 원소 2개 획득!
+                                </div>
+                                <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #2E7D32; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 16px; flex-shrink: 0;">+2</div>
+                            </div>
+
+                            <span style="font-size: 17px; color: #cccccc;">공유해볼까요?</span>
+
+                        </div>
+
+                         <div style="display: flex; gap: 10px; margin-top: 30px;">
+                            <button style="flex: 1; background-color: #333; color: #FFFFFF; border: 1px solid #555; padding: 12px; border-radius: 10px; font-size: 16px; cursor: pointer;">닫기</button>
+                            <button style="flex: 1; background-color: #FFFFFF; color: #000000; border: none; padding: 12px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">공유하기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로그인 후 메인화면 - n/m 장 올렸을 때(n<m) -->
+    <div class="main-screen-progress-section" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        <h2 style="color: #FFFFFF; font-size: 20px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left;">로그인 후 메인화면 - n/m 장 올렸을 때(n&lt;m)</h2>
+        <div style="display: flex; gap: 20px; justify-content: flex-start; overflow-x: visible;">
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
+
+                <header style="width: 100%; text-align: center; flex-shrink: 0;">
+                    <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 1px;">Fortuna</h1>
+                    </div>
+                </header>
 
         <main style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; width: 100%;">
-            
-            <p style="margin: 0 0 25px 0; font-size: 20px; font-weight: 500;">
-                당신의 지금을 찍어보세요!
-            </p>
+
+            <div style="margin-bottom: 25px;">
+                <p style="margin: 0 0 5px 0; font-size: 16px; color: #AAAAAA;">오늘은 2025년 09월 19일 정유일(🔥)</p>
+                <p style="margin: 0; font-size: 16px; color: #AAAAAA;">지금은 14시 30분(미시🐑)</p>
+            </div>
 
             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; max-width: 320px;">
-                
-                <div style="width: 135px; height: 180px; border-radius: 12px; background-image: url('https://eng.snu.ac.kr/dext5editordata/2024/08/20240823_110825621_41133.jpg'); background-size: cover; background-position: center; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);">
+
+                <!-- 첫 번째 카드: 업로드된 이미지 -->
+                <div style="position: relative; width: 135px; height: 180px; border-radius: 12px; background-image: url('1000017146.webp'); background-size: cover; background-position: center; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);">
+                    <!-- 내부 상단 라벨 -->
+                    <div style="position: absolute; top: 8px; left: 8px; z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 12px; backdrop-filter: blur(3px);">
+                        <span style="font-size: 10px; color: #64B5F6; font-weight: 600;">모은 원소(💧)</span>
+                    </div>
+                    <!-- 내부 하단 라벨 -->
+                    <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 6px 16px; border-radius: 12px; backdrop-filter: blur(3px); width: 100px; text-align: center;">
+                        <span style="font-size: 10px; color: #AAAAAA; font-weight: 500;">오늘 입은 옷</span>
+                    </div>
                 </div>
 
+                <!-- 두 번째 카드: 카메라 버튼 -->
                 <div style="width: 135px; height: 180px; border: 2px solid #FFFFFF; background-color: #1a1a1a; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer;">
                     <svg width="45" height="45" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M4 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V9C3 8.44772 3.44772 8 4 8Z" stroke="white" fill="black" stroke-width="1.5" stroke-linejoin="round"/>
@@ -147,252 +631,322 @@
                     </svg>
                 </div>
 
+                <!-- 세 번째 카드: 빈 슬롯 -->
                 <div style="width: 135px; height: 180px; border: 2px dashed #555; background-color: #1a1a1a; border-radius: 12px; display: flex; justify-content: center; align-items: center;">
-                     <svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #777;">
-                        <path d="M12 16H12.01M12 7V13M6.34299 19.657C10.6864 24.0004 17.8284 22.5029 20.8653 17.7781C23.9022 13.0532 21.9442 7.03683 17.6008 3.34299C13.2574 -0.35086 7.14138 0.147026 4.10446 4.8719C1.06755 9.59677 2.99955 15.6136 7.34299 19.657" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
+                    <span style="font-size: 36px; color: #777;">?</span>
                 </div>
-                
+
+                <!-- 네 번째 카드: 빈 슬롯 -->
                 <div style="width: 135px; height: 180px; border: 2px dashed #555; background-color: #1a1a1a; border-radius: 12px; display: flex; justify-content: center; align-items: center;">
-                     <svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #777;">
-                        <path d="M12 16H12.01M12 7V13M6.34299 19.657C10.6864 24.0004 17.8284 22.5029 20.8653 17.7781C23.9022 13.0532 21.9442 7.03683 17.6008 3.34299C13.2574 -0.35086 7.14138 0.147026 4.10446 4.8719C1.06755 9.59677 2.99955 15.6136 7.34299 19.657" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
+                    <span style="font-size: 36px; color: #777;">?</span>
                 </div>
             </div>
-            
+
+
             <div style="width: 100%; max-width: 255px; height: 12px; background-color: #2e2e2e; border-radius: 6px; overflow: hidden; margin-top: 30px;">
                 <div style="width: 25%; height: 100%; background-color: #4CAF50; border-radius: 6px;"></div>
             </div>
-            
+
             <p style="margin: 10px 0 0 0; font-size: 16px; color: #aaaaaa; font-weight: 500; letter-spacing: 1px;">
                 1 / 4
             </p>
 
         </main>
-        
-        <div style="height: 50px; flex-shrink: 0;"></div>
 
-    </div>
-    <div style="
-        width: 375px; 
-        height: 812px; 
-        background-color: #000000; 
-        color: #FFFFFF; 
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: space-between; 
-        padding: 20px; 
-        box-sizing: border-box; 
-        border-radius: 40px; 
-        border: 10px solid #1a1a1a;
-        position: relative;
-        overflow: hidden;
-        background-image: url('https://eng.snu.ac.kr/dext5editordata/2024/08/20240823_110825621_41133.jpg');
-        background-size: cover;
-        background-position: center;
-        ">
-
-        <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
-             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
-                <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-
-        <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10;">
-            <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(3px);">
-                <div style="width: 58px; height: 58px; background-color: #FFFFFF; border-radius: 50%; border: 3px solid #000000;">
+        <!-- 하단 탭 네비게이션 -->
+        <div style="width: 100%; display: flex; justify-content: space-around; align-items: center; padding: 15px 0; background-color: rgba(26, 26, 26, 0.9); border-radius: 25px 25px 0 0;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9L12 2L21 9V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span style="font-size: 11px; color: #FFFFFF; font-weight: 500;">홈</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;">
+                <div style="width: 60px; height: 60px; background-color: #FFFFFF; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 3px solid #000000;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V9C3 8.44772 3.44772 8 4 8Z" stroke="#000000" fill="none" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M9 8V6C9 4.89543 9.89543 4 11 4H13C14.1046 4 15 4.89543 15 6V8" stroke="#000000" stroke-width="1.5"/>
+                        <circle cx="12" cy="13.5" r="2.5" stroke="#000000" fill="none" stroke-width="1.5"/>
+                        <circle cx="12" cy="13.5" r="1" fill="#000000"/>
+                    </svg>
                 </div>
             </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#888888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#888888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span style="font-size: 11px; color: #888888; font-weight: 500;">프로필</span>
+            </div>
         </div>
 
-    </div>
-    </div>
-    <div class="mid" style="display: flex; gap: 20px;">
-<div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
-
-        <header style="width: 100%; text-align: center; flex-shrink: 0;">
-            <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 1px;">Fortuna</h1>
             </div>
-        </header>
+        </div>
+    </div>
 
-        <main style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; width: 100%; padding: 20px 0;">
+    <!-- 로그인 후 메인화면 - m/m 장 올렸을 때 -->
+    <div class="main-screen-complete-section" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        <h2 style="color: #FFFFFF; font-size: 20px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left;">로그인 후 메인화면 - m/m 장 올렸을 때</h2>
+        <div style="display: flex; gap: 20px; justify-content: flex-start; overflow-x: visible;">
+            <!-- 메인 화면 -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 50px 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
 
-            <button style="width: 100%; max-width: 320px; background-color: transparent; color: #FFFFFF; border: 1.5px solid #666; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 500; cursor: pointer;">
-                오늘의 운세카드 다시 보기
-            </button>
-
-            <div style="width: 100%; max-width: 320px; background-color: #1c1c1e; border-radius: 16px; padding: 20px; box-sizing: border-box;">
-                <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 16px; font-weight: 500; margin-bottom: 20px">지금까지 수집한 원소의 수</div>
-                    <div style="display: flex; gap: 6px;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background-color: #2E7D32; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white;">4</div>
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background-color: #C62828; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white;">15</div>
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background-color: #F9A825; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white;">1</div>
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background-color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: bold; color: black;">0</div>
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background-color: #616161; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white;">22</div>
+                <header style="width: 100%; text-align: center; flex-shrink: 0; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <div style="border: 2px solid #FFFFFF; padding: 12px 20px; border-radius: 10px; display: inline-block;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: 600;">Fortuna</h1>
                     </div>
-                </div>
-            </div>
+                </header>
 
-            <div style="text-align: center;">
-                <p style="margin: 0 0 20px 0; font-size: 18px; font-weight: 500;">
-                    원소 더 모으러 가기
-                </p>
-                <div style="cursor: pointer;">
-                    <svg width="70" height="70" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V9C3 8.44772 3.44772 8 4 8Z" stroke="white" fill="black" stroke-width="1.5" stroke-linejoin="round"/>
-                        <path d="M9 8V6C9 4.89543 9.89543 4 11 4H13C14.1046 4 15 4.89543 15 6V8" stroke="white" stroke-width="1.5"/>
-                        <circle cx="12" cy="13.5" r="3" stroke="white" fill="black" stroke-width="1.5"/>
-                        <circle cx="12" cy="13.5" r="1.5" fill="white"/>
-                    </svg>
-                </div>
-            </div>
+                <main style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; position: relative;">
 
-        </main>
-        
-        <div style="height: 10px; flex-shrink: 0;"></div>
+                    <!-- 어두운 그라데이션 오버레이 -->
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9) 100%); border-radius: 20px; z-index: 1;"></div>
 
-    </div>
-    <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a; position: relative; overflow: hidden;">
+                    <div style="margin-bottom: 30px; position: relative; z-index: 2;">
+                        <p style="margin: 0; font-size: 18px; color: #FFFFFF; font-weight: 500;">오늘을 돌아보세요</p>
+                    </div>
 
-        <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
-             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
-                <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
+                    <!-- 완료된 이미지들 4개 -->
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; max-width: 320px; margin-bottom: 40px; position: relative; z-index: 2;">
 
-        <div style="width: 100%; max-width: 320px; background: linear-gradient(160deg, #1c1c1e, #0a0a0a); border: 1px solid #333; box-shadow: 0 0 20px rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 35px 30px; box-sizing: border-box; text-align: left; display: flex; flex-direction: column; gap: 20px;">
-            
-            <p style="margin: 0; font-size: 20px; line-height: 1.7; color: #a0a0a0;">
-                다가오는 2025년 09월 19일,<br>
-                <span style="font-size: 15px">을사(乙巳)년 을유(乙酉)월 신묘(辛卯)일</span><br>
-            </p>
-
-            <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #dcdcdc;">   
-                오늘 당신에게 부족한 <span style="color: #4CAF50; font-weight: bold;">나무</span> 기운을 얻었는데, 도움이 되었나요?
-                내일은 묘목(卯木)이 들어오기 때문에 나무 기운 보다 당신에게 없는 <span style="color: #64B5F6; font-weight: bold;">물</span> 기운이 필요하답니다.<br>
-                한강에 가서 아침에 러닝을 한다거나, 깔끔해 보이는 검은색 셔츠와 같은 코디를 곁들이면 좋겠습니다.
-            </p>
-
-            <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #dcdcdc;">
-                내일은 여러 운기 중 재물운이 좋으니 과감한 투자를 추천해요. 뜻밖의 횡재가 들어와 큰 돈을 만질 수도 있게 됩니다. 추진중인 사업이 있다면 더없이 좋은 결과를 가져올 수 있는 날이에요.
-            </p>
-
-            <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #a0a0a0;">
-                그럼, 오늘도 수고한 당신을 위해 내일도 미션과 함께 만나요!
-            </p>
-        </div>
-
-    </div>
-    <div style="
-        width: 375px; 
-        height: 812px; 
-        background-color: #000000; 
-        color: #FFFFFF; 
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: space-between; 
-        padding: 20px; 
-        box-sizing: border-box; 
-        border-radius: 40px; 
-        border: 10px solid #1a1a1a;
-        position: relative;
-        overflow: hidden;
-        background-image: url('https://eng.snu.ac.kr/dext5editordata/2024/08/20240823_110825621_41133.jpg');
-        background-size: cover;
-        background-position: center;
-        ">
-
-        <div style="position: absolute; top: 40px; left: 25px; z-index: 30;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
-                <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 20; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            
-            <p style="color: white; font-size: 20px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.7); position: absolute; top: 15%;">
-                해당 포즈를 취해보세요!
-            </p>
-
-            <svg width="60%" height="60%" viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg">
-                <g class="pose-guideline" stroke="white" stroke-width="5" stroke-linecap="round" fill="none">
-                    <circle cx="30" cy="145" r="15"/>
-                    <line x1="40" y1="135" x2="80" y2="100"/>
-                    <line x1="40" y1="135" x2="40" y2="175"/>
-                    <line x1="55" y1="125" x2="65" y2="145"/>
-                    <line x1="80" y1="100" x2="60" y2="70"/>
-                    <line x1="80" y1="100" x2="95" y2="60"/>
-                </g>
-            </svg>
-        </div>
-
-        <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10;">
-            <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(3px);">
-                <div style="width: 58px; height: 58px; background-color: #FFFFFF; border-radius: 50%; border: 3px solid #000000;">
-                </div>
-            </div>
-        </div>
-    </div>
-    <div style="
-        width: 375px; 
-        height: 812px; 
-        background-color: #000000; 
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-        position: relative;
-        border-radius: 40px; 
-        border: 10px solid #1a1a1a;
-        overflow: hidden;
-        ">
-        
-        <div style="width: 100%; height: 100%; background-image: url('https://eng.snu.ac.kr/dext5editordata/2024/08/20240823_110825621_41133.jpg'); background-size: cover; background-position: center;"></div>
-        
-        <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
-             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.5));">
-                <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-        <div style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10;">
-            <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(3px);">
-                <div style="width: 58px; height: 58px; background-color: #FFFFFF; border-radius: 50%; border: 3px solid #000000;"></div>
-            </div>
-        </div>
-
-        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
-            
-            <div style="width: 100%; max-width: 330px; background: linear-gradient(160deg, #2c2c2e, #1c1c1e); border: 1px solid #444; border-radius: 20px; padding: 30px; box-sizing: border-box; position: relative; text-align: center;">
-
-                <div style="position: absolute; top: 15px; right: 15px; cursor: pointer;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M6 6L18 18" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-                    
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
-                        <div style="font-size: 17px; line-height: 1.6; color: #FFFFFF;">
-                            미션 성공! <span style="color: #4CAF50; font-weight: bold;">나무</span> 원소 2개 획득!
+                        <div style="position: relative; width: 135px; height: 180px; border-radius: 12px; background-image: url('1000017146.webp'); background-size: cover; background-position: center; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);">
+                            <div style="position: absolute; top: 8px; left: 8px; z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 12px; backdrop-filter: blur(3px);">
+                                <span style="font-size: 10px; color: #64B5F6; font-weight: 600;">모은 원소(💧)</span>
+                            </div>
+                            <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 6px 16px; border-radius: 12px; backdrop-filter: blur(3px); width: 100px; text-align: center;">
+                                <span style="font-size: 10px; color: #AAAAAA; font-weight: 500;">오늘 입은 옷</span>
+                            </div>
                         </div>
-                        <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #2E7D32; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 16px; flex-shrink: 0;">+2</div>
+
+                        <div style="position: relative; width: 135px; height: 180px; border-radius: 12px; background-image: url('1000017146.webp'); background-size: cover; background-position: center; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); opacity: 0.8;">
+                            <div style="position: absolute; top: 8px; left: 8px; z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 12px; backdrop-filter: blur(3px);">
+                                <span style="font-size: 10px; color: #4CAF50; font-weight: 600;">모은 원소(🌿)</span>
+                            </div>
+                        </div>
+
+                        <div style="position: relative; width: 135px; height: 180px; border-radius: 12px; background-image: url('1000017146.webp'); background-size: cover; background-position: center; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); opacity: 0.8;">
+                            <div style="position: absolute; top: 8px; left: 8px; z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 12px; backdrop-filter: blur(3px);">
+                                <span style="font-size: 10px; color: #F9A825; font-weight: 600;">모은 원소(🔥)</span>
+                            </div>
+                        </div>
+
+                        <div style="position: relative; width: 135px; height: 180px; border-radius: 12px; background-image: url('1000017146.webp'); background-size: cover; background-position: center; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); opacity: 0.8;">
+                            <div style="position: absolute; top: 8px; left: 8px; z-index: 10; background-color: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 12px; backdrop-filter: blur(3px);">
+                                <span style="font-size: 10px; color: #FFFFFF; font-weight: 600;">모은 원소(⚪)</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <span style="font-size: 17px; color: #cccccc;">공유해볼까요?</span>
+                    <!-- 미래형 운세 확인 버튼 (웅웅 이펙트) -->
+                    <div style="position: relative; z-index: 2; cursor: pointer; display: flex; justify-content: center; align-items: center; margin-bottom: 40px;">
+                        <div style="width: 120px; height: 120px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%); border-radius: 50%; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); border: 3px solid rgba(114, 9, 183, 0.4); animation: fortune-pulse 2s ease-in-out infinite alternate; box-shadow: 0 0 30px rgba(114, 9, 183, 0.5);">
+                            <div style="color: #FFFFFF; font-size: 16px; font-weight: 600; text-align: center; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);">
+                                내일 운세
+                            </div>
+                        </div>
+                    </div>
+
+                    <style>
+                        @keyframes fortune-pulse {
+                            0% {
+                                transform: scale(1);
+                                box-shadow: 0 0 30px rgba(114, 9, 183, 0.5), 0 0 60px rgba(114, 9, 183, 0.2);
+                            }
+                            50% {
+                                transform: scale(1.08);
+                                box-shadow: 0 0 50px rgba(114, 9, 183, 0.8), 0 0 100px rgba(114, 9, 183, 0.4);
+                            }
+                            100% {
+                                transform: scale(1.04);
+                                box-shadow: 0 0 40px rgba(114, 9, 183, 0.6), 0 0 80px rgba(114, 9, 183, 0.3);
+                            }
+                        }
+                    </style>
+
+                </main>
+
+                <div style="height: 50px; flex-shrink: 0;"></div>
+
+            </div>
+
+            <!-- 플립 후 운세 카드 화면 -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a; position: relative; overflow: hidden;">
+
+                <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
+                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+                        <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+
+                <!-- 고급스러운 운세 카드 -->
+                <div style="width: 100%; max-width: 340px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%); border: 2px solid transparent; background-clip: padding-box; box-shadow: 0 20px 60px rgba(114, 9, 183, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 40px 35px; box-sizing: border-box; text-align: left; display: flex; flex-direction: column; gap: 25px; position: relative; overflow: hidden;">
+
+                    <!-- 배경 장식 -->
+                    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%); border-radius: 50%;"></div>
+                    <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%); border-radius: 50%;"></div>
+
+                    <!-- 날짜 섹션 -->
+                    <div style="position: relative; z-index: 2;">
+                        <p style="margin: 0; font-size: 22px; line-height: 1.6; color: #f8fafc; font-weight: 700;">
+                            다가오는 2025년 09월 19일
+                        </p>
+                        <p style="margin: 8px 0 0 0; font-size: 16px; color: #cbd5e1; font-weight: 400; opacity: 0.8;">
+                            을사(乙巳)년 을유(乙酉)월 신묘(辛卯)일
+                        </p>
+                    </div>
+
+                    <!-- 구분선 -->
+                    <div style="height: 1px; background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%); position: relative; z-index: 2;"></div>
+
+                    <!-- 메인 내용 -->
+                    <div style="position: relative; z-index: 2;">
+                        <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #e2e8f0;">
+                            오늘 당신에게 부족한 <span style="color: #34d399; font-weight: 700; text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);">나무</span> 기운을 얻었는데, 도움이 되었나요?
+                            내일은 묘목(卯木)이 들어오기 때문에 나무 기운 보다 당신에게 없는 <span style="color: #60a5fa; font-weight: 700; text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);">물</span> 기운이 필요하답니다.
+                        </p>
+
+                        <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.7; color: #cbd5e1;">
+                            한강에 가서 아침에 러닝을 한다거나, 깔끔해 보이는 검은색 셔츠와 같은 코디를 곁들이면 좋겠습니다.
+                        </p>
+
+                        <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #e2e8f0; font-weight: 500;">
+                            내일은 여러 운기 중 <span style="color: #fbbf24; font-weight: 700; text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);">재물운</span>이 좋으니 과감한 투자를 추천해요. 뜻밖의 횡재가 들어와 큰 돈을 만질 수도 있게 됩니다.
+                        </p>
+                    </div>
+
+                    <!-- 마무리 메시지 -->
+                    <div style="background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; text-align: center; position: relative; z-index: 2; backdrop-filter: blur(10px);">
+                        <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #94a3b8; font-style: italic;">
+                            "그럼, 오늘도 수고한 당신을 위해<br>내일도 미션과 함께 만나요! ✨"
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 사진 상세 화면 -->
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a; position: relative; overflow: hidden;">
+
+                <!-- 뒤로가기 버튼 -->
+                <div style="position: absolute; top: 40px; left: 25px; z-index: 10;">
+                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.8));">
+                        <path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+
+                <!-- 상단 시간/옷 정보 -->
+                <div style="position: absolute; top: 100px; left: 50%; transform: translateX(-50%); z-index: 20; background-color: rgba(0, 0, 0, 0.7); padding: 15px 25px; border-radius: 20px; backdrop-filter: blur(10px); width: 300px; max-width: 85%; text-align: center;">
+                    <p style="margin: 0; font-size: 16px; color: #FFFFFF; font-weight: 500; line-height: 1.4;">오늘의 14시 30분, 파란색 셔츠를 입으셨네요</p>
+                </div>
+
+                <!-- 확대된 사진 -->
+                <div style="width: 100%; height: 100%; background-image: url('1000017146.webp'); background-size: cover; background-position: center; border-radius: 30px; position: relative;">
+
+                    <!-- 원소 획득 정보 (우측 하단) -->
+                    <div style="position: absolute; bottom: 30px; right: 30px; z-index: 15; background-color: rgba(0, 0, 0, 0.8); padding: 12px 18px; border-radius: 16px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px; color: #64B5F6; font-weight: 600;">모은 원소</span>
+                            <div style="width: 24px; height: 24px; border-radius: 50%; background-color: #1976D2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 12px;">💧</div>
+                        </div>
+                    </div>
 
                 </div>
 
-                 <div style="display: flex; gap: 10px; margin-top: 30px;">
-                    <button style="flex: 1; background-color: #333; color: #FFFFFF; border: 1px solid #555; padding: 12px; border-radius: 10px; font-size: 16px; cursor: pointer;">닫기</button>
-                    <button style="flex: 1; background-color: #FFFFFF; color: #000000; border: none; padding: 12px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;">공유하기</button>
-                </div>
             </div>
         </div>
     </div>
+
+
+    <!-- 프로필 페이지 -->
+    <div class="profile-section" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+        <h2 style="color: #FFFFFF; font-size: 20px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: left;">프로필</h2>
+        <div style="display: flex; gap: 20px; justify-content: flex-start; overflow-x: visible;">
+            <div style="width: 375px; height: 812px; background-color: #000000; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border-radius: 40px; border: 10px solid #1a1a1a;">
+
+                <!-- 상단 헤더 -->
+                <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+                        <path d="M15 18L9 12L15 6" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1 style="margin: 0; font-size: 18px; font-weight: 600; color: #FFFFFF;">Fortuna.</h1>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+                        <circle cx="12" cy="12" r="3" stroke="#FFFFFF" stroke-width="2"/>
+                        <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" stroke="#FFFFFF" stroke-width="2"/>
+                    </svg>
+                </header>
+
+                <!-- 사용자 정보 섹션 -->
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 40px;">
+                    <!-- 음양오행 원소 -->
+                    <div style="width: 100px; height: 100px; border: 3px solid #4CAF50; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
+                        <span style="font-size: 36px; color: #4CAF50; font-weight: bold;">木</span>
+                    </div>
+
+                    <!-- 이름 -->
+                    <h2 style="margin: 0 0 15px 0; font-size: 24px; font-weight: 600; color: #FFFFFF;">김창아</h2>
+
+                    <!-- 기본 정보 -->
+                    <div style="text-align: center; color: #AAAAAA; font-size: 14px; line-height: 1.6;">
+                        <p style="margin: 3px 0;">성별: 남성</p>
+                        <p style="margin: 3px 0;">생년월일: 2002.07.15</p>
+                        <p style="margin: 3px 0;">출생시간: 16시 25분</p>
+                    </div>
+                </div>
+
+                <!-- 통계 섹션 -->
+                <div style="margin-bottom: 30px;">
+                    <!-- 수집한 원소 -->
+                    <div style="background-color: #1c1c1e; border-radius: 16px; padding: 20px; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                            <span style="font-size: 16px; color: #FFFFFF; font-weight: 500;">🌟 지금까지 수집한 원소</span>
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 8px;">
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #2E7D32; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px;">4</div>
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #C62828; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px;">15</div>
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #F9A825; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px;">1</div>
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: bold; color: black; font-size: 14px;">0</div>
+                            <div style="width: 35px; height: 35px; border-radius: 50%; background-color: #616161; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px;">22</div>
+                        </div>
+                    </div>
+
+                    <!-- 내일 운세 확인 횟수 -->
+                    <div style="background-color: #1c1c1e; border-radius: 16px; padding: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-size: 16px; color: #FFFFFF; font-weight: 500;">🔮 지금까지 본 내일의 수</span>
+                            <span style="font-size: 20px; color: #6B46C1; font-weight: bold;">8</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 내 사주 상세 해석 버튼 -->
+                <div style="margin-bottom: 30px;">
+                    <button style="width: 100%; background-color: #4CAF50; color: #FFFFFF; border: none; border-radius: 25px; padding: 15px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                        당신의 오행은 나무
+                    </button>
+                </div>
+
+                <!-- 사주 설명 섹션 -->
+                <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 15px;">
+                    <!-- 성격 특성 -->
+                    <div style="background-color: #1c1c1e; border-radius: 16px; padding: 20px;">
+                        <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #FFFFFF; font-weight: 600;">성격 특성</h3>
+                        <p style="margin: 0; font-size: 14px; color: #AAAAAA; line-height: 1.6;">
+                            나무 오행을 가진 당신은 성장과 발전을 추구하는 성향이 강합니다. 창의적이고 유연한 사고를 가지고 있으며, 새로운 도전을 즐깁니다.
+                        </p>
+                    </div>
+
+                    <!-- 운세 전망 -->
+                    <div style="background-color: #1c1c1e; border-radius: 16px; padding: 20px;">
+                        <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #FFFFFF; font-weight: 600;">운세 전망</h3>
+                        <p style="margin: 0; font-size: 14px; color: #AAAAAA; line-height: 1.6;">
+                            올해는 특히 인간관계에서 사업 번성에 좋은 기운이 찾아올 것으로 보입니다. 꾸준한 노력이 결실을 맺는 시기입니다.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
-    
+
 </body>
 </html>
