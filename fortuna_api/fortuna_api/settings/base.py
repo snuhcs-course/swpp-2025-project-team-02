@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 from decouple import config
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -50,7 +53,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'fortuna',
+    'core',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -116,7 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Custom User Model
-AUTH_USER_MODEL = 'fortuna.User'
+# AUTH_USER_MODEL = 'fortuna.User'  # Commented out - using default User model for now
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
