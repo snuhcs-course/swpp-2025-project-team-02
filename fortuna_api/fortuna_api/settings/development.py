@@ -73,6 +73,10 @@ REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
     'rest_framework.authentication.SessionAuthentication',
 ]
 
+# 개발환경에서는 인증 없이 API 사용 가능
+DEVELOPMENT_MODE = True
+DEFAULT_DEV_PERMISSION_CLASSES = ['rest_framework.permissions.AllowAny']
+
 # Django Extensions settings
 SHELL_PLUS_PRINT_SQL = True
 
