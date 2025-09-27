@@ -26,7 +26,10 @@ urlpatterns = [
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
 
     # API URLs
-    path('api/', include('fortuna.urls')),
+    path('api/core/', include('core.urls')),  
+
+    # USER URLs
+    path('api/user/', include('user.urls')),
 ]
 
 # Serve media files in development
