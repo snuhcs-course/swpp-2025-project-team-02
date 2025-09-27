@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.conf import settings
+from drf_spectacular.utils import extend_schema
 import logging
 
 from .serializers import (
@@ -11,11 +13,47 @@ from .serializers import (
     UserProfileUpdateSerializer
 )
 from .utils import GoogleOAuthUtils
+from .permissions import DevelopmentOrAuthenticated
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+@extend_schema(
+    summary="Google OAuth Login",
+    description="Login or register user with Google OAuth ID token",
+    request=GoogleLoginSerializer,
+    responses={
+        200: {
+            'description': 'Authentication successful',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...',
+                        'refresh_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...',
+                        'user_id': 1,
+                        'email': 'user@example.com',
+                        'name': 'John Doe',
+                        'profile_image': 'https://lh3.googleusercontent.com/...',
+                        'is_new_user': False,
+                        'needs_additional_info': True
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Invalid token or authentication failed',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'error': 'Invalid token',
+                        'message': 'Google ID token verification failed'
+                    }
+                }
+            }
+        }
+    }
+)
 class GoogleAuthView(APIView):
     """Google OAuth 로그인/회원가입 처리"""
     permission_classes = [permissions.AllowAny]
@@ -104,6 +142,45 @@ class GoogleAuthView(APIView):
             return user, True
 
 
+@extend_schema(
+    summary="Refresh JWT Token",
+    description="Refresh access token using refresh token",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'refresh': {
+                    'type': 'string',
+                    'description': 'Refresh token'
+                }
+            },
+            'required': ['refresh']
+        }
+    },
+    responses={
+        200: {
+            'description': 'Token refreshed successfully',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'access': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...'
+                    }
+                }
+            }
+        },
+        401: {
+            'description': 'Invalid or expired refresh token',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'detail': 'Token is invalid or expired',
+                        'code': 'token_not_valid'
+                    }
+                }
+            }
+        }
+    }
+)
 class CustomTokenRefreshView(APIView):
     """커스텀 토큰 리프레시 뷰"""
     permission_classes = [permissions.AllowAny]
@@ -135,12 +212,71 @@ class CustomTokenRefreshView(APIView):
         }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@extend_schema(
+    summary="User Profile Management",
+    description="Get or update user profile information including birth data and Saju info"
+)
 class UserProfileView(APIView):
     """사용자 프로필 조회/업데이트"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [DevelopmentOrAuthenticated]
 
+    @extend_schema(
+        summary="Get User Profile",
+        description="Retrieve current user's profile information",
+        responses={
+            200: {
+                'description': 'Profile retrieved successfully',
+                'content': {
+                    'application/json': {
+                        'example': {
+                            'user_id': 1,
+                            'email': 'user@example.com',
+                            'name': 'John Doe',
+                            'profile_image': 'https://lh3.googleusercontent.com/...',
+                            'nickname': 'john_doe',
+                            'birth_date_solar': '1990-01-15',
+                            'birth_date_lunar': None,
+                            'solar_or_lunar': 'solar',
+                            'birth_time_units': 3,
+                            'gender': 'Male',
+                            'yearly_ganji': '경오',
+                            'monthly_ganji': '정축',
+                            'daily_ganji': '갑자',
+                            'hourly_ganji': '병인',
+                            'created_at': '2024-01-01T12:00:00',
+                            'last_login': '2024-01-15T14:30:00'
+                        }
+                    }
+                }
+            }
+        }
+    )
     def get(self, request):
         """프로필 조회"""
+        # 개발환경에서 user_id 파라미터로 특정 사용자 조회 허용
+        if getattr(settings, 'DEVELOPMENT_MODE', False):
+            user_id = request.GET.get('user_id')
+            if user_id:
+                try:
+                    user = User.objects.get(id=user_id)
+                    profile_data = self._build_profile_response(user)
+                    return Response(profile_data)
+                except User.DoesNotExist:
+                    return Response(
+                        {'error': f'User with id {user_id} not found'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            elif not request.user.is_authenticated:
+                return Response(
+                    {'error': 'Authentication required or provide user_id parameter in development'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        elif not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         user = request.user
         profile_data = self._build_profile_response(user)
         return Response(profile_data)
@@ -182,6 +318,49 @@ class UserProfileView(APIView):
             )
         }
 
+    @extend_schema(
+        summary="Update User Profile",
+        description="Update user profile information including birth data and personal info",
+        request=UserProfileUpdateSerializer,
+        responses={
+            200: {
+                'description': 'Profile updated successfully',
+                'content': {
+                    'application/json': {
+                        'example': {
+                            'message': 'Profile updated successfully',
+                            'user': {
+                                'user_id': 1,
+                                'email': 'user@example.com',
+                                'name': 'John Doe',
+                                'nickname': 'john_doe',
+                                'birth_date_solar': '1990-01-15',
+                                'birth_date_lunar': None,
+                                'solar_or_lunar': 'solar',
+                                'birth_time_units': 3,
+                                'gender': 'Male',
+                                'yearly_ganji': '경오',
+                                'monthly_ganji': '정축',
+                                'daily_ganji': '갑자',
+                                'hourly_ganji': '병인'
+                            }
+                        }
+                    }
+                }
+            },
+            400: {
+                'description': 'Validation error',
+                'content': {
+                    'application/json': {
+                        'example': {
+                            'nickname': ['닉네임은 2-20자 사이여야 합니다.'],
+                            'birth_date': ['유효한 날짜를 입력해주세요.']
+                        }
+                    }
+                }
+            }
+        }
+    )
     def patch(self, request):
         """프로필 업데이트"""
         # 1. 데이터 검증
@@ -235,9 +414,36 @@ class UserProfileView(APIView):
         }
 
 
+@extend_schema(
+    summary="User Logout",
+    description="Logout user and blacklist refresh token",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'refresh_token': {
+                    'type': 'string',
+                    'description': 'Refresh token to blacklist (optional)'
+                }
+            }
+        }
+    },
+    responses={
+        200: {
+            'description': 'Logout successful',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'message': 'Successfully logged out'
+                    }
+                }
+            }
+        }
+    }
+)
 class LogoutView(APIView):
     """로그아웃 처리"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [DevelopmentOrAuthenticated]
 
     def post(self, request):
         # Refresh 토큰 블랙리스트 처리

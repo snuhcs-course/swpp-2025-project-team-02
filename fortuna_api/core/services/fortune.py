@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
-from ai import generateText, openai
+import openai
 from django.conf import settings
 from ..utils.concept import (
     GAPJA_SYSTEM,
@@ -57,12 +57,12 @@ class FortuneService:
     """Service for generating Saju-based fortune tellings."""
 
     def __init__(self):
-        """Initialize FortuneService with AI SDK model."""
+        """Initialize FortuneService with OpenAI client."""
         api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
         if api_key:
-            self.model = openai("gpt-4o-mini", api_key=api_key)
+            self.client = openai.OpenAI(api_key=api_key)
         else:
-            self.model = None
+            self.client = None
         self.image_service = ImageService()
 
     def calculate_gapja_code(self, date: datetime) -> int:
@@ -263,19 +263,26 @@ class FortuneService:
         구체적이고 실천 가능한 조언을 제공해주세요.
         """
 
-        # Generate fortune using AI SDK
+        # Generate fortune using OpenAI
         try:
-            result = generate_object(
-                model=self.model,
-                schema=FortuneResponse,
+            if not self.client:
+                raise ValueError("OpenAI client not initialized")
+
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": context},
                     {"role": "user", "content": "내일의 운세를 자세히 풀어주세요."}
                 ],
-                config={"temperature": 0.8}
+                temperature=0.8
             )
 
-            return result.object
+            # Parse the response content into a structured format
+            content = response.choices[0].message.content
+
+            # For now, return a basic structured response
+            # TODO: Implement proper JSON parsing or structured output
+            return self._parse_fortune_response(content, tomorrow_date, compatibility)
 
         except Exception as e:
             logger.error(f"Failed to generate fortune with AI: {e}")
@@ -304,6 +311,35 @@ class FortuneService:
                 ),
                 special_message="당신의 내일이 밝고 희망찬 날이 되기를 기원합니다."
             )
+
+    def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneResponse:
+        """Parse AI response into FortuneResponse structure."""
+        # For now, create a structured response with the content
+        # TODO: Implement proper JSON parsing when AI returns structured data
+        return FortuneResponse(
+            tomorrow_date=tomorrow_date.strftime('%Y-%m-%d'),
+            saju_compatibility=f"{compatibility['level']} ({compatibility['score']}/100)",
+            overall_fortune=compatibility['score'],
+            fortune_summary=content[:200] + "..." if len(content) > 200 else content,
+            element_balance=f"{compatibility['user_element']}행과 {compatibility['tomorrow_element']}행의 조화",
+            chakra_readings=[
+                ChakraReading(
+                    chakra_type="AI 해석",
+                    strength=75,
+                    message="AI가 생성한 종합적인 해석입니다.",
+                    location_significance="전체적인 에너지 흐름"
+                )
+            ],
+            daily_guidance=DailyGuidance(
+                best_time="오전 9-11시",
+                lucky_direction="동쪽",
+                lucky_color="청색",
+                activities_to_embrace=["새로운 시작", "대화와 소통"],
+                activities_to_avoid=["큰 결정", "논쟁"],
+                key_advice=content[-100:] if len(content) > 100 else "오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
+            ),
+            special_message="AI가 생성한 맞춤형 운세입니다."
+        )
 
     def generate_tomorrow_fortune(
         self,

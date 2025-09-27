@@ -69,7 +69,7 @@ class User(AbstractUser):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = []
     
     class Meta:
         db_table = 'fortuna_users'
