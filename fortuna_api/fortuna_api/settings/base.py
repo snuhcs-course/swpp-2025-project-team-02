@@ -33,6 +33,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 
     # Authentication
     'allauth',
@@ -53,7 +54,8 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'core',
+    'core',  
+    'user',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -119,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Custom User Model
-# AUTH_USER_MODEL = 'fortuna.User'  # Commented out - using default User model for now
+AUTH_USER_MODEL = 'user.User'  # Commented out - using default User model for now
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -159,6 +161,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # 'EXCEPTION_HANDLER': 'user.utils.custom_exception_handler',  # 현재 미구현 
 }
 
 # JWT Configuration
@@ -197,12 +200,9 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_METHODS = {"email"} 
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_USERNAME_GENERATOR = None 
 
 # Social account providers
 SOCIALACCOUNT_PROVIDERS = {
@@ -219,6 +219,8 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # Google OAuth2 Settings
+GOOGLE_OAUTH2_CLIENT_ID = config('GOOGLE_OAUTH2_CLIENT_ID', default='')
+GOOGLE_OAUTH2_CLIENT_SECRET = config('GOOGLE_OAUTH2_CLIENT_SECRET', default='')
 # SOCIALACCOUNT_ADAPTER = 'apps.authentication.adapters.SocialAccountAdapter'  # Disabled for now
 
 # dj-rest-auth Configuration

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
-from ai_sdk import generate_object, openai
+from ai import generateText, openai
 from django.conf import settings
 from ..utils.concept import (
     GAPJA_SYSTEM,
@@ -59,7 +59,10 @@ class FortuneService:
     def __init__(self):
         """Initialize FortuneService with AI SDK model."""
         api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
-        self.model = openai("gpt-4o-mini", api_key=api_key)
+        if api_key:
+            self.model = openai("gpt-4o-mini", api_key=api_key)
+        else:
+            self.model = None
         self.image_service = ImageService()
 
     def calculate_gapja_code(self, date: datetime) -> int:
