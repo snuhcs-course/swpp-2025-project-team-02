@@ -73,6 +73,10 @@ REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
     'rest_framework.authentication.SessionAuthentication',
 ]
 
+# 개발환경에서는 인증 없이 API 사용 가능
+DEVELOPMENT_MODE = True
+DEFAULT_DEV_PERMISSION_CLASSES = ['rest_framework.permissions.AllowAny']
+
 # Django Extensions settings
 SHELL_PLUS_PRINT_SQL = True
 
@@ -87,6 +91,37 @@ CACHES = {
     }
 }
 
-# Console logging in development
-LOGGING['handlers']['console']['level'] = 'DEBUG'
-LOGGING['root']['level'] = 'DEBUG'
+# Console-only logging in development (파일 로깅 제거)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'user': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}

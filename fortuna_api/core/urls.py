@@ -5,10 +5,12 @@ URL configuration for Fortuna core API endpoints.
 from django.urls import path
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
+from django.conf import settings
+from user.permissions import DevelopmentOrAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from datetime import datetime
 from .services.image import ImageService
@@ -42,10 +44,9 @@ fortune_service = FortuneService()
     responses={
         200: {
             'description': 'Image uploaded successfully',
-            'examples': [
-                OpenApiExample(
-                    'Success',
-                    value={
+            'content': {
+                'application/json': {
+                    'example': {
                         'status': 'success',
                         'data': {
                             'image_id': 'uuid-string',
@@ -59,13 +60,13 @@ fortune_service = FortuneService()
                             }
                         }
                     }
-                )
-            ]
+                }
+            }
         }
     }
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([DevelopmentOrAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_chakra_image(request):
     """
@@ -83,7 +84,12 @@ def upload_chakra_image(request):
         )
 
     image_file = request.FILES['image']
-    user_id = request.user.id
+
+    # 개발환경에서는 mock user_id 사용
+    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
+        user_id = 1  # 개발용 기본 사용자 ID
+    else:
+        user_id = request.user.id
 
     # Get additional data from request
     additional_data = {
@@ -126,10 +132,9 @@ def upload_chakra_image(request):
     responses={
         200: {
             'description': 'Fortune generated successfully',
-            'examples': [
-                OpenApiExample(
-                    'Success',
-                    value={
+            'content': {
+                'application/json': {
+                    'example': {
                         'status': 'success',
                         'data': {
                             'user_id': 1,
@@ -150,13 +155,13 @@ def upload_chakra_image(request):
                             }
                         }
                     }
-                )
-            ]
+                }
+            }
         }
     }
 )
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([DevelopmentOrAuthenticated])
 def generate_tomorrow_fortune(request):
     """
     Generate tomorrow's fortune based on Saju and collected chakras.
@@ -167,7 +172,11 @@ def generate_tomorrow_fortune(request):
     - Today's collected chakra photos and locations
     - OpenAI API for personalized interpretation
     """
-    user_id = request.user.id
+    # 개발환경에서는 mock user_id 사용
+    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
+        user_id = 1  # 개발용 기본 사용자 ID
+    else:
+        user_id = request.user.id
 
     # Get date parameter
     date_str = request.GET.get('date') or request.data.get('date')
@@ -217,10 +226,9 @@ def generate_tomorrow_fortune(request):
     responses={
         200: {
             'description': 'Hourly fortune retrieved successfully',
-            'examples': [
-                OpenApiExample(
-                    'Success',
-                    value={
+            'content': {
+                'application/json': {
+                    'example': {
                         'status': 'success',
                         'data': {
                             'current_time': '2024-01-01T14:30:00',
@@ -230,13 +238,13 @@ def generate_tomorrow_fortune(request):
                             'advice': '평온한 시간입니다.'
                         }
                     }
-                )
-            ]
+                }
+            }
         }
     }
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([DevelopmentOrAuthenticated])
 def get_hourly_fortune(request):
     """
     Get fortune for specific hour using traditional Korean time units.
@@ -247,7 +255,11 @@ def get_hourly_fortune(request):
     - 인시 (03:00-05:00): Wood
     - And so on...
     """
-    user_id = request.user.id
+    # 개발환경에서는 mock user_id 사용
+    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
+        user_id = 1  # 개발용 기본 사용자 ID
+    else:
+        user_id = request.user.id
 
     # Get datetime parameter
     datetime_str = request.GET.get('datetime')
@@ -289,10 +301,9 @@ def get_hourly_fortune(request):
     responses={
         200: {
             'description': 'Images retrieved successfully',
-            'examples': [
-                OpenApiExample(
-                    'Success',
-                    value={
+            'content': {
+                'application/json': {
+                    'example': {
                         'status': 'success',
                         'data': {
                             'date': '2024-01-01',
@@ -305,18 +316,22 @@ def get_hourly_fortune(request):
                             'count': 1
                         }
                     }
-                )
-            ]
+                }
+            }
         }
     }
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([DevelopmentOrAuthenticated])
 def get_user_images(request):
     """
     Get all images uploaded by the user on a specific date.
     """
-    user_id = request.user.id
+    # 개발환경에서는 mock user_id 사용
+    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
+        user_id = 1  # 개발용 기본 사용자 ID
+    else:
+        user_id = request.user.id
 
     date_str = request.GET.get('date')
     if not date_str:
