@@ -13,69 +13,22 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.fortuna_android.data.Api.LoginRequest
+import com.example.fortuna_android.data.Api.RetrofitClient
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.SignInButton
 import com.google.android.gms.common.api.ApiException
-import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.launch
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.POST
-
-
-// Retrofit API 통신을 위한 데이터 클래스 정의
-
-// POST /api/auth/google/ 요청 시 Body에 담을 데이터
-data class LoginRequest(
-    @SerializedName("id_token") val idToken: String
-)
-
-// POST /api/auth/google/ 요청 성공 시 응답 데이터
-data class LoginResponse(
-    @SerializedName("accessToken") val accessToken: String,
-    @SerializedName("user") val user: User
-)
-
-// GET /api/profile/ 요청 성공 시 응답 데이터
-data class User(
-    @SerializedName("pk") val id: Int,
-    @SerializedName("username") val username: String,
-    @SerializedName("email") val email: String
-)
-
-
-// --- Retrofit API 인터페이스 정의 ---
-
-interface ApiService {
-    @POST("api/user/auth/google/")
-    suspend fun loginWithGoogle(@Body request: LoginRequest): Response<LoginResponse>
-
-    @GET("api/user/profile/")
-    suspend fun getProfile(@Header("Authorization") token: String): Response<User>
-}
-
-
-// --- Retrofit 클라이언트 싱글턴 객체 ---
-
-object RetrofitClient {
-    private const val BASE_URL = "http://172.30.1.66:8000/"
-
-    val instance: ApiService by lazy {
-        val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-        retrofit.create(ApiService::class.java)
-    }
-}
-
+import kotlin.Exception
+import kotlin.String
+import kotlin.apply
+import kotlin.collections.isNullOrEmpty
+import kotlin.collections.remove
+import kotlin.text.isNullOrEmpty
+import kotlin.toString
 
 class MainActivity : AppCompatActivity() {
 
@@ -183,8 +136,7 @@ class MainActivity : AppCompatActivity() {
                     val loginResponse = response.body()
                     if (loginResponse != null) {
                         val backendToken = loginResponse.accessToken
-                        val username = loginResponse.user
-                        Log.d(TAG, "loginResponse (String): $loginResponse")
+                        val username = loginResponse.name
                         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         prefs.edit().putString(KEY_TOKEN, backendToken).apply()
 
