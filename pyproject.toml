@@ -36,8 +36,20 @@ dependencies = [
 
     # AI Integration
     "ai-sdk-python>=0.1.0",
-    "django-dotenv (>=1.4.2,<2.0.0)",
-    "pytest (>=8.4.2,<9.0.0)",
+    "openai>=1.0.0,<2.0.0",
+
+    # Korean Lunar Calendar
+    "lunarcalendar>=0.0.9,<1.0.0",
+
+    # Google OAuth
+    "google-auth>=2.23.0,<3.0.0",
+    "google-auth-oauthlib>=1.1.0,<2.0.0",
+
+    # WebSocket support
+    "channels>=4.0.0,<5.0.0",
+    "channels-redis>=4.1.0,<5.0.0",
+    "cryptography (>=42,<999)",
+    "django-debug-toolbar (>=6.0.0,<7.0.0)",
 ]
 
 [project.optional-dependencies]
@@ -56,9 +68,12 @@ dev = [
     "djangorestframework-stubs>=3.14.5,<4.0.0",
 
     # Development Tools
-    "django-debug-toolbar>=4.2.0,<5.0.0",
+    "django-debug-toolbar>=4.2.0,<7.0.0",
     "ipython>=8.18.0,<9.0.0",
     "pre-commit>=3.6.0,<4.0.0",
+    "isort>=5.12.0,<6.0.0",
+    "flake8>=6.0.0,<7.0.0",
+    "coverage>=7.0.0,<8.0.0",
 ]
 
 production = [
@@ -274,3 +289,8 @@ section-order = ["future", "standard-library", "django", "third-party", "first-p
 
 # __init__.py files can have unused imports
 "**/__init__.py" = ["F401"]
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar (>=6.0.0,<7.0.0)"
+]
