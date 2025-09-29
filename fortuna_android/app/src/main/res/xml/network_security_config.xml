@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 에뮬레이터가 로컬 PC를 가리키는 특수 IP -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- 실제 PC의 IP 주소 (필요 시) -->
+        <domain includeSubdomains="true">172.30.1.66</domain>
+    </domain-config>
+</network-security-config>
