@@ -1,30 +1,57 @@
 """
 Korean Saju (四柱) concepts and calculations.
-Based on the traditional 60 Gapja system and Five Elements theory.
+Direct port from Kotlin SajuConcepts.kt
 """
 from enum import Enum
-from datetime import datetime, date, time
-from typing import Tuple, Optional
-from lunarcalendar import Converter, Solar, Lunar
+from datetime import date, time, datetime
+from typing import Optional
+from astronomy import Time, SunPosition
 
 
 class YinYang(Enum):
     """음양 (Yin-Yang)"""
-    YIN = "음"
     YANG = "양"
+    YIN = "음"
 
 
 class FiveElements(Enum):
     """오행 (Five Elements)"""
-    WOOD = "목"
-    FIRE = "화"
-    EARTH = "토"
-    METAL = "금"
-    WATER = "수"
+    WOOD = ("목", "나무", "푸른")
+    FIRE = ("화", "불", "붉은")
+    EARTH = ("토", "흙", "노란")
+    METAL = ("금", "철", "흰")
+    WATER = ("수", "물", "검은")
+
+    def __init__(self, chinese: str, easy_korean: str, color: str):
+        self.chinese = chinese
+        self.easy_korean = easy_korean
+        self.color = color
+
+    def empowers(self, other: 'FiveElements') -> bool:
+        """상생 관계 (empowers)"""
+        relations = {
+            FiveElements.WOOD: FiveElements.FIRE,
+            FiveElements.FIRE: FiveElements.EARTH,
+            FiveElements.EARTH: FiveElements.METAL,
+            FiveElements.METAL: FiveElements.WATER,
+            FiveElements.WATER: FiveElements.WOOD,
+        }
+        return relations[self] == other
+
+    def weakens(self, other: 'FiveElements') -> bool:
+        """상극 관계 (weakens)"""
+        relations = {
+            FiveElements.WOOD: FiveElements.EARTH,
+            FiveElements.FIRE: FiveElements.METAL,
+            FiveElements.EARTH: FiveElements.WATER,
+            FiveElements.METAL: FiveElements.WOOD,
+            FiveElements.WATER: FiveElements.FIRE,
+        }
+        return relations[self] == other
 
 
 class TenStems(Enum):
-    """십간 (Ten Heavenly Stems)"""
+    """천간 (Ten Heavenly Stems)"""
     GAHP = ("갑", YinYang.YANG, FiveElements.WOOD)
     EUL = ("을", YinYang.YIN, FiveElements.WOOD)
     BYUNG = ("병", YinYang.YANG, FiveElements.FIRE)
@@ -41,23 +68,29 @@ class TenStems(Enum):
         self.yin_yang = yin_yang
         self.element = element
 
-    @classmethod
-    def get_by_index(cls, index: int) -> 'TenStems':
-        """Get stem by index (0-9)"""
-        stems = list(cls)
-        return stems[index % 10]
+    def next(self, offset: int) -> 'TenStems':
+        """다음 천간 (offset만큼 이동)"""
+        stems = list(TenStems)
+        current_index = stems.index(self)
+        return stems[(current_index + offset) % len(stems)]
 
     @classmethod
-    def find_by_name(cls, name: str) -> 'TenStems':
-        """Find stem by Korean name"""
+    def idx_at(cls, index: int) -> 'TenStems':
+        """인덱스로 천간 찾기"""
+        stems = list(cls)
+        return stems[index % len(stems)]
+
+    @classmethod
+    def find(cls, name: str) -> 'TenStems':
+        """한글 이름으로 천간 찾기"""
         for stem in cls:
             if stem.korean_name == name:
                 return stem
-        raise ValueError(f"Unknown stem name: {name}")
+        raise ValueError(f"천간을 찾을 수 없습니다: {name}")
 
 
 class TwelveBranches(Enum):
-    """십이지 (Twelve Earthly Branches)"""
+    """지지 (Twelve Earthly Branches)"""
     JA = ("자", "쥐", YinYang.YANG, FiveElements.WATER)
     CHUK = ("축", "소", YinYang.YIN, FiveElements.EARTH)
     IN = ("인", "범", YinYang.YANG, FiveElements.WOOD)
@@ -77,91 +110,265 @@ class TwelveBranches(Enum):
         self.yin_yang = yin_yang
         self.element = element
 
-    @classmethod
-    def get_by_index(cls, index: int) -> 'TwelveBranches':
-        """Get branch by index (0-11)"""
-        branches = list(cls)
-        return branches[index % 12]
+    def next(self, offset: int) -> 'TwelveBranches':
+        """다음 지지 (offset만큼 이동)"""
+        branches = list(TwelveBranches)
+        current_index = branches.index(self)
+        return branches[(current_index + offset) % len(branches)]
 
     @classmethod
-    def find_by_name(cls, name: str) -> 'TwelveBranches':
-        """Find branch by Korean name"""
+    def idx_at(cls, index: int) -> 'TwelveBranches':
+        """인덱스로 지지 찾기"""
+        branches = list(cls)
+        return branches[index % len(branches)]
+
+    @classmethod
+    def find(cls, name: str) -> 'TwelveBranches':
+        """한글 이름으로 지지 찾기"""
         for branch in cls:
             if branch.korean_name == name:
                 return branch
-        raise ValueError(f"Unknown branch name: {name}")
+        raise ValueError(f"지지를 찾을 수 없습니다: {name}")
+
+    @classmethod
+    def of(cls, time_unit: 'TimeUnits') -> 'TwelveBranches':
+        """십이시로부터 지지 찾기"""
+        mapping = {
+            TimeUnits.JA_SI: cls.JA,
+            TimeUnits.CHUK_SI: cls.CHUK,
+            TimeUnits.IN_SI: cls.IN,
+            TimeUnits.MYO_SI: cls.MYO,
+            TimeUnits.JIN_SI: cls.JIN,
+            TimeUnits.SA_SI: cls.SA,
+            TimeUnits.O_SI: cls.O,
+            TimeUnits.MI_SI: cls.MI,
+            TimeUnits.SIN_SI: cls.SIN,
+            TimeUnits.YU_SI: cls.YU,
+            TimeUnits.SUL_SI: cls.SUL,
+            TimeUnits.HAE_SI: cls.HAE,
+            TimeUnits.YA_JA_SI: cls.HAE,  # Kotlin: 야자시 -> 해
+        }
+        return mapping.get(time_unit, cls.JA)
 
 
 class TimeUnits(Enum):
     """십이시 (Traditional Korean Time Units)"""
-    JA_SI = ("자시", (23, 1), TwelveBranches.JA)
-    CHUK_SI = ("축시", (1, 3), TwelveBranches.CHUK)
-    IN_SI = ("인시", (3, 5), TwelveBranches.IN)
-    MYO_SI = ("묘시", (5, 7), TwelveBranches.MYO)
-    JIN_SI = ("진시", (7, 9), TwelveBranches.JIN)
-    SA_SI = ("사시", (9, 11), TwelveBranches.SA)
-    O_SI = ("오시", (11, 13), TwelveBranches.O)
-    MI_SI = ("미시", (13, 15), TwelveBranches.MI)
-    SIN_SI = ("신시", (15, 17), TwelveBranches.SIN)
-    YU_SI = ("유시", (17, 19), TwelveBranches.YU)
-    SUL_SI = ("술시", (19, 21), TwelveBranches.SUL)
-    HAE_SI = ("해시", (21, 23), TwelveBranches.HAE)
-    UNKNOWN = ("모름", None, None)
-
-    def __init__(self, korean_name: str, hours: Optional[Tuple[int, int]], branch: Optional[TwelveBranches]):
-        self.korean_name = korean_name
-        self.hours = hours
-        self.branch = branch
+    JA_SI = "자시"
+    CHUK_SI = "축시"
+    IN_SI = "인시"
+    MYO_SI = "묘시"
+    JIN_SI = "진시"
+    SA_SI = "사시"
+    O_SI = "오시"
+    MI_SI = "미시"
+    SIN_SI = "신시"
+    YU_SI = "유시"
+    SUL_SI = "술시"
+    HAE_SI = "해시"
+    YA_JA_SI = "야자시"
 
     @classmethod
     def from_time(cls, time_obj: time) -> 'TimeUnits':
-        """Get time unit from time object"""
-        hour = time_obj.hour
+        """시간으로부터 십이시 찾기 (Kotlin 로직과 동일)"""
+        from datetime import time as Time
 
-        for unit in cls:
-            if unit.hours is None:  # UNKNOWN case
-                continue
-            start, end = unit.hours
-            if start > end:  # Handle wrap around midnight (자시)
-                if hour >= start or hour < end:
-                    return unit
-            elif start <= hour < end:
-                return unit
+        # Kotlin: LocalTime.of(hour, minute)..LocalTime.of(hour, minute)
+        # Python: time(hour, minute) <= t < time(hour, minute)
+        t = time_obj
 
-        return cls.UNKNOWN
+        # 자시: 00:30 ~ 01:30
+        if Time(0, 30) <= t < Time(1, 30):
+            return cls.JA_SI
+        # 축시: 01:30 ~ 03:30
+        if Time(1, 30) <= t < Time(3, 30):
+            return cls.CHUK_SI
+        # 인시: 03:30 ~ 05:30
+        if Time(3, 30) <= t < Time(5, 30):
+            return cls.IN_SI
+        # 묘시: 05:30 ~ 07:30
+        if Time(5, 30) <= t < Time(7, 30):
+            return cls.MYO_SI
+        # 진시: 07:30 ~ 09:30
+        if Time(7, 30) <= t < Time(9, 30):
+            return cls.JIN_SI
+        # 사시: 09:30 ~ 11:30
+        if Time(9, 30) <= t < Time(11, 30):
+            return cls.SA_SI
+        # 오시: 11:30 ~ 13:30
+        if Time(11, 30) <= t < Time(13, 30):
+            return cls.O_SI
+        # 미시: 13:30 ~ 15:30
+        if Time(13, 30) <= t < Time(15, 30):
+            return cls.MI_SI
+        # 신시: 15:30 ~ 17:30
+        if Time(15, 30) <= t < Time(17, 30):
+            return cls.SIN_SI
+        # 유시: 17:30 ~ 19:30
+        if Time(17, 30) <= t < Time(19, 30):
+            return cls.YU_SI
+        # 술시: 19:30 ~ 21:30
+        if Time(19, 30) <= t < Time(21, 30):
+            return cls.SUL_SI
+        # 해시: 21:30 ~ 23:30
+        if Time(21, 30) <= t < Time(23, 30):
+            return cls.HAE_SI
+        # 야자시: 23:30 이후 또는 00:30 이전
+        # Kotlin: time.isBefore(LocalTime.of(0, 30)) || time.isAfter(LocalTime.of(23, 30))
+        if t < Time(0, 30) or t >= Time(23, 30):
+            return cls.YA_JA_SI
+
+        # 기본값
+        return cls.JA_SI
+
+
+class SolarTerms(Enum):
+    """절기 (24 Solar Terms) - based on solar longitude"""
+    # 절기명, 태양황경, 월지 순서
+    # 입절(立節)을 기준으로 월지가 바뀜
+    IPCHUN = ("입춘", 315, 1, TwelveBranches.IN)      # 315° = 입춘 (인월 시작)
+    USU = ("우수", 330, 1, TwelveBranches.IN)
+    GYEONGCHIP = ("경칩", 345, 2, TwelveBranches.MYO)  # 345° = 경칩 (묘월 시작)
+    CHUNBUN = ("춘분", 0, 2, TwelveBranches.MYO)
+    CHEONGMYEONG = ("청명", 15, 3, TwelveBranches.JIN)  # 15° = 청명 (진월 시작)
+    GOGU = ("곡우", 30, 3, TwelveBranches.JIN)
+    IPHA = ("입하", 45, 4, TwelveBranches.SA)          # 45° = 입하 (사월 시작)
+    SOMAN = ("소만", 60, 4, TwelveBranches.SA)
+    MANGJONG = ("망종", 75, 5, TwelveBranches.O)       # 75° = 망종 (오월 시작)
+    HAJI = ("하지", 90, 5, TwelveBranches.O)
+    SOSEO = ("소서", 105, 6, TwelveBranches.MI)        # 105° = 소서 (미월 시작)
+    DAESEO = ("대서", 120, 6, TwelveBranches.MI)
+    IPCHU = ("입추", 135, 7, TwelveBranches.SUL)       # 135° = 입추 (신월 시작)
+    CHEOSEO = ("처서", 150, 7, TwelveBranches.SUL)
+    BAENGNO = ("백로", 165, 8, TwelveBranches.HAE)     # 165° = 백로 (유월 시작)
+    CHUBUN = ("추분", 180, 8, TwelveBranches.HAE)
+    HANNO = ("한로", 195, 9, TwelveBranches.JA)        # 195° = 한로 (술월 시작)
+    SANGGANG = ("상강", 210, 9, TwelveBranches.JA)
+    IPDONG = ("입동", 225, 10, TwelveBranches.CHUK)    # 225° = 입동 (해월 시작)
+    SOSEOL = ("소설", 240, 10, TwelveBranches.CHUK)
+    DAESEOL = ("대설", 255, 11, TwelveBranches.JIN)    # 255° = 대설 (자월 시작)
+    DONGJI = ("동지", 270, 11, TwelveBranches.JIN)
+    SOHAN = ("소한", 285, 12, TwelveBranches.YU)       # 285° = 소한 (축월 시작)
+    DAEHAN = ("대한", 300, 12, TwelveBranches.YU)
+
+    def __init__(self, korean_name: str, longitude: int, month: int, branch: TwelveBranches):
+        self.korean_name = korean_name
+        self.longitude = longitude  # 태양 황경 (degrees)
+        self.month = month
+        self.branch = branch
+
+    @classmethod
+    def get_solar_longitude(cls, dt: date) -> float:
+        """특정 날짜의 태양 황경 계산 (astronomy-engine 사용)"""
+        # datetime으로 변환 (정오 기준)
+        astro_time = Time.Make(dt.year, dt.month, dt.day, 12, 0, 0)
+
+        # 태양 위치 계산
+        sun_pos = SunPosition(astro_time)
+
+        # 황경 반환 (ecliptic longitude)
+        return sun_pos.elon
+
+    @classmethod
+    def find_by_date(cls, dt: date) -> 'SolarTerms':
+        """날짜로 절기 찾기 (태양 황경 기준)"""
+        longitude = cls.get_solar_longitude(dt)
+
+        # 절기 순서대로 확인 (입절 기준)
+        # 입춘(315°)부터 시작해서 순환
+        major_terms = [
+            (cls.IPCHUN, 315),      # 인월
+            (cls.GYEONGCHIP, 345),  # 묘월
+            (cls.CHEONGMYEONG, 15), # 진월
+            (cls.IPHA, 45),         # 사월
+            (cls.MANGJONG, 75),     # 오월
+            (cls.SOSEO, 105),       # 미월
+            (cls.IPCHU, 135),       # 신월
+            (cls.BAENGNO, 165),     # 유월
+            (cls.HANNO, 195),       # 술월
+            (cls.IPDONG, 225),      # 해월
+            (cls.DAESEOL, 255),     # 자월
+            (cls.SOHAN, 285),       # 축월
+        ]
+
+        # 현재 황경이 어느 절기 구간에 속하는지 확인
+        for i, (term, start_lon) in enumerate(major_terms):
+            next_i = (i + 1) % len(major_terms)
+            next_lon = major_terms[next_i][1]
+
+            # 연말->연초 경계 처리 (소한 285° ~ 입춘 315°)
+            if start_lon > next_lon:
+                if longitude >= start_lon or longitude < next_lon:
+                    return term
+            else:
+                if start_lon <= longitude < next_lon:
+                    return term
+
+        # 기본값 (도달하지 않아야 함)
+        return cls.IPCHUN
+
+    @classmethod
+    def find_by_month(cls, month: int) -> 'SolarTerms':
+        """월로 절기 찾기 (하위 호환성 - deprecated)"""
+        for term in cls:
+            if term.month == month:
+                return term
+        raise ValueError(f"절기를 찾을 수 없습니다: {month}")
 
 
 class GanJi:
-    """간지 (Sexagenary Cycle) - combination of stem and branch"""
+    """간지 (Sexagenary Cycle)"""
+
+    # 60갑자 캐시 (Kotlin의 cached와 동일)
+    _cached = None
 
     def __init__(self, stem: TenStems, branch: TwelveBranches):
         self.stem = stem
         self.branch = branch
-        self.korean_name = stem.korean_name + branch.korean_name
+        self.two_letters = stem.korean_name + branch.korean_name
 
     @classmethod
-    def get_by_index(cls, index: int) -> 'GanJi':
-        """Get GanJi by index (0-59)"""
-        stem_index = index % 10
-        branch_index = index % 12
-        stem = TenStems.get_by_index(stem_index)
-        branch = TwelveBranches.get_by_index(branch_index)
-        return cls(stem, branch)
+    def _get_cached(cls):
+        """60갑자 캐시 생성 (Kotlin의 cached 로직)"""
+        if cls._cached is None:
+            cls._cached = [
+                GanJi(TenStems.idx_at(i % 10), TwelveBranches.idx_at(i % 12))
+                for i in range(60)
+            ]
+        return cls._cached
 
     @classmethod
-    def find_by_name(cls, name: str) -> 'GanJi':
-        """Find GanJi by Korean name (2 characters)"""
-        if len(name) != 2:
-            raise ValueError(f"GanJi name must be 2 characters: {name}")
+    def idx_at(cls, index: int) -> 'GanJi':
+        """인덱스로 간지 찾기 (Kotlin: GanJi.idxAt)"""
+        cached = cls._get_cached()
+        return cached[index % len(cached)]
 
-        stem_name = name[0]
-        branch_name = name[1]
-        stem = TenStems.find_by_name(stem_name)
-        branch = TwelveBranches.find_by_name(branch_name)
-        return cls(stem, branch)
+    @classmethod
+    def find(cls, *args) -> 'GanJi':
+        """간지 찾기 (Kotlin의 find 오버로딩)"""
+        if len(args) == 1:
+            # find(text: String)
+            text = args[0]
+            if len(text) == 2:
+                return cls.find(text[0], text[1])
+            raise ValueError(f"간지 이름은 2글자여야 합니다: {text}")
+        elif len(args) == 2:
+            if isinstance(args[0], str) and isinstance(args[1], str):
+                # find(a: String, b: String)
+                stem = TenStems.find(args[0])
+                branch = TwelveBranches.find(args[1])
+                return cls.find(stem, branch)
+            elif isinstance(args[0], TenStems) and isinstance(args[1], TwelveBranches):
+                # find(천간: 천간, 지지: 지지)
+                stem, branch = args
+                cached = cls._get_cached()
+                for ganji in cached:
+                    if ganji.stem == stem and ganji.branch == branch:
+                        return ganji
+                raise ValueError(f"간지를 찾을 수 없습니다: {stem.korean_name}{branch.korean_name}")
+        raise ValueError("Invalid arguments for find()")
 
     def __str__(self):
-        return self.korean_name
+        return self.two_letters
 
     def __eq__(self, other):
         if isinstance(other, GanJi):
@@ -169,174 +376,120 @@ class GanJi:
         return False
 
 
-class SajuCalculator:
-    """사주 계산기"""
+class Saju:
+    """사주 (Four Pillars)"""
 
-    BASE_DATE_1900 = date(1900, 1, 1)  # 경자년 기준
-    BASE_GANJI_1900 = GanJi.find_by_name("경자")
-
-    # 일진 계산을 위한 기준일 (1925년 2월 9일 = 갑자일)
-    BASE_DATE_1925 = date(1925, 2, 9)
-
-    @staticmethod
-    def solar_to_lunar(solar_date: date) -> date:
-        """Convert solar date to lunar date"""
-        try:
-            solar = Solar(solar_date.year, solar_date.month, solar_date.day)
-            lunar = Converter.Solar2Lunar(solar)
-            return date(lunar.year, lunar.month, lunar.day)
-        except Exception:
-            # If conversion fails, return original date
-            return solar_date
-
-    @staticmethod
-    def lunar_to_solar(lunar_date: date) -> date:
-        """Convert lunar date to solar date"""
-        try:
-            lunar = Lunar(lunar_date.year, lunar_date.month, lunar_date.day)
-            solar = Converter.Lunar2Solar(lunar)
-            return date(solar.year, solar.month, solar.day)
-        except Exception:
-            # If conversion fails, return original date
-            return lunar_date
+    def __init__(self, yearly: GanJi, monthly: GanJi, daily: GanJi, hourly: GanJi):
+        self.yearly = yearly
+        self.monthly = monthly
+        self.daily = daily
+        self.hourly = hourly
 
     @classmethod
-    def calculate_yearly_ganji(cls, lunar_date: date) -> GanJi:
-        """음력 생년월일로부터 년주(年柱) 간지 계산"""
-        # 1900년(경자년)을 기준으로 연도 차이 계산
-        year_offset = lunar_date.year - 1900
+    def from_date(cls, birth: date, birth_time: time) -> 'Saju':
+        """생년월일시로부터 사주 계산 (Kotlin: SaJu.from)"""
+        yearly = cls._year(birth)
+        monthly = cls._month(birth, yearly)
+        daily = cls._daily(birth)
+        hourly = cls._hourly(birth_time, daily)
+        return Saju(yearly, monthly, daily, hourly)
 
-        # 1900년 = 경자년 기준 인덱스 계산
-        base_stem_index = list(TenStems).index(TenStems.GYUNG)   # 경(庚)
-        base_branch_index = list(TwelveBranches).index(TwelveBranches.JA)  # 자(子)
-
-        # 연도 차이만큼 오프셋 적용
-        yearly_stem = TenStems.get_by_index(base_stem_index + year_offset)
-        yearly_branch = TwelveBranches.get_by_index(base_branch_index + year_offset)
-
-        return GanJi(yearly_stem, yearly_branch)
-
-    @classmethod
-    def calculate_monthly_ganji(cls, lunar_date: date, yearly_ganji: GanJi) -> GanJi:
-        """음력 날짜와 년주 간지를 기반으로 월주(月柱) 간지 계산"""
-        month = lunar_date.month
-
-        # 년간에 따른 월간 기준 맵핑 (전통 사주학 규칙)
-        # 각 년간에 따라 월간의 시작 기준이 달라짐
-        yearly_stem_to_monthly_base = {
-            # 갑년/기년 -> 병월 시작
-            TenStems.GAHP: TenStems.BYUNG,   # 갑 -> 병
-            TenStems.GI: TenStems.BYUNG,     # 기 -> 병
-
-            # 을년/경년 -> 무월 시작
-            TenStems.EUL: TenStems.MU,       # 을 -> 무
-            TenStems.GYUNG: TenStems.MU,     # 경 -> 무
-
-            # 병년/신년 -> 경월 시작
-            TenStems.BYUNG: TenStems.GYUNG,  # 병 -> 경
-            TenStems.SIN: TenStems.GYUNG,    # 신 -> 경
-
-            # 정년/임년 -> 임월 시작
-            TenStems.JUNG: TenStems.IM,      # 정 -> 임
-            TenStems.IM: TenStems.IM,        # 임 -> 임
-
-            # 무년/계년 -> 갑월 시작
-            TenStems.MU: TenStems.GAHP,      # 무 -> 갑
-            TenStems.GYE: TenStems.GAHP      # 계 -> 갑
-        }
-
-        # 년간에 따른 월간 기준 결정
-        monthly_base_stem = yearly_stem_to_monthly_base.get(
-            yearly_ganji.stem,
-            TenStems.GAHP
+    @staticmethod
+    def _year(birth: date) -> GanJi:
+        """년주 계산 (Kotlin: private fun year)"""
+        year_offset = birth.year - 1900
+        base_1900 = GanJi.find("경자")
+        return GanJi(
+            base_1900.stem.next(year_offset),
+            base_1900.branch.next(year_offset)
         )
 
-        # 월간 계산 (인월부터 시작, month-1 오프셋)
-        monthly_stem_index = list(TenStems).index(monthly_base_stem) + (month - 1)
-        monthly_stem = TenStems.get_by_index(monthly_stem_index)
+    @staticmethod
+    def _month(birth: date, yearly: GanJi) -> GanJi:
+        """월주 계산 (Kotlin: private fun month) - 절기 기준"""
+        # 태양 황경으로 정확한 절기 판정
+        season = SolarTerms.find_by_date(birth)
 
-        # 월지 계산 (인월=인지부터 순차적 배치)
-        monthly_branch_index = (month - 1) % 12
-        monthly_branch = TwelveBranches.get_by_index(monthly_branch_index)
+        # Kotlin when 문과 동일
+        if yearly.stem in (TenStems.GAHP, TenStems.GI):
+            base_heaven = TenStems.BYUNG
+        elif yearly.stem in (TenStems.EUL, TenStems.GYUNG):
+            base_heaven = TenStems.MU
+        elif yearly.stem in (TenStems.BYUNG, TenStems.SIN):
+            base_heaven = TenStems.GYUNG
+        elif yearly.stem in (TenStems.JUNG, TenStems.IM):
+            base_heaven = TenStems.IM
+        elif yearly.stem in (TenStems.MU, TenStems.GYE):
+            base_heaven = TenStems.GAHP
+        else:
+            base_heaven = TenStems.GAHP
 
-        return GanJi(monthly_stem, monthly_branch)
+        return GanJi(
+            base_heaven.next(season.month - 1),
+            season.branch
+        )
 
-    @classmethod
-    def calculate_daily_ganji(cls, lunar_date: date) -> GanJi:
-        """음력 날짜로부터 일주(日柱) 간지 계산"""
-        # 기준일(갑자일)로부터의 날짜 차이 계산
-        days_difference = (lunar_date - cls.BASE_DATE_1925).days
+    @staticmethod
+    def _daily(birth: date) -> GanJi:
+        """일주 계산 (Kotlin: private fun daily)"""
+        base_date = date(1925, 2, 9)
+        index = (birth - base_date).days
+        return GanJi.idx_at(index)
 
-        # 60갑자 순환으로 일진 계산
-        daily_ganji_index = days_difference % 60
-
-        return GanJi.get_by_index(daily_ganji_index)
-
-    @classmethod
-    def calculate_hourly_ganji(cls, birth_time: time, daily_ganji: GanJi) -> GanJi:
-        """출생 시간과 일주 간지로부터 시주(時柱) 간지 계산"""
-        # 시간을 전통 시진으로 변환
+    @staticmethod
+    def _hourly(birth_time: time, daily: GanJi) -> GanJi:
+        """시주 계산 (Kotlin: private fun hourly)"""
         time_unit = TimeUnits.from_time(birth_time)
 
-        # 시진을 알 수 없는 경우 기본값 반환
-        if time_unit == TimeUnits.UNKNOWN or time_unit.branch is None:
-            return GanJi(TenStems.GAHP, TwelveBranches.JA)
+        # Kotlin when 문과 동일 (line 67-73)
+        # 갑일/기일 -> 갑자시 시작
+        if daily.stem in (TenStems.GAHP, TenStems.GI):
+            base_heaven = TenStems.GAHP
+        # 을일/경일 -> 병자시 시작
+        elif daily.stem in (TenStems.EUL, TenStems.GYUNG):
+            base_heaven = TenStems.BYUNG
+        # 병일/신일 -> 무자시 시작
+        elif daily.stem in (TenStems.BYUNG, TenStems.SIN):
+            base_heaven = TenStems.MU
+        # 정일/임일 -> 경자시 시작
+        elif daily.stem in (TenStems.JUNG, TenStems.IM):
+            base_heaven = TenStems.GYUNG
+        # 무일/계일 -> 임자시 시작
+        elif daily.stem in (TenStems.MU, TenStems.GYE):
+            base_heaven = TenStems.IM
+        else:
+            base_heaven = TenStems.GAHP
 
-        # 일간에 따른 시간 기준 맵핑 (전통 사주학 규칙)
-        daily_stem_to_hourly_base = {
-            # 갑일/기일 -> 갑자시 시작
-            TenStems.GAHP: TenStems.GAHP,     # 갑 -> 갑
-            TenStems.GI: TenStems.GAHP,       # 기 -> 갑
+        # Kotlin: baseHeaven.next(십이시.ordinal % 12)
+        time_unit_index = list(TimeUnits).index(time_unit)
 
-            # 을일/경일 -> 병자시 시작
-            TenStems.EUL: TenStems.BYUNG,     # 을 -> 병
-            TenStems.GYUNG: TenStems.BYUNG,   # 경 -> 병
-
-            # 병일/신일 -> 무자시 시작
-            TenStems.BYUNG: TenStems.MU,      # 병 -> 무
-            TenStems.SIN: TenStems.MU,        # 신 -> 무
-
-            # 정일/임일 -> 경자시 시작
-            TenStems.JUNG: TenStems.GYUNG,    # 정 -> 경
-            TenStems.IM: TenStems.GYUNG,      # 임 -> 경
-
-            # 무일/계일 -> 임자시 시작
-            TenStems.MU: TenStems.IM,         # 무 -> 임
-            TenStems.GYE: TenStems.IM         # 계 -> 임
-        }
-
-        # 일간에 따른 시간 기준 결정
-        hourly_base_stem = daily_stem_to_hourly_base.get(
-            daily_ganji.stem,
-            TenStems.GAHP
+        return GanJi(
+            base_heaven.next(time_unit_index % 12),
+            TwelveBranches.of(time_unit)
         )
 
-        # 시간 계산 (자시부터 순차적으로)
-        branch_position = list(TwelveBranches).index(time_unit.branch)
-        hourly_stem_index = list(TenStems).index(hourly_base_stem) + branch_position
-        hourly_stem = TenStems.get_by_index(hourly_stem_index)
-
-        return GanJi(hourly_stem, time_unit.branch)
-
-    @classmethod
-    def calculate_saju(cls, birth_date_lunar: date, birth_time: time) -> dict:
-        """완전한 사주(四柱) 계산 - 년월일시 네 기둥"""
-        # 1. 년주(年柱) 계산 - 태어난 년도의 기운
-        yearly_pillar = cls.calculate_yearly_ganji(birth_date_lunar)
-
-        # 2. 월주(月柱) 계산 - 태어난 달의 기운
-        monthly_pillar = cls.calculate_monthly_ganji(birth_date_lunar, yearly_pillar)
-
-        # 3. 일주(日柱) 계산 - 태어난 날의 기운 (가장 중요)
-        daily_pillar = cls.calculate_daily_ganji(birth_date_lunar)
-
-        # 4. 시주(時柱) 계산 - 태어난 시각의 기운
-        hourly_pillar = cls.calculate_hourly_ganji(birth_time, daily_pillar)
-
-        # 사주 결과 반환 (한글 이름으로)
+    def to_dict(self) -> dict:
+        """사주를 딕셔너리로 변환"""
         return {
-            'yearly_ganji': yearly_pillar.korean_name,   # 년주
-            'monthly_ganji': monthly_pillar.korean_name, # 월주
-            'daily_ganji': daily_pillar.korean_name,     # 일주 (일간 - 가장 중요)
-            'hourly_ganji': hourly_pillar.korean_name    # 시주
+            'yearly_ganji': self.yearly.two_letters,
+            'monthly_ganji': self.monthly.two_letters,
+            'daily_ganji': self.daily.two_letters,
+            'hourly_ganji': self.hourly.two_letters
         }
+
+
+# 하위 호환성을 위한 SajuCalculator (기존 API 유지)
+class SajuCalculator:
+    """사주 계산기 (Backward compatibility)"""
+
+    @staticmethod
+    def calculate_saju(birth_date: date, birth_time: time) -> dict:
+        """사주 계산 (기존 API 호환)"""
+        saju = Saju.from_date(birth_date, birth_time)
+        return saju.to_dict()
+
+
+if __name__ == "__main__":
+    # 테스트 1: 2000년 3월 17일 14시
+    result1 = SajuCalculator.calculate_saju(date(2000, 3, 17), time(14, 0))
+    print("Test 1:", result1)

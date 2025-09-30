@@ -1,7 +1,8 @@
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.conf import settings
@@ -22,19 +23,72 @@ User = get_user_model()
 @extend_schema(
     summary="Google OAuth Login",
     description="Login or register user with Google OAuth ID token",
-    request=GoogleLoginSerializer,
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'id_token': {
+                    'type': 'string',
+                    'description': 'Google OAuth ID token',
+                    'example': 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjdkYzBiZGVjNjJhZGE5Njc4NDY0YjA0YzBmYzY0MTg3Y2Y2YmRkYjMiLCJ0eXAiOiJKV1QifQ...'
+                }
+            },
+            'required': ['id_token'],
+            'example': {
+                'id_token': 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjdkYzBiZGVjNjJhZGE5Njc4NDY0YjA0YzBmYzY0MTg3Y2Y2YmRkYjMiLCJ0eXAiOiJKV1QifQ...'
+            }
+        }
+    },
     responses={
         200: {
             'description': 'Authentication successful',
             'content': {
                 'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'access_token': {
+                                'type': 'string',
+                                'description': 'JWT access token'
+                            },
+                            'refresh_token': {
+                                'type': 'string',
+                                'description': 'JWT refresh token'
+                            },
+                            'user_id': {
+                                'type': 'integer',
+                                'description': 'User ID'
+                            },
+                            'email': {
+                                'type': 'string',
+                                'description': 'User email'
+                            },
+                            'name': {
+                                'type': 'string',
+                                'description': 'User display name'
+                            },
+                            'profile_image': {
+                                'type': 'string',
+                                'description': 'Google profile image URL'
+                            },
+                            'is_new_user': {
+                                'type': 'boolean',
+                                'description': 'Whether this is a newly registered user'
+                            },
+                            'needs_additional_info': {
+                                'type': 'boolean',
+                                'description': 'Whether user needs to complete profile'
+                            }
+                        },
+                        'required': ['access_token', 'refresh_token', 'user_id', 'email', 'name', 'is_new_user', 'needs_additional_info']
+                    },
                     'example': {
-                        'access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...',
-                        'refresh_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...',
+                        'access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2NzkyNjc0fQ...',
+                        'refresh_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwNjc5MjY3NH0...',
                         'user_id': 1,
                         'email': 'user@example.com',
                         'name': 'John Doe',
-                        'profile_image': 'https://lh3.googleusercontent.com/...',
+                        'profile_image': 'https://lh3.googleusercontent.com/a-/AOh14GhXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
                         'is_new_user': False,
                         'needs_additional_info': True
                     }
@@ -45,6 +99,13 @@ User = get_user_model()
             'description': 'Invalid token or authentication failed',
             'content': {
                 'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'error': {'type': 'string'},
+                            'message': {'type': 'string'}
+                        }
+                    },
                     'example': {
                         'error': 'Invalid token',
                         'message': 'Google ID token verification failed'
@@ -151,10 +212,14 @@ class GoogleAuthView(APIView):
             'properties': {
                 'refresh': {
                     'type': 'string',
-                    'description': 'Refresh token'
+                    'description': 'Refresh token',
+                    'example': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwNjc5MjY3NH0...'
                 }
             },
-            'required': ['refresh']
+            'required': ['refresh'],
+            'example': {
+                'refresh': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwNjc5MjY3NH0...'
+            }
         }
     },
     responses={
@@ -162,8 +227,36 @@ class GoogleAuthView(APIView):
             'description': 'Token refreshed successfully',
             'content': {
                 'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'access': {
+                                'type': 'string',
+                                'description': 'New access token'
+                            }
+                        },
+                        'required': ['access']
+                    },
                     'example': {
-                        'access': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...'
+                        'access': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2NzkyNjc0fQ...'
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Missing refresh token',
+            'content': {
+                'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'detail': {'type': 'string'},
+                            'code': {'type': 'string'}
+                        }
+                    },
+                    'example': {
+                        'detail': 'Token is invalid or expired',
+                        'code': 'token_not_valid'
                     }
                 }
             }
@@ -172,6 +265,13 @@ class GoogleAuthView(APIView):
             'description': 'Invalid or expired refresh token',
             'content': {
                 'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'detail': {'type': 'string'},
+                            'code': {'type': 'string'}
+                        }
+                    },
                     'example': {
                         'detail': 'Token is invalid or expired',
                         'code': 'token_not_valid'
@@ -213,6 +313,115 @@ class CustomTokenRefreshView(APIView):
 
 
 @extend_schema(
+    summary="Verify JWT Token",
+    description="Verify the validity of a JWT access token",
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'token': {
+                    'type': 'string',
+                    'description': 'JWT access token to verify',
+                    'example': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2NzkyNjc0fQ...'
+                }
+            },
+            'required': ['token'],
+            'example': {
+                'token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzA2NzkyNjc0fQ...'
+            }
+        }
+    },
+    responses={
+        200: {
+            'description': 'Token is valid',
+            'content': {
+                'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'message': {
+                                'type': 'string',
+                                'description': 'Verification success message'
+                            },
+                            'valid': {
+                                'type': 'boolean',
+                                'description': 'Token validity status'
+                            }
+                        }
+                    },
+                    'example': {
+                        'message': 'Token is valid',
+                        'valid': True
+                    }
+                }
+            }
+        },
+        400: {
+            'description': 'Missing token',
+            'content': {
+                'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'error': {'type': 'string'},
+                            'message': {'type': 'string'}
+                        }
+                    },
+                    'example': {
+                        'error': 'Missing token',
+                        'message': 'Token field is required'
+                    }
+                }
+            }
+        },
+        401: {
+            'description': 'Invalid or expired token',
+            'content': {
+                'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'detail': {'type': 'string'},
+                            'code': {'type': 'string'}
+                        }
+                    },
+                    'example': {
+                        'detail': 'Token is invalid or expired',
+                        'code': 'token_not_valid'
+                    }
+                }
+            }
+        }
+    }
+)
+class CustomTokenVerifyView(APIView):
+    """커스텀 토큰 검증 뷰"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        # 1. 토큰 추출
+        token = request.data.get('token')
+        if not token:
+            return Response({
+                'error': 'Missing token',
+                'message': 'Token field is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. 토큰 검증
+        try:
+            UntypedToken(token)
+            return Response({
+                'message': 'Token is valid',
+                'valid': True
+            }, status=status.HTTP_200_OK)
+        except (InvalidToken, TokenError) as e:
+            return Response({
+                'detail': 'Token is invalid or expired',
+                'code': 'token_not_valid'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@extend_schema(
     summary="User Profile Management",
     description="Get or update user profile information including birth data and Saju info"
 )
@@ -228,11 +437,33 @@ class UserProfileView(APIView):
                 'description': 'Profile retrieved successfully',
                 'content': {
                     'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'user_id': {'type': 'integer', 'description': 'User ID'},
+                                'email': {'type': 'string', 'format': 'email', 'description': 'User email'},
+                                'name': {'type': 'string', 'description': 'User display name'},
+                                'profile_image': {'type': 'string', 'format': 'uri', 'description': 'Profile image URL'},
+                                'nickname': {'type': 'string', 'description': 'User nickname'},
+                                'birth_date_solar': {'type': 'string', 'format': 'date', 'description': 'Solar calendar birth date'},
+                                'birth_date_lunar': {'type': 'string', 'format': 'date', 'description': 'Lunar calendar birth date', 'nullable': True},
+                                'solar_or_lunar': {'type': 'string', 'enum': ['solar', 'lunar'], 'description': 'Calendar type'},
+                                'birth_time_units': {'type': 'integer', 'minimum': 1, 'maximum': 12, 'description': 'Birth time in 12 hour units'},
+                                'gender': {'type': 'string', 'enum': ['Male', 'Female'], 'description': 'User gender'},
+                                'yearly_ganji': {'type': 'string', 'description': 'Yearly Ganji (연간)', 'nullable': True},
+                                'monthly_ganji': {'type': 'string', 'description': 'Monthly Ganji (월간)', 'nullable': True},
+                                'daily_ganji': {'type': 'string', 'description': 'Daily Ganji (일간)', 'nullable': True},
+                                'hourly_ganji': {'type': 'string', 'description': 'Hourly Ganji (시간)', 'nullable': True},
+                                'created_at': {'type': 'string', 'format': 'date-time', 'description': 'Account creation date'},
+                                'last_login': {'type': 'string', 'format': 'date-time', 'description': 'Last login date', 'nullable': True}
+                            },
+                            'required': ['user_id', 'email', 'name', 'created_at']
+                        },
                         'example': {
                             'user_id': 1,
                             'email': 'user@example.com',
                             'name': 'John Doe',
-                            'profile_image': 'https://lh3.googleusercontent.com/...',
+                            'profile_image': 'https://lh3.googleusercontent.com/a-/AOh14GhXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
                             'nickname': 'john_doe',
                             'birth_date_solar': '1990-01-15',
                             'birth_date_lunar': None,
@@ -243,8 +474,40 @@ class UserProfileView(APIView):
                             'monthly_ganji': '정축',
                             'daily_ganji': '갑자',
                             'hourly_ganji': '병인',
-                            'created_at': '2024-01-01T12:00:00',
-                            'last_login': '2024-01-15T14:30:00'
+                            'created_at': '2024-01-01T12:00:00Z',
+                            'last_login': '2024-01-15T14:30:00Z'
+                        }
+                    }
+                }
+            },
+            401: {
+                'description': 'Authentication required',
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'error': {'type': 'string'}
+                            }
+                        },
+                        'example': {
+                            'error': 'Authentication required'
+                        }
+                    }
+                }
+            },
+            404: {
+                'description': 'User not found (development mode with user_id)',
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'error': {'type': 'string'}
+                            }
+                        },
+                        'example': {
+                            'error': 'User with id 999 not found'
                         }
                     }
                 }
@@ -327,13 +590,39 @@ class UserProfileView(APIView):
                 'description': 'Profile updated successfully',
                 'content': {
                     'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'message': {'type': 'string', 'description': 'Success message'},
+                                'user': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'user_id': {'type': 'integer', 'description': 'User ID'},
+                                        'email': {'type': 'string', 'format': 'email', 'description': 'User email'},
+                                        'name': {'type': 'string', 'description': 'User display name'},
+                                        'nickname': {'type': 'string', 'description': 'User nickname'},
+                                        'birth_date_solar': {'type': 'string', 'format': 'date', 'description': 'Solar calendar birth date', 'nullable': True},
+                                        'birth_date_lunar': {'type': 'string', 'format': 'date', 'description': 'Lunar calendar birth date', 'nullable': True},
+                                        'solar_or_lunar': {'type': 'string', 'enum': ['solar', 'lunar'], 'description': 'Calendar type'},
+                                        'birth_time_units': {'type': 'integer', 'minimum': 1, 'maximum': 12, 'description': 'Birth time in 12 hour units', 'nullable': True},
+                                        'gender': {'type': 'string', 'enum': ['Male', 'Female'], 'description': 'User gender', 'nullable': True},
+                                        'yearly_ganji': {'type': 'string', 'description': 'Yearly Ganji (연간)', 'nullable': True},
+                                        'monthly_ganji': {'type': 'string', 'description': 'Monthly Ganji (월간)', 'nullable': True},
+                                        'daily_ganji': {'type': 'string', 'description': 'Daily Ganji (일간)', 'nullable': True},
+                                        'hourly_ganji': {'type': 'string', 'description': 'Hourly Ganji (시간)', 'nullable': True}
+                                    },
+                                    'required': ['user_id', 'email', 'name']
+                                }
+                            },
+                            'required': ['message', 'user']
+                        },
                         'example': {
                             'message': 'Profile updated successfully',
                             'user': {
                                 'user_id': 1,
                                 'email': 'user@example.com',
                                 'name': 'John Doe',
-                                'nickname': 'john_doe',
+                                'nickname': 'john_doe_updated',
                                 'birth_date_solar': '1990-01-15',
                                 'birth_date_lunar': None,
                                 'solar_or_lunar': 'solar',
@@ -352,9 +641,32 @@ class UserProfileView(APIView):
                 'description': 'Validation error',
                 'content': {
                     'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'additionalProperties': {
+                                'type': 'array',
+                                'items': {'type': 'string'}
+                            }
+                        },
                         'example': {
                             'nickname': ['닉네임은 2-20자 사이여야 합니다.'],
                             'birth_date': ['유효한 날짜를 입력해주세요.']
+                        }
+                    }
+                }
+            },
+            401: {
+                'description': 'Authentication required',
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'error': {'type': 'string'}
+                            }
+                        },
+                        'example': {
+                            'error': 'Authentication required'
                         }
                     }
                 }
@@ -423,8 +735,12 @@ class UserProfileView(APIView):
             'properties': {
                 'refresh_token': {
                     'type': 'string',
-                    'description': 'Refresh token to blacklist (optional)'
+                    'description': 'Refresh token to blacklist (optional)',
+                    'example': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwNjc5MjY3NH0...'
                 }
+            },
+            'example': {
+                'refresh_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwNjc5MjY3NH0...'
             }
         }
     },
@@ -433,6 +749,16 @@ class UserProfileView(APIView):
             'description': 'Logout successful',
             'content': {
                 'application/json': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'message': {
+                                'type': 'string',
+                                'description': 'Success message'
+                            }
+                        },
+                        'required': ['message']
+                    },
                     'example': {
                         'message': 'Successfully logged out'
                     }

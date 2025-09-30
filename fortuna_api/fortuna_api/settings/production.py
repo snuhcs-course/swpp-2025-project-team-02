@@ -105,7 +105,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
 # Production logging
-LOGGING['handlers']['file']['filename'] = '/var/log/fortuna/django.log'
+LOGGING['handlers']['file']['filename'] = './logs/django.log'
 LOGGING['handlers']['console']['level'] = 'ERROR'
 LOGGING['root']['level'] = 'ERROR'
 
@@ -113,7 +113,7 @@ LOGGING['root']['level'] = 'ERROR'
 LOGGING['handlers']['error_file'] = {
     'level': 'ERROR',
     'class': 'logging.FileHandler',
-    'filename': '/var/log/fortuna/errors.log',
+    'filename': './logs/errors.log',
     'formatter': 'verbose',
 }
 
