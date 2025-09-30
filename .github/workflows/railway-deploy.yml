@@ -1,6 +1,7 @@
 name: Deploy to Railway
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -18,8 +19,8 @@ jobs:
     container: ghcr.io/railwayapp/cli:latest
     env:
       SVC_ID: server
-      PROJECT_ID: fortuna
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v3
-      - run: railway up --service=${{ env.SVC_ID }} --project=${{ env.PROJECT_ID }}
+      - run: railway up --service=${{ env.SVC_ID }}
+        working-directory: ./fortuna_api
