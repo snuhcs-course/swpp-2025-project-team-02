@@ -15,19 +15,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      SVC_ID: server
+      PROJECT_ID: fortuna
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          cd fortuna_api
-          railway link -p fortuna -s server
-          railway up
+      - uses: actions/checkout@v3
+      - run: railway up --service=${{ env.SVC_ID }} --project=${{ env.PROJECT_ID }}
