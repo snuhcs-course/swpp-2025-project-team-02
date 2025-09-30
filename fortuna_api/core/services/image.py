@@ -69,7 +69,7 @@ class ImageService:
                         metadata["image_info"][tag.lower()] = value
 
                 # Extract GPS data
-                gps_info = exifdata.get(34853)  # GPSInfo tag
+                gps_info = exifdata.get_ifd(34853)  # GPSInfo tag
                 if gps_info:
                     gps_data = {}
                     for key in gps_info.keys():
