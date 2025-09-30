@@ -68,6 +68,18 @@ files = [
 tests = ["mypy (>=1.14.0)", "pytest", "pytest-asyncio"]
 
 [[package]]
+name = "astronomy-engine"
+version = "2.1.19"
+description = "Astronomy calculation for Sun, Moon, and planets."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "astronomy-engine-2.1.19.tar.gz", hash = "sha256:95b797b87b659adc0602a6a205143ce5a10451664e80650bb7cd8ba3c8f1f02b"},
+    {file = "astronomy_engine-2.1.19-py3-none-any.whl", hash = "sha256:232ba7dd2bbf42225c48be6721b676e8c6c079dbd4588d2781dfa68adcb6f67f"},
+]
+
+[[package]]
 name = "asttokens"
 version = "3.0.0"
 description = "Annotate AST trees with source code positions"
@@ -3403,4 +3415,4 @@ dev = ["black (>=19.3b0) ; python_version >= \"3.6\"", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "75f54538cf1ab268edda405a6de20883192a0d43adb94db2ae3eceda4dcb4709"
+content-hash = "2af648837a70ff45c86be022760868eb0a0fba389c78ee6f579b55757def18d0"

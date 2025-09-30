@@ -52,6 +52,7 @@ channels-redis = ">=4.1.0,<5.0.0"
 cryptography = ">=42,<999"
 django-debug-toolbar = ">=6.0.0,<7.0.0"
 loguru = "^0.7.3"
+astronomy-engine = "^2.1.19"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
