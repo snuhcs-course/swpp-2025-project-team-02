@@ -1,209 +1,231 @@
 package com.example.fortuna_android
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.fortuna_android.data.Api.LoginRequest
+import com.example.fortuna_android.data.Api.LogoutRequest
 import com.example.fortuna_android.data.Api.RetrofitClient
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.SignInButton
-import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
-import kotlin.Exception
-import kotlin.String
-import kotlin.apply
-import kotlin.collections.isNullOrEmpty
-import kotlin.collections.remove
-import kotlin.text.isNullOrEmpty
-import kotlin.toString
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var mGoogleSignInClient: GoogleSignInClient
+    private lateinit var welcomeTextView: TextView
+    private lateinit var sajuTextView: TextView
+    private lateinit var logoutButton: Button
 
-    // UI 요소
-    private lateinit var signInButton: SignInButton
-    private lateinit var signOutButton: Button
-    private lateinit var verifyButton: Button
-    private lateinit var nameTextView: TextView
-    private lateinit var emailTextView: TextView
-    private lateinit var idTextView: TextView
-    private lateinit var userInfoLayout: LinearLayout
-
-    private val googleSignInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            handleSignInResult(task)
-        } else {
-            Toast.makeText(this, "로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // 사주팔자 행렬
+    private lateinit var yearlyGanji1: TextView
+    private lateinit var yearlyGanji2: TextView
+    private lateinit var monthlyGanji1: TextView
+    private lateinit var monthlyGanji2: TextView
+    private lateinit var dailyGanji1: TextView
+    private lateinit var dailyGanji2: TextView
+    private lateinit var hourlyGanji1: TextView
+    private lateinit var hourlyGanji2: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        signInButton = findViewById(R.id.sign_in_button)
-        signOutButton = findViewById(R.id.sign_out_button)
-        verifyButton = findViewById(R.id.verify_button)
-        nameTextView = findViewById(R.id.name_text_view)
-        emailTextView = findViewById(R.id.email_text_view)
-        idTextView = findViewById(R.id.id_text_view)
-        userInfoLayout = findViewById(R.id.user_info_layout)
+        setupGoogleSignIn()
+        initViews()
+        setupClickListeners()
+        checkLoginStatus()
+    }
 
+    private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("46186834187-83mthhs9phn9d1h9b4khvudhtbhsti44.apps.googleusercontent.com") // 웹 클라이언트 ID를 입력하세요.
+            .requestIdToken("46186834187-83mthhs9phn9d1h9b4khvudhtbhsti44.apps.googleusercontent.com")
             .requestEmail()
             .build()
 
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso)
-
-        signInButton.setOnClickListener { signIn() }
-        signOutButton.setOnClickListener { signOut() }
-        verifyButton.setOnClickListener { verifyTokenWithServer() }
     }
 
-    override fun onStart() {
-        super.onStart()
-        val account = GoogleSignIn.getLastSignedInAccount(this)
-        updateUI(account)
+    override fun onResume() {
+        super.onResume()
+        checkLoginStatus()
     }
 
-    private fun signIn() {
-        val signInIntent: Intent = mGoogleSignInClient.signInIntent
-        googleSignInLauncher.launch(signInIntent)
+    private fun initViews() {
+        welcomeTextView = findViewById(R.id.welcome_text_view)
+        sajuTextView = findViewById(R.id.saju_view_text)
+        logoutButton = findViewById(R.id.logout_button)
+
+        // 사주팔자 TextViews
+        yearlyGanji1 = findViewById(R.id.yearly_ganji_1)
+        yearlyGanji2 = findViewById(R.id.yearly_ganji_2)
+        monthlyGanji1 = findViewById(R.id.monthly_ganji_1)
+        monthlyGanji2 = findViewById(R.id.monthly_ganji_2)
+        dailyGanji1 = findViewById(R.id.daily_ganji_1)
+        dailyGanji2 = findViewById(R.id.daily_ganji_2)
+        hourlyGanji1 = findViewById(R.id.hourly_ganji_1)
+        hourlyGanji2 = findViewById(R.id.hourly_ganji_2)
     }
 
-    private fun signOut() {
-        mGoogleSignInClient.signOut().addOnCompleteListener(this) {
-            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().remove(KEY_TOKEN).apply()
-
-            Toast.makeText(this, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
-            updateUI(null)
-        }
+    private fun setupClickListeners() {
+        logoutButton.setOnClickListener { logout() }
     }
 
-    private fun handleSignInResult(completedTask: com.google.android.gms.tasks.Task<GoogleSignInAccount>) {
-        try {
-            val account = completedTask.getResult(ApiException::class.java)
-            Toast.makeText(this, "Google 로그인 성공!", Toast.LENGTH_SHORT).show()
-
-            val idToken = account.idToken
-            Log.d(TAG, account.displayName.toString())
-            Log.d(TAG, account.id.toString())
-            Log.d(TAG, account.idToken.toString())
-            Log.d(TAG, account.email.toString())
-            Log.d(TAG, account.familyName.toString())
-            Log.d(TAG, account.givenName.toString())
-            Log.d(TAG, account.serverAuthCode.toString())
-            if (idToken != null) {
-                Log.d(TAG, "Got ID Token: $idToken")
-                sendTokenToServer(idToken)
-            } else {
-                Log.w(TAG, "ID Token is null")
-                Toast.makeText(this, "ID 토큰을 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
-            }
-            updateUI(account)
-        } catch (e: ApiException) {
-            Log.w(TAG, "signInResult:failed code=" + e.statusCode)
-            Toast.makeText(this, "로그인에 실패했습니다. (코드: ${e.statusCode})", Toast.LENGTH_LONG).show()
-            updateUI(null)
-        }
-    }
-
-    private fun sendTokenToServer(idToken: String) {
-        lifecycleScope.launch {
-            try {
-                val request = LoginRequest(idToken = idToken)
-                val response = RetrofitClient.instance.loginWithGoogle(request)
-                if (response.isSuccessful) {
-                    val loginResponse = response.body()
-                    if (loginResponse != null) {
-                        val backendToken = loginResponse.accessToken
-                        val username = loginResponse.name
-                        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                        prefs.edit().putString(KEY_TOKEN, backendToken).apply()
-
-                        Toast.makeText(this@MainActivity, "'$username'님, 서버 로그인 성공!", Toast.LENGTH_LONG).show()
-                        Log.d(TAG, "토큰이 SharedPreferences에 저장되었습니다: $backendToken")
-                    }
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "서버 로그인 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(this@MainActivity, "서버 로그인 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error sending token to server", e)
-                Toast.makeText(this@MainActivity, "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun verifyTokenWithServer() {
+    private fun checkLoginStatus() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val token = prefs.getString(KEY_TOKEN, null)
+        val account = GoogleSignIn.getLastSignedInAccount(this)
 
-        if (token.isNullOrEmpty()) {
-            Toast.makeText(this, "저장된 토큰이 없습니다. 먼저 로그인해주세요.", Toast.LENGTH_SHORT).show()
+        if (token.isNullOrEmpty() || account == null) {
+            Log.d(TAG, "User not logged in, redirecting to SignInActivity")
+            navigateToSignIn()
+        } else {
+            Log.d(TAG, "User is logged in")
+            loadUserProfile(token)
+        }
+    }
+
+    private fun loadUserProfile(token: String) {
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.getUserProfile("Bearer $token")
+
+                if (response.isSuccessful) {
+                    val profile = response.body()
+                    if (profile != null) {
+                        val nickname = profile.nickname ?: profile.name
+                        welcomeTextView.text = "환영합니다, ${nickname}님!"
+                        sajuTextView.text = "${nickname}님의 사주팔자"
+                        displaySaju(
+                            profile.yearlyGanji,
+                            profile.monthlyGanji,
+                            profile.dailyGanji,
+                            profile.hourlyGanji
+                        )
+                    }
+                } else {
+                    Log.e(TAG, "프로필 로드 실패: ${response.code()}")
+                    Toast.makeText(this@MainActivity, "프로필을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "프로필 로드 중 오류", e)
+                Toast.makeText(this@MainActivity, "프로필 로드 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun displaySaju(yearly: String?, monthly: String?, daily: String?, hourly: String?) {
+        // 각 간지를 천간(첫글자)과 지지(둘째글자)로 분리하여 표시
+        if (yearly != null && yearly.length == 2) {
+            setGanjiText(yearlyGanji1, yearly[0].toString())
+            setGanjiText(yearlyGanji2, yearly[1].toString())
+        }
+
+        if (monthly != null && monthly.length == 2) {
+            setGanjiText(monthlyGanji1, monthly[0].toString())
+            setGanjiText(monthlyGanji2, monthly[1].toString())
+        }
+
+        if (daily != null && daily.length == 2) {
+            setGanjiText(dailyGanji1, daily[0].toString())
+            setGanjiText(dailyGanji2, daily[1].toString())
+        }
+
+        if (hourly != null && hourly.length == 2) {
+            setGanjiText(hourlyGanji1, hourly[0].toString())
+            setGanjiText(hourlyGanji2, hourly[1].toString())
+        }
+    }
+
+    private fun setGanjiText(textView: TextView, text: String) {
+        textView.text = text
+        textView.setBackgroundColor(getGanjiColor(text))
+    }
+
+    private fun getGanjiColor(ganji: String): Int {
+        return when (ganji) {
+            // 목(木) - 초록색
+            "갑", "을", "인", "묘" -> Color.parseColor("#0BEFA0")
+            // 화(火) - 빨간색
+            "병", "정", "사", "오" -> Color.parseColor("#F93E3E")
+            // 토(土) - 노란색
+            "무", "기", "술", "미", "축", "진" -> Color.parseColor("#FF9500")
+            // 금(金) - 흰색
+            "경", "신", "유" -> Color.parseColor("#C1BFBF")
+            // 수(水) - 회색
+            "임", "계", "자", "해" -> Color.parseColor("#2BB3FC")
+            else -> Color.parseColor("#CCCCCC")
+        }
+    }
+
+    private fun logout() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val refreshToken = prefs.getString(REFRESH_TOKEN, null)
+
+        if (refreshToken.isNullOrEmpty()) {
+            Log.w(TAG, "Refresh token이 없습니다. 로컬에서만 로그아웃합니다.")
+            performLocalLogout()
             return
         }
 
-        Log.d(TAG, "프로필 요청에 사용할 토큰: $token")
-        Toast.makeText(this, "서버에 프로필 정보를 요청합니다...", Toast.LENGTH_SHORT).show()
+        Log.d(TAG, "서버에 로그아웃 요청을 보냅니다...")
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getProfile("Bearer $token")
+                val request = LogoutRequest(refreshToken = refreshToken)
+                val response = RetrofitClient.instance.logout(request)
 
                 if (response.isSuccessful) {
-                    val userProfile = response.body()
-                    Log.d(TAG, "Profile API Response: $userProfile")
-                    Toast.makeText(this@MainActivity, "프로필 정보 받기 성공!\n$userProfile", Toast.LENGTH_LONG).show()
+                    val logoutResponse = response.body()
+                    Log.d(TAG, "서버 로그아웃 성공: ${logoutResponse?.message}")
+                    Toast.makeText(this@MainActivity, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "프로필 정보 받기 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(this@MainActivity, "프로필 정보 받기 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    Log.e(TAG, "서버 로그아웃 실패: ${response.code()}, $errorBody")
+                    Toast.makeText(this@MainActivity, "서버 로그아웃 실패, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
                 }
+
+                // 성공/실패 관계없이 로컬에서 로그아웃 수행
+                performLocalLogout()
+
             } catch (e: Exception) {
-                Log.e(TAG, "Error during profile verification", e)
-                Toast.makeText(this@MainActivity, "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                Log.e(TAG, "로그아웃 요청 중 오류", e)
+                Toast.makeText(this@MainActivity, "네트워크 오류, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                performLocalLogout()
             }
         }
     }
 
-    private fun updateUI(account: GoogleSignInAccount?) {
-        val isLoggedIn = account != null
-        if (isLoggedIn) {
-            nameTextView.text = "이름: ${account!!.displayName}"
-            emailTextView.text = "이메일: ${account.email}"
-            idTextView.text = "고유 ID: ${account.id}"
-        }
+    private fun performLocalLogout() {
+        // Google 로그아웃
+        mGoogleSignInClient.signOut().addOnCompleteListener(this) {
+            // SharedPreferences에서 모든 데이터 제거
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().clear().apply()
 
-        signInButton.visibility = if (isLoggedIn) View.GONE else View.VISIBLE
-        userInfoLayout.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
-        signOutButton.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
-        verifyButton.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
+            Log.d(TAG, "로컬 로그아웃 완료 - 모든 토큰 제거됨")
+            navigateToSignIn()
+        }
+    }
+
+    private fun navigateToSignIn() {
+        val intent = Intent(this, SignInActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
     companion object {
-        private const val TAG = "GoogleSignIn"
+        private const val TAG = "MainActivity"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"
+        private const val REFRESH_TOKEN = "refresh_token"
     }
 }
