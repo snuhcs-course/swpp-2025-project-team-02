@@ -3,6 +3,7 @@ Development settings for fortuna_api project.
 """
 
 from .base import *
+from loguru import logger
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -125,3 +126,5 @@ LOGGING = {
         },
     },
 }
+
+logger.info(f"using development settings")
