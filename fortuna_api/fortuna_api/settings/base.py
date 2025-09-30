@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Security
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 DJANGO_APPS = [
@@ -93,15 +93,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'fortuna_api.wsgi.application'
 
 # Database
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='fortuna_db'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600
+    )
 }
 
 # Password validation
@@ -236,24 +234,9 @@ REST_AUTH = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
+CORS_ALLOW_HEADERS = ['*']
 
 # Channels Configuration
 CHANNEL_LAYERS = {

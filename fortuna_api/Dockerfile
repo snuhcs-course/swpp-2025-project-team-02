@@ -34,5 +34,5 @@ RUN mkdir -p /app/media /app/logs
 EXPOSE 8000
 
 # Run server
-CMD ["uvicorn", "fortuna_api.wsgi:application", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["gunicorn", "fortuna_api.wsgi:application", "--bind", "0.0.0.0:8000"]
 

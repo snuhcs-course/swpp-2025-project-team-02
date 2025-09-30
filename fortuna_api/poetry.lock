@@ -672,6 +672,22 @@ files = [
 ]
 
 [[package]]
+name = "dj-database-url"
+version = "2.3.0"
+description = "Use Database URLs in your Django Application."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "dj_database_url-2.3.0-py3-none-any.whl", hash = "sha256:bb0d414ba0ac5cd62773ec7f86f8cc378a9dbb00a80884c2fc08cc570452521e"},
+    {file = "dj_database_url-2.3.0.tar.gz", hash = "sha256:ae52e8e634186b57e5a45e445da5dc407a819c2ceed8a53d1fac004cc5288787"},
+]
+
+[package.dependencies]
+Django = ">=4.2"
+typing_extensions = ">=3.10.0.0"
+
+[[package]]
 name = "dj-rest-auth"
 version = "6.0.0"
 description = "Authentication and Registration in Django Rest Framework"
@@ -3039,4 +3055,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "18378394942f1e2990eb510d9c8bbb62850d64215ab6c09b269b839fb67274f4"
+content-hash = "a3d2cae4a88e6f0e4286f189857d8db0ae34af9bf9119d2323aeae6884d1f19b"
