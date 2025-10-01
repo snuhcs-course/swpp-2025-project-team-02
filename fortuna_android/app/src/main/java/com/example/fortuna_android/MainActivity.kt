@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            // 변수값 변경 필요
             .requestIdToken("46186834187-83mthhs9phn9d1h9b4khvudhtbhsti44.apps.googleusercontent.com")
             .requestEmail()
             .build()
@@ -216,7 +217,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun navigateToSignIn() {
-        val intent = Intent(this, SignInActivity::class.java)
+        val intent = Intent(this, AuthContainerActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()

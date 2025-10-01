@@ -28,6 +28,9 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".AuthContainerActivity"
+            android:exported="false" />
+        <activity
             android:name=".SignInActivity"
             android:exported="false" />
         <activity
