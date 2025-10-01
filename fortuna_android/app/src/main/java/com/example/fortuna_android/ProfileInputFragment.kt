@@ -9,12 +9,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.Spinner
 import android.widget.Toast
+import com.example.fortuna_android.databinding.FragmentProfileInputBinding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.fortuna_android.api.RetrofitClient
@@ -22,18 +18,8 @@ import com.example.fortuna_android.api.UpdateProfileRequest
 import kotlinx.coroutines.launch
 
 class ProfileInputFragment : Fragment() {
-
-    private lateinit var nicknameEditText: EditText
-    private lateinit var birthYearSpinner: Spinner
-    private lateinit var birthMonthSpinner: Spinner
-    private lateinit var birthDaySpinner: Spinner
-    private lateinit var solarLunarRadioGroup: RadioGroup
-    private lateinit var solarRadioButton: RadioButton
-    private lateinit var lunarRadioButton: RadioButton
-    private lateinit var birthTimeSpinner: Spinner
-    private lateinit var maleButton: Button
-    private lateinit var femaleButton: Button
-    private lateinit var submitButton: Button
+    private var _binding: FragmentProfileInputBinding? = null
+    private val binding get() = _binding!!
 
     private var selectedGender = ""
 
@@ -41,96 +27,90 @@ class ProfileInputFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_profile_input, container, false)
+    ): View {
+        _binding = FragmentProfileInputBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        initViews(view)
+        setupSpinners()
         setupClickListeners()
     }
 
-    private fun initViews(view: View) {
-        nicknameEditText = view.findViewById(R.id.nickname_edit_text)
-        birthYearSpinner = view.findViewById(R.id.birth_year_spinner)
-        birthMonthSpinner = view.findViewById(R.id.birth_month_spinner)
-        birthDaySpinner = view.findViewById(R.id.birth_day_spinner)
-        solarLunarRadioGroup = view.findViewById(R.id.solar_lunar_radio_group)
-        solarRadioButton = view.findViewById(R.id.solar_radio_button)
-        lunarRadioButton = view.findViewById(R.id.lunar_radio_button)
-        birthTimeSpinner = view.findViewById(R.id.birth_time_spinner)
-        maleButton = view.findViewById(R.id.male_button)
-        femaleButton = view.findViewById(R.id.female_button)
-        submitButton = view.findViewById(R.id.submit_button)
-
-        setupSpinners()
-    }
 
     private fun setupSpinners() {
+        val binding = _binding ?: return
+
         // 년도 (1900-2025)
         val years = (1900..2025).map { it.toString() }
-        birthYearSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, years).apply {
+        binding.birthYearSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, years).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
-        birthYearSpinner.setSelection(years.size - 1)
+        binding.birthYearSpinner.setSelection(years.size - 1)
 
         // 월 (1-12)
         val months = (1..12).map { it.toString() + "월" }
-        birthMonthSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, months).apply {
+        binding.birthMonthSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, months).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
 
         // 일 (1-31)
         val days = (1..31).map { it.toString() + "일" }
-        birthDaySpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, days).apply {
+        binding.birthDaySpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, days).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
     }
 
     private fun setupClickListeners() {
-        maleButton.setOnClickListener {
+        val binding = _binding ?: return
+
+        binding.maleButton.setOnClickListener {
             selectedGender = "M"
             updateGenderButtons()
         }
 
-        femaleButton.setOnClickListener {
+        binding.femaleButton.setOnClickListener {
             selectedGender = "F"
             updateGenderButtons()
         }
 
-        submitButton.setOnClickListener { submitProfile() }
+        binding.submitButton.setOnClickListener { submitProfile() }
     }
 
     private fun updateGenderButtons() {
+        val binding = _binding ?: return
+
         if (selectedGender == "M") {
-            maleButton.setBackgroundResource(R.drawable.button_selected)
-            maleButton.setTextColor(Color.BLACK)
-            femaleButton.setBackgroundResource(R.drawable.button_default)
-            femaleButton.setTextColor(Color.WHITE)
+            binding.maleButton.setBackgroundResource(R.drawable.button_selected)
+            binding.maleButton.setTextColor(Color.BLACK)
+            binding.femaleButton.setBackgroundResource(R.drawable.button_default)
+            binding.femaleButton.setTextColor(Color.WHITE)
         } else if (selectedGender == "F") {
-            femaleButton.setBackgroundResource(R.drawable.button_selected)
-            femaleButton.setTextColor(Color.BLACK)
-            maleButton.setBackgroundResource(R.drawable.button_default)
-            maleButton.setTextColor(Color.WHITE)
+            binding.femaleButton.setBackgroundResource(R.drawable.button_selected)
+            binding.femaleButton.setTextColor(Color.BLACK)
+            binding.maleButton.setBackgroundResource(R.drawable.button_default)
+            binding.maleButton.setTextColor(Color.WHITE)
         }
     }
 
     private fun submitProfile() {
-        val nickname = nicknameEditText.text.toString().trim()
+        val binding = _binding ?: return
 
-        val year = birthYearSpinner.selectedItem.toString()
-        val month = birthMonthSpinner.selectedItem.toString().replace("월", "").padStart(2, '0')
-        val day = birthDaySpinner.selectedItem.toString().replace("일", "").padStart(2, '0')
+        val nickname = binding.nicknameEditText.text.toString().trim()
+
+        val year = binding.birthYearSpinner.selectedItem.toString()
+        val month = binding.birthMonthSpinner.selectedItem.toString().replace("월", "").padStart(2, '0')
+        val day = binding.birthDaySpinner.selectedItem.toString().replace("일", "").padStart(2, '0')
         val birthDate = "$year-$month-$day"
 
-        val solarOrLunar = when (solarLunarRadioGroup.checkedRadioButtonId) {
+        val solarOrLunar = when (binding.solarLunarRadioGroup.checkedRadioButtonId) {
             R.id.solar_radio_button -> "solar"
             R.id.lunar_radio_button -> "lunar"
             else -> ""
         }
-        val birthTimeUnits = extractBirthTimeUnit(birthTimeSpinner.selectedItem.toString())
+        val birthTimeUnits = extractBirthTimeUnit(binding.birthTimeSpinner.selectedItem.toString())
         val gender = selectedGender
 
         if (nickname.isEmpty()) {
@@ -210,6 +190,11 @@ class ProfileInputFragment : Fragment() {
 
     private fun navigateToSignIn() {
         (activity as? AuthContainerActivity)?.showSignInFragment()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     companion object {

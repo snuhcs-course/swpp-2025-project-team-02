@@ -91,4 +91,6 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
+    // Dependency for image processing with Glide
+    implementation(libs.glide)
 }

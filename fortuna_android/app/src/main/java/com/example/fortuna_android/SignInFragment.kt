@@ -8,10 +8,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
+import com.example.fortuna_android.databinding.FragmentSigninBinding
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -28,16 +26,10 @@ import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
 
 class SignInFragment : Fragment() {
+    private var _binding: FragmentSigninBinding? = null
+    private val binding get() = _binding!!
 
     private lateinit var mGoogleSignInClient: GoogleSignInClient
-
-    // UI 요소
-    private lateinit var signInButton: SignInButton
-    private lateinit var signOutButton: Button
-    private lateinit var nameTextView: TextView
-    private lateinit var emailTextView: TextView
-    private lateinit var idTextView: TextView
-    private lateinit var userInfoLayout: LinearLayout
 
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -54,14 +46,14 @@ class SignInFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_signin, container, false)
+    ): View {
+        _binding = FragmentSigninBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        initViews(view)
         setupGoogleSignIn()
         setupClickListeners()
     }
@@ -72,14 +64,6 @@ class SignInFragment : Fragment() {
         updateUI(account)
     }
 
-    private fun initViews(view: View) {
-        signInButton = view.findViewById(R.id.sign_in_button)
-        signOutButton = view.findViewById(R.id.sign_out_button)
-        nameTextView = view.findViewById(R.id.name_text_view)
-        emailTextView = view.findViewById(R.id.email_text_view)
-        idTextView = view.findViewById(R.id.id_text_view)
-        userInfoLayout = view.findViewById(R.id.user_info_layout)
-    }
 
     private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -91,8 +75,9 @@ class SignInFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        signInButton.setOnClickListener { signIn() }
-        signOutButton.setOnClickListener { signOut() }
+        val binding = _binding ?: return
+        binding.signInButton.setOnClickListener { signIn() }
+        binding.signOutButton.setOnClickListener { signOut() }
     }
 
     private fun signIn() {
@@ -295,16 +280,17 @@ class SignInFragment : Fragment() {
     }
 
     private fun updateUI(account: GoogleSignInAccount?) {
+        val binding = _binding ?: return
         val isLoggedIn = account != null
         if (isLoggedIn) {
-            nameTextView.text = "이름: ${account!!.displayName}"
-            emailTextView.text = "이메일: ${account.email}"
-            idTextView.text = "고유 ID: ${account.id}"
+            binding.nameTextView.text = "이름: ${account!!.displayName}"
+            binding.emailTextView.text = "이메일: ${account.email}"
+            binding.idTextView.text = "고유 ID: ${account.id}"
         }
 
-        signInButton.visibility = if (isLoggedIn) View.GONE else View.VISIBLE
-        userInfoLayout.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
-        signOutButton.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
+        binding.signInButton.visibility = if (isLoggedIn) View.GONE else View.VISIBLE
+        binding.userInfoLayout.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
+        binding.signOutButton.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
     }
 
     private fun navigateToMain() {
@@ -312,6 +298,11 @@ class SignInFragment : Fragment() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         requireActivity().finish()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     companion object {
