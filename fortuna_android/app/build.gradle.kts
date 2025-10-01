@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.firebase.appdistribution)
 }
 
 android {
@@ -57,16 +58,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "/META-INF/DEPENDENCIES"
-            excludes += "/META-INF/LICENSE*"
-            excludes += "/META-INF/license*"
-            excludes += "/META-INF/NOTICE*"
-            excludes += "/META-INF/notice*"
-            excludes += "/META-INF/ASL2.0"
             excludes += "/META-INF/INDEX.LIST"
-            excludes += "/META-INF/*.version"
-            excludes += "/META-INF/*.versions"
-            excludes += "/META-INF/*.properties"
+            excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/io.netty.versions.properties"
         }
     }
@@ -78,12 +71,11 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.firebase.appdistribution.gradle)
+    implementation(libs.play.services.auth)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.google.ar.core)
-    implementation(libs.play.services.auth)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     // Dependency for CameraX API
@@ -99,7 +91,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     // Dependency for image processing with Glide
     implementation(libs.glide)
-    // Dependency for Guava (required for CameraX ListenableFuture)
-    implementation(libs.guava)
+    // Dependency for ListenableFuture (required by CameraX)
+    // implementation(libs.guava)
 
 }
