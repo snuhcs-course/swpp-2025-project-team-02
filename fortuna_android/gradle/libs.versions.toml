@@ -30,6 +30,8 @@ lifecycle = "2.9.4"
 playServicesAuth = "21.4.0"
 # AR Core version
 arCore = "1.50.0"
+# Guava for ListenableFuture (required by CameraX)
+guava = "33.3.1-android"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +60,7 @@ androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navi
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigation" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

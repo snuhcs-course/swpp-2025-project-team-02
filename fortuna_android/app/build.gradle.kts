@@ -51,6 +51,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    buildFeatures {
+        viewBinding = true // Enable ViewBinding
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -96,5 +99,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     // Dependency for image processing with Glide
     implementation(libs.glide)
+    // Dependency for Guava (required for CameraX ListenableFuture)
+    implementation(libs.guava)
 
 }
