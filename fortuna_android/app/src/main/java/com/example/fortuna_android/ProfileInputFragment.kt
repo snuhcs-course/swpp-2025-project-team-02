@@ -17,8 +17,8 @@ import android.widget.Spinner
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.fortuna_android.data.Api.RetrofitClient
-import com.example.fortuna_android.data.Api.UpdateProfileRequest
+import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.api.UpdateProfileRequest
 import kotlinx.coroutines.launch
 
 class ProfileInputFragment : Fragment() {
@@ -202,7 +202,7 @@ class ProfileInputFragment : Fragment() {
     }
 
     private fun navigateToMain() {
-        val intent = Intent(requireContext(), MainActivity::class.java)
+        val intent = Intent(requireContext(), ProfileActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         requireActivity().finish()

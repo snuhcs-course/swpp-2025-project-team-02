@@ -1,231 +1,197 @@
 package com.example.fortuna_android
 
-import android.content.Context
-import android.content.Intent
-import android.graphics.Color
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.view.View
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.example.fortuna_android.data.Api.LogoutRequest
-import com.example.fortuna_android.data.Api.RetrofitClient
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import kotlinx.coroutines.launch
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.navigation.fragment.NavHostFragment
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.navigation.NavOptions
+import com.example.fortuna_android.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+    private var _binding: ActivityMainBinding? = null
+    private val binding get() = _binding!!
 
-    private lateinit var mGoogleSignInClient: GoogleSignInClient
-    private lateinit var welcomeTextView: TextView
-    private lateinit var sajuTextView: TextView
-    private lateinit var logoutButton: Button
-
-    // 사주팔자 행렬
-    private lateinit var yearlyGanji1: TextView
-    private lateinit var yearlyGanji2: TextView
-    private lateinit var monthlyGanji1: TextView
-    private lateinit var monthlyGanji2: TextView
-    private lateinit var dailyGanji1: TextView
-    private lateinit var dailyGanji2: TextView
-    private lateinit var hourlyGanji1: TextView
-    private lateinit var hourlyGanji2: TextView
+    companion object {
+        private const val PERMISSION_REQUEST_CODE = 1001
+        private val REQUIRED_PERMISSIONS = arrayOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        enableEdgeToEdge()
+        _binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        setupGoogleSignIn()
-        initViews()
-        setupClickListeners()
-        checkLoginStatus()
-    }
+        // edge-to-edge handling
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+            insets
+        }
 
-    private fun setupGoogleSignIn() {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(BuildConfig.GOOGLE_CLIENT_ID)
-            .requestEmail()
-            .build()
+        // Find the NavHostFragment and get its NavController
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
 
-        mGoogleSignInClient = GoogleSignIn.getClient(this, gso)
-    }
+        // Check permissions on startup
+        requestPermissions()
 
-    override fun onResume() {
-        super.onResume()
-        checkLoginStatus()
-    }
+        // Set the correct selected item to match the start destination
+        binding.bottomNavigationView.selectedItemId = R.id.homeFragment
 
-    private fun initViews() {
-        welcomeTextView = findViewById(R.id.welcome_text_view)
-        sajuTextView = findViewById(R.id.saju_view_text)
-        logoutButton = findViewById(R.id.logout_button)
+        // Connect the BottomNavigationView to the NavController with custom animations
+        binding.bottomNavigationView.setOnItemSelectedListener { item ->
+            val options = when (item.itemId) {
+                R.id.profileFragment -> {
+                    // ProfileFragment: slide in from right
+                    NavOptions.Builder()
+                        .setEnterAnim(R.anim.slide_in_right)
+                        .setExitAnim(R.anim.slide_out_left)
+                        .setPopEnterAnim(R.anim.slide_in_left)
+                        .setPopExitAnim(R.anim.slide_out_right)
+                        .build()
+                }
+                R.id.searchFragment -> {
+                    // SearchFragment: slide in from left
+                    NavOptions.Builder()
+                        .setEnterAnim(R.anim.slide_in_left)
+                        .setExitAnim(R.anim.slide_out_right)
+                        .setPopEnterAnim(R.anim.slide_in_right)
+                        .setPopExitAnim(R.anim.slide_out_left)
+                        .build()
+                }
+                else -> {
+                    // Default animations for other fragments (Home)
+                    NavOptions.Builder()
+                        .setEnterAnim(android.R.anim.fade_in)
+                        .setExitAnim(android.R.anim.fade_out)
+                        .setPopEnterAnim(android.R.anim.fade_in)
+                        .setPopExitAnim(android.R.anim.fade_out)
+                        .build()
+                }
+            }
 
-        // 사주팔자 TextViews
-        yearlyGanji1 = findViewById(R.id.yearly_ganji_1)
-        yearlyGanji2 = findViewById(R.id.yearly_ganji_2)
-        monthlyGanji1 = findViewById(R.id.monthly_ganji_1)
-        monthlyGanji2 = findViewById(R.id.monthly_ganji_2)
-        dailyGanji1 = findViewById(R.id.daily_ganji_1)
-        dailyGanji2 = findViewById(R.id.daily_ganji_2)
-        hourlyGanji1 = findViewById(R.id.hourly_ganji_1)
-        hourlyGanji2 = findViewById(R.id.hourly_ganji_2)
-    }
-
-    private fun setupClickListeners() {
-        logoutButton.setOnClickListener { logout() }
-    }
-
-    private fun checkLoginStatus() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val token = prefs.getString(KEY_TOKEN, null)
-        val account = GoogleSignIn.getLastSignedInAccount(this)
-
-        if (token.isNullOrEmpty() || account == null) {
-            Log.d(TAG, "User not logged in, redirecting to SignInActivity")
-            navigateToSignIn()
-        } else {
-            Log.d(TAG, "User is logged in")
-            loadUserProfile(token)
+            navController.navigate(item.itemId, null, options)
+            true
         }
     }
 
-    private fun loadUserProfile(token: String) {
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.instance.getUserProfile("Bearer $token")
+    private fun checkPermissions(): Boolean {
+        for (permission in REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    permission
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return false
+            }
+        }
+        return true
+    }
 
-                if (response.isSuccessful) {
-                    val profile = response.body()
-                    if (profile != null) {
-                        val nickname = profile.nickname ?: profile.name
-                        welcomeTextView.text = "환영합니다, ${nickname}님!"
-                        sajuTextView.text = "${nickname}님의 사주팔자"
-                        displaySaju(
-                            profile.yearlyGanji,
-                            profile.monthlyGanji,
-                            profile.dailyGanji,
-                            profile.hourlyGanji
-                        )
-                    }
-                } else {
-                    Log.e(TAG, "프로필 로드 실패: ${response.code()}")
-                    Toast.makeText(this@MainActivity, "프로필을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+    fun requestPermissions() {
+        if (!checkPermissions()) {
+            val permissionsToRequest = mutableListOf<String>()
+
+            // Check each required permission
+            for (permission in REQUIRED_PERMISSIONS) {
+                if (ContextCompat.checkSelfPermission(
+                        this,
+                        permission
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    permissionsToRequest.add(permission)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "프로필 로드 중 오류", e)
-                Toast.makeText(this@MainActivity, "프로필 로드 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+            // Request permissions if any are missing
+            if (permissionsToRequest.isNotEmpty()) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    permissionsToRequest.toTypedArray(),
+                    PERMISSION_REQUEST_CODE
+                )
             }
         }
     }
 
-    private fun displaySaju(yearly: String?, monthly: String?, daily: String?, hourly: String?) {
-        // 각 간지를 천간(첫글자)과 지지(둘째글자)로 분리하여 표시
-        if (yearly != null && yearly.length == 2) {
-            setGanjiText(yearlyGanji1, yearly[0].toString())
-            setGanjiText(yearlyGanji2, yearly[1].toString())
-        }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (monthly != null && monthly.length == 2) {
-            setGanjiText(monthlyGanji1, monthly[0].toString())
-            setGanjiText(monthlyGanji2, monthly[1].toString())
-        }
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            // Check if grantResults is empty (UI was interrupted)
+            if (grantResults.isEmpty()) {
+                // Permission request was cancelled/interrupted
+                // Handle gracefully - maybe retry or show explanation
+                return
+            }
 
-        if (daily != null && daily.length == 2) {
-            setGanjiText(dailyGanji1, daily[0].toString())
-            setGanjiText(dailyGanji2, daily[1].toString())
-        }
+            val deniedPermissions = mutableListOf<String>()
 
-        if (hourly != null && hourly.length == 2) {
-            setGanjiText(hourlyGanji1, hourly[0].toString())
-            setGanjiText(hourlyGanji2, hourly[1].toString())
-        }
-    }
-
-    private fun setGanjiText(textView: TextView, text: String) {
-        textView.text = text
-        textView.setBackgroundColor(getGanjiColor(text))
-    }
-
-    private fun getGanjiColor(ganji: String): Int {
-        return when (ganji) {
-            // 목(木) - 초록색
-            "갑", "을", "인", "묘" -> Color.parseColor("#0BEFA0")
-            // 화(火) - 빨간색
-            "병", "정", "사", "오" -> Color.parseColor("#F93E3E")
-            // 토(土) - 노란색
-            "무", "기", "술", "미", "축", "진" -> Color.parseColor("#FF9500")
-            // 금(金) - 흰색
-            "경", "신", "유" -> Color.parseColor("#C1BFBF")
-            // 수(水) - 회색
-            "임", "계", "자", "해" -> Color.parseColor("#2BB3FC")
-            else -> Color.parseColor("#CCCCCC")
-        }
-    }
-
-    private fun logout() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val refreshToken = prefs.getString(REFRESH_TOKEN, null)
-
-        if (refreshToken.isNullOrEmpty()) {
-            Log.w(TAG, "Refresh token이 없습니다. 로컬에서만 로그아웃합니다.")
-            performLocalLogout()
-            return
-        }
-
-        Log.d(TAG, "서버에 로그아웃 요청을 보냅니다...")
-
-        lifecycleScope.launch {
-            try {
-                val request = LogoutRequest(refreshToken = refreshToken)
-                val response = RetrofitClient.instance.logout(request)
-
-                if (response.isSuccessful) {
-                    val logoutResponse = response.body()
-                    Log.d(TAG, "서버 로그아웃 성공: ${logoutResponse?.message}")
-                    Toast.makeText(this@MainActivity, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "서버 로그아웃 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(this@MainActivity, "서버 로그아웃 실패, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+            for (i in permissions.indices) {
+                if (i < grantResults.size && grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    deniedPermissions.add(permissions[i])
                 }
+            }
 
-                // 성공/실패 관계없이 로컬에서 로그아웃 수행
-                performLocalLogout()
-
-            } catch (e: Exception) {
-                Log.e(TAG, "로그아웃 요청 중 오류", e)
-                Toast.makeText(this@MainActivity, "네트워크 오류, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
-                performLocalLogout()
+            if (deniedPermissions.isEmpty()) {
+                // All permissions granted
+                // You can add any initialization logic that requires permissions here
+            } else {
+                // Some permissions were denied
+                showPermissionDeniedDialog(deniedPermissions)
             }
         }
     }
 
-    private fun performLocalLogout() {
-        // Google 로그아웃
-        mGoogleSignInClient.signOut().addOnCompleteListener(this) {
-            // SharedPreferences에서 모든 데이터 제거
-            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().clear().apply()
-
-            Log.d(TAG, "로컬 로그아웃 완료 - 모든 토큰 제거됨")
-            navigateToSignIn()
+    private fun showPermissionDeniedDialog(deniedPermissions: List<String>) {
+        val permissionNames = deniedPermissions.map { permission ->
+            when (permission) {
+                Manifest.permission.CAMERA -> "Camera"
+                Manifest.permission.ACCESS_FINE_LOCATION -> "Location"
+                else -> permission
+            }
         }
+
+        val message = "The following permissions are required for the app to work properly:\n\n" +
+                "• ${permissionNames.joinToString("\n• ")}\n\n" +
+                "Please grant these permissions in Settings to use all features."
+
+        AlertDialog.Builder(this)
+            .setTitle("Permissions Required")
+            .setMessage(message)
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
     }
 
-    private fun navigateToSignIn() {
-        val intent = Intent(this, AuthContainerActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        finish()
+    fun hideBottomNavigation() {
+        _binding?.bottomNavigationView?.visibility = View.GONE
     }
 
-    companion object {
-        private const val TAG = "MainActivity"
-        private const val PREFS_NAME = "fortuna_prefs"
-        private const val KEY_TOKEN = "jwt_token"
-        private const val REFRESH_TOKEN = "refresh_token"
+    fun showBottomNavigation() {
+        _binding?.bottomNavigationView?.visibility = View.VISIBLE
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 }

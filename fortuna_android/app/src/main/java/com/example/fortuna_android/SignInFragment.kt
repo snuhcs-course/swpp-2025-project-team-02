@@ -15,10 +15,10 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.fortuna_android.data.Api.LoginRequest
-import com.example.fortuna_android.data.Api.LogoutRequest
-import com.example.fortuna_android.data.Api.RetrofitClient
-import com.example.fortuna_android.data.Api.UserProfile
+import com.example.fortuna_android.api.LoginRequest
+import com.example.fortuna_android.api.LogoutRequest
+import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.api.UserProfile
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -259,7 +259,7 @@ class SignInFragment : Fragment() {
 
                     if (userProfile != null) {
                         if (isProfileComplete(userProfile)) {
-                            Log.d(TAG, "프로필 정보가 완성되었습니다. MainActivity로 이동합니다.")
+                            Log.d(TAG, "프로필 정보가 완성되었습니다. ProfileActivity로 이동합니다.")
                             navigateToMain()
                         } else {
                             Log.d(TAG, "프로필 정보가 불완전합니다. ProfileInputFragment로 이동합니다.")
@@ -308,7 +308,7 @@ class SignInFragment : Fragment() {
     }
 
     private fun navigateToMain() {
-        val intent = Intent(requireContext(), MainActivity::class.java)
+        val intent = Intent(requireContext(), ProfileActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         requireActivity().finish()
