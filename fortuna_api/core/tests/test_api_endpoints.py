@@ -49,7 +49,6 @@ class TestImageAPIEndpoints(APITestCase):
     @patch('core.services.image.ImageService.process_image_upload')
     def test_upload_chakra_image_success(self, mock_process):
         """Test successful chakra image upload."""
-        self.client.credentials()
         mock_process.return_value = {
             'status': 'success',
             'data': {
