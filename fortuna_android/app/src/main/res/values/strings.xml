@@ -16,4 +16,13 @@
         <item>술시 (19:30~21:29)</item>
         <item>해시 (21:30~23:29)</item>
     </string-array>
+
+    <!-- string for camera feature -->
+    <string name="take_photo">Take Photo</string>
+    <string name="start_capture">Start Capture</string>
+    <string name="stop_capture">Stop Capture</string>
+    <string name="back">Back</string>
+    <string name="switch_camera">Switch Camera</string>
+    <string name="capture_photo">Capture Photo</string>
+
 </resources>
