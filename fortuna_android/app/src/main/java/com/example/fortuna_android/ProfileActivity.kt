@@ -53,11 +53,6 @@ class ProfileActivity : AppCompatActivity() {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso)
     }
 
-    override fun onResume() {
-        super.onResume()
-        checkLoginStatus()
-    }
-
     private fun initViews() {
         welcomeTextView = findViewById(R.id.welcome_text_view)
         sajuTextView = findViewById(R.id.saju_view_text)
