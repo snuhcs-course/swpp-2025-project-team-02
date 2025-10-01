@@ -6,6 +6,8 @@ from enum import Enum
 from datetime import date, time, datetime
 from typing import Optional
 from astronomy import Time, SunPosition
+from lunarcalendar import Converter, Solar, Lunar
+from loguru import logger
 
 
 class YinYang(Enum):
@@ -487,6 +489,30 @@ class SajuCalculator:
         """사주 계산 (기존 API 호환)"""
         saju = Saju.from_date(birth_date, birth_time)
         return saju.to_dict()
+    
+    @staticmethod
+    def solar_to_lunar(solar_date: date) -> date:
+        """Convert solar date to lunar date"""
+        try:
+            solar = Solar(solar_date.year, solar_date.month, solar_date.day)
+            lunar = Converter.Solar2Lunar(solar)
+            return date(lunar.year, lunar.month, lunar.day)
+        except Exception:
+            # If conversion fails, return original date
+            logger.error(f"Solar to lunar conversion failed: {solar_date}")
+            return solar_date
+        
+    @staticmethod
+    def lunar_to_solar(lunar_date: date) -> date:
+        """Convert lunar date to solar date"""
+        try:
+            lunar = Lunar(lunar_date.year, lunar_date.month, lunar_date.day)
+            solar = Converter.Lunar2Solar(lunar)
+            return date(solar.year, solar.month, solar.day)
+        except Exception:
+            # If conversion fails, return original date
+            logger.error(f"Lunar to solar conversion failed: {lunar_date}")
+            return lunar_date
 
 
 if __name__ == "__main__":
