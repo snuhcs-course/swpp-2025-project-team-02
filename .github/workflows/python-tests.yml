@@ -1,0 +1,45 @@
+name: Python Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'fortuna_api/**'
+      - '.github/workflows/python-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.2
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: fortuna_api/.venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        working-directory: ./fortuna_api
+        run: poetry install --no-interaction --no-root
+
+      - name: Run tests
+        working-directory: ./fortuna_api
+        run: poetry run python manage.py test
+        env:
+          DJANGO_SETTINGS_MODULE: fortuna_api.settings.testing

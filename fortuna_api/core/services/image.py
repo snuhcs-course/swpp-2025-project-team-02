@@ -4,15 +4,14 @@ Handles photo uploads, metadata extraction, and storage.
 """
 
 import os
-import uuid
-import json
 from datetime import datetime
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.conf import settings
 from django.core.files.storage import default_storage
+from core.models import ChakraImage
 import logging
 
 logger = logging.getLogger(__name__)
@@ -148,37 +147,39 @@ class ImageService:
     def save_image(
         image_file: InMemoryUploadedFile,
         user_id: int,
-        metadata: Dict[str, Any]
-    ) -> Tuple[str, str]:
+        metadata: Dict[str, Any],
+        chakra_type: str
+    ) -> ChakraImage:
         """
-        Save uploaded image to storage.
+        Save uploaded image to storage and database.
 
         Args:
             image_file: The uploaded image file
             user_id: ID of the user uploading the image
             metadata: Extracted metadata
+            chakra_type: Type of chakra
 
         Returns:
-            Tuple of (file_path, file_url)
+            ChakraImage model instance
         """
-        # Generate unique filename
-        ext = os.path.splitext(image_file.name)[1]
-        filename = f"{uuid.uuid4().hex}{ext}"
+        from user.models import User
 
-        # Create directory structure: media/chakras/user_id/YYYY-MM-DD/filename
         timestamp = datetime.fromisoformat(metadata["timestamp"])
-        file_path = os.path.join(
-            "chakras",
-            str(user_id),
-            timestamp.strftime("%Y-%m-%d"),
-            filename
+
+        chakra_image = ChakraImage(
+            user_id=user_id,
+            image=image_file,
+            chakra_type=chakra_type,
+            date=timestamp.date(),
+            timestamp=timestamp,
+            latitude=metadata.get("location", {}).get("latitude") if metadata.get("location") else None,
+            longitude=metadata.get("location", {}).get("longitude") if metadata.get("location") else None,
+            device_make=metadata.get("device_info", {}).get("make") if metadata.get("device_info") else None,
+            device_model=metadata.get("device_info", {}).get("model") if metadata.get("device_info") else None,
         )
+        chakra_image.save()
 
-        # Save file
-        saved_path = default_storage.save(file_path, image_file)
-        file_url = default_storage.url(saved_path)
-
-        return saved_path, file_url
+        return chakra_image
 
     @staticmethod
     def process_image_upload(
@@ -205,28 +206,22 @@ class ImageService:
             image_file.seek(0)
 
             # Save image
-            file_path, file_url = ImageService.save_image(
-                image_file, user_id, metadata
+            chakra_type = additional_data.get('chakra_type', 'default') if additional_data else 'default'
+            chakra_image = ImageService.save_image(
+                image_file, user_id, metadata, chakra_type
             )
 
             # Prepare response
-            response = {
+            return {
                 "status": "success",
                 "data": {
-                    "image_id": str(uuid.uuid4()),
-                    "file_path": file_path,
-                    "file_url": file_url,
+                    "image_id": chakra_image.id,
+                    "file_url": chakra_image.image.url,
                     "metadata": metadata,
-                    "uploaded_at": datetime.now().isoformat(),
+                    "uploaded_at": chakra_image.created_at.isoformat(),
                     "user_id": user_id
                 }
             }
-
-            # Add any additional data from request
-            if additional_data:
-                response["data"]["additional_data"] = additional_data
-
-            return response
 
         except Exception as e:
             logger.error(f"Failed to process image upload: {e}")
@@ -247,27 +242,21 @@ class ImageService:
         Returns:
             List of image data for the specified date
         """
-        # This would typically query from database
-        # For now, return mock data structure
-        # In production, this should query from a Django model
+        from django.db.models import Q
 
-        images = []
-        date_str = date.strftime("%Y-%m-%d")
-        base_path = os.path.join(
-            settings.MEDIA_ROOT,
-            "chakras",
-            str(user_id),
-            date_str
-        )
+        # Query images from database
+        images = ChakraImage.objects.filter(
+            user_id=user_id,
+            date=date.date()
+        ).order_by('-timestamp')
 
-        if os.path.exists(base_path):
-            for filename in os.listdir(base_path):
-                if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                    file_path = os.path.join(base_path, filename)
-                    images.append({
-                        "filename": filename,
-                        "path": file_path,
-                        "url": f"{settings.MEDIA_URL}chakras/{user_id}/{date_str}/{filename}"
-                    })
-
-        return images
+        return [{
+            "id": img.id,
+            "url": img.image.url,
+            "chakra_type": img.chakra_type,
+            "timestamp": img.timestamp.isoformat(),
+            "location": {
+                "latitude": img.latitude,
+                "longitude": img.longitude
+            } if img.latitude and img.longitude else None
+        } for img in images]

@@ -7,7 +7,7 @@ from io import BytesIO
 from datetime import datetime
 from unittest.mock import patch, Mock, MagicMock
 from PIL import Image
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -26,7 +26,6 @@ class TestImageAPIEndpoints(APITestCase):
         """Set up test fixtures."""
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='testuser',
             email='test@example.com',
             password='testpass123'
         )
@@ -87,6 +86,7 @@ class TestImageAPIEndpoints(APITestCase):
         self.assertEqual(response.data['status'], 'error')
         self.assertIn('No image file', response.data['message'])
 
+    @override_settings(DEVELOPMENT_MODE=False)
     def test_upload_chakra_image_unauthenticated(self):
         """Test chakra upload without authentication."""
         self.client.credentials()  # Remove credentials
@@ -144,7 +144,6 @@ class TestFortuneAPIEndpoints(APITestCase):
         """Set up test fixtures."""
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='testuser',
             email='test@example.com',
             password='testpass123'
         )
@@ -294,6 +293,7 @@ class TestFortuneAPIEndpoints(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(mock_hourly.called)
 
+    @override_settings(DEVELOPMENT_MODE=False)
     def test_fortune_endpoints_unauthenticated(self):
         """Test fortune endpoints without authentication."""
         self.client.credentials()  # Remove credentials
@@ -316,7 +316,6 @@ class TestAPIIntegration(APITestCase):
         """Set up test fixtures."""
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username='testuser',
             email='test@example.com',
             password='testpass123'
         )

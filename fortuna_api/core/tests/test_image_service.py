@@ -12,7 +12,11 @@ import pytest
 from django.test import TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile, InMemoryUploadedFile
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from ..services.image import ImageService
+from ..models import ChakraImage
+
+User = get_user_model()
 
 
 class TestImageService(TestCase):
@@ -21,7 +25,11 @@ class TestImageService(TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.service = ImageService()
-        self.user_id = 1
+        self.user = User.objects.create_user(
+            email='test@example.com',
+            password='testpass123'
+        )
+        self.user_id = self.user.id
         self.test_date = datetime(2024, 1, 1, 12, 0, 0)
 
     def create_test_image(self, with_exif=False):
@@ -123,23 +131,25 @@ class TestImageService(TestCase):
         self.assertLess(location['latitude'], 0)  # Southern hemisphere
         self.assertLess(location['longitude'], 0)  # Western hemisphere
 
-    @patch('django.core.files.storage.default_storage.save')
-    @patch('django.core.files.storage.default_storage.url')
-    def test_save_image(self, mock_url, mock_save):
-        """Test saving image to storage."""
-        mock_save.return_value = 'chakras/1/2024-01-01/test.jpg'
-        mock_url.return_value = '/media/chakras/1/2024-01-01/test.jpg'
-
+    def test_save_image(self):
+        """Test saving image to storage and database."""
         image_file = self.create_test_image()
-        metadata = {'timestamp': self.test_date.isoformat()}
+        metadata = {
+            'timestamp': self.test_date.isoformat(),
+            'location': {'latitude': 37.5665, 'longitude': 126.9780},
+            'device_info': {'make': 'TestMake', 'model': 'TestModel'}
+        }
 
-        file_path, file_url = self.service.save_image(
-            image_file, self.user_id, metadata
+        chakra_image = self.service.save_image(
+            image_file, self.user_id, metadata, 'test'
         )
 
-        self.assertEqual(file_path, 'chakras/1/2024-01-01/test.jpg')
-        self.assertEqual(file_url, '/media/chakras/1/2024-01-01/test.jpg')
-        mock_save.assert_called_once()
+        self.assertIsInstance(chakra_image, ChakraImage)
+        self.assertEqual(chakra_image.user_id, self.user_id)
+        self.assertEqual(chakra_image.chakra_type, 'test')
+        self.assertEqual(chakra_image.date, self.test_date.date())
+        self.assertEqual(chakra_image.latitude, 37.5665)
+        self.assertEqual(chakra_image.longitude, 126.9780)
 
     @patch.object(ImageService, 'save_image')
     @patch.object(ImageService, 'extract_exif_data')
@@ -151,10 +161,12 @@ class TestImageService(TestCase):
             'device_info': None,
             'image_info': {}
         }
-        mock_save.return_value = (
-            'chakras/1/2024-01-01/test.jpg',
-            '/media/chakras/1/2024-01-01/test.jpg'
-        )
+
+        mock_chakra = Mock(spec=ChakraImage)
+        mock_chakra.id = 1
+        mock_chakra.image.url = '/media/chakras/1/2024-01-01/test.jpg'
+        mock_chakra.created_at = self.test_date
+        mock_save.return_value = mock_chakra
 
         image_file = self.create_test_image()
         additional_data = {'chakra_type': 'fire'}
@@ -165,9 +177,7 @@ class TestImageService(TestCase):
 
         self.assertEqual(result['status'], 'success')
         self.assertIn('image_id', result['data'])
-        self.assertEqual(result['data']['file_path'], 'chakras/1/2024-01-01/test.jpg')
         self.assertEqual(result['data']['user_id'], self.user_id)
-        self.assertEqual(result['data']['additional_data'], additional_data)
 
     @patch.object(ImageService, 'extract_exif_data')
     def test_process_image_upload_failure(self, mock_extract):
@@ -180,28 +190,38 @@ class TestImageService(TestCase):
         self.assertEqual(result['status'], 'error')
         self.assertEqual(result['message'], 'Test error')
 
-    @patch('os.path.exists')
-    @patch('os.listdir')
-    def test_get_user_images_for_date(self, mock_listdir, mock_exists):
+    def test_get_user_images_for_date(self):
         """Test retrieving user images for a specific date."""
-        mock_exists.return_value = True
-        mock_listdir.return_value = ['image1.jpg', 'image2.png', 'document.pdf']
+        # Create test images
+        img1 = ChakraImage.objects.create(
+            user_id=self.user_id,
+            image='test1.jpg',
+            chakra_type='fire',
+            date=self.test_date.date(),
+            timestamp=self.test_date,
+            latitude=37.5,
+            longitude=126.9
+        )
+        img2 = ChakraImage.objects.create(
+            user_id=self.user_id,
+            image='test2.jpg',
+            chakra_type='water',
+            date=self.test_date.date(),
+            timestamp=self.test_date
+        )
 
-        with self.settings(MEDIA_ROOT='/media', MEDIA_URL='/media/'):
-            images = self.service.get_user_images_for_date(
-                self.user_id, self.test_date
-            )
+        images = self.service.get_user_images_for_date(
+            self.user_id, self.test_date
+        )
 
-        self.assertEqual(len(images), 2)  # Only image files
-        self.assertEqual(images[0]['filename'], 'image1.jpg')
-        self.assertEqual(images[1]['filename'], 'image2.png')
-        self.assertIn('/media/chakras/1/2024-01-01/', images[0]['url'])
+        self.assertEqual(len(images), 2)
+        self.assertEqual(images[0]['id'], img2.id)  # Ordered by -timestamp
+        self.assertEqual(images[1]['id'], img1.id)
+        self.assertIsNotNone(images[1]['location'])
+        self.assertIsNone(images[0]['location'])
 
-    @patch('os.path.exists')
-    def test_get_user_images_for_date_no_directory(self, mock_exists):
-        """Test retrieving images when directory doesn't exist."""
-        mock_exists.return_value = False
-
+    def test_get_user_images_for_date_empty(self):
+        """Test retrieving images when no images exist."""
         images = self.service.get_user_images_for_date(
             self.user_id, self.test_date
         )
@@ -215,12 +235,12 @@ class TestImageServiceIntegration(TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.service = ImageService()
-        self.user_id = 1
+        self.user = User.objects.create_user(
+            email='integration@example.com',
+            password='testpass123'
+        )
+        self.user_id = self.user.id
 
-    @pytest.mark.skipif(
-        not hasattr(settings, 'MEDIA_ROOT'),
-        reason="Requires MEDIA_ROOT setting"
-    )
     def test_full_image_processing_workflow(self):
         """Test complete image processing workflow."""
         # Create test image
@@ -249,3 +269,8 @@ class TestImageServiceIntegration(TestCase):
         self.assertEqual(result['status'], 'success')
         self.assertIsNotNone(result['data']['image_id'])
         self.assertIsNotNone(result['data']['metadata']['timestamp'])
+
+        # Verify database record
+        chakra_image = ChakraImage.objects.get(id=result['data']['image_id'])
+        self.assertEqual(chakra_image.user_id, self.user_id)
+        self.assertEqual(chakra_image.chakra_type, 'water')
