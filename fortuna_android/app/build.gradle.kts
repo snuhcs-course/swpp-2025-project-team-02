@@ -57,6 +57,7 @@ android {
     }
     packaging {
         resources {
+            // Exclude unnecessary files
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/DEPENDENCIES"
@@ -75,9 +76,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation(libs.google.ar.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // Dependency for Google ARCore
+    implementation(libs.google.ar.core)
     // Dependency for CameraX API
     implementation(libs.bundles.camerax)
     // Dependency for fragment navigation
@@ -89,9 +91,4 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
-    // Dependency for image processing with Glide
-    implementation(libs.glide)
-    // Dependency for ListenableFuture (required by CameraX)
-    // implementation(libs.guava)
-
 }
