@@ -1,5 +1,6 @@
 package com.example.fortuna_android.data.Api
 
+import com.example.fortuna_android.BuildConfig
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -118,8 +119,7 @@ interface LoginApiService {
 }
 
 object RetrofitClient {
-//    private const val BASE_URL = "http://10.15.57.163:8000/"
-    private const val BASE_URL = "http://10.149.194.205:8000/"
+    private val BASE_URL = BuildConfig.API_BASE_URL
     val instance: LoginApiService by lazy {
         val retrofit = Retrofit.Builder()
             .baseUrl(BASE_URL)

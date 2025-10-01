@@ -46,8 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            // 변수값 변경 필요
-            .requestIdToken("46186834187-83mthhs9phn9d1h9b4khvudhtbhsti44.apps.googleusercontent.com")
+            .requestIdToken(BuildConfig.GOOGLE_CLIENT_ID)
             .requestEmail()
             .build()
 
