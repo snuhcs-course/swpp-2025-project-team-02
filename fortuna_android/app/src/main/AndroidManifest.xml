@@ -21,7 +21,7 @@
         android:networkSecurityConfig="@xml/network_security_config" >
         <meta-data android:name="com.google.ar.core" android:value="required" />
         <activity
-            android:name=".ProfileActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -30,9 +30,6 @@
         </activity>
         <activity
             android:name=".AuthContainerActivity"
-            android:exported="false" />
-        <activity
-            android:name=".MainActivity"
             android:exported="false" />
     </application>
 

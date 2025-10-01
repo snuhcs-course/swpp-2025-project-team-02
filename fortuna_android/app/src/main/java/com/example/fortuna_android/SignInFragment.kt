@@ -29,7 +29,7 @@ class SignInFragment : Fragment() {
     private var _binding: FragmentSigninBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var mGoogleSignInClient: GoogleSignInClient
+    private var mGoogleSignInClient: GoogleSignInClient? = null
 
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -38,7 +38,9 @@ class SignInFragment : Fragment() {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             handleSignInResult(task)
         } else {
-            Toast.makeText(requireContext(), "로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -60,12 +62,14 @@ class SignInFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
+        if (!isAdded) return
         val account = GoogleSignIn.getLastSignedInAccount(requireContext())
         updateUI(account)
     }
 
 
     private fun setupGoogleSignIn() {
+        if (!isAdded) return
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(BuildConfig.GOOGLE_CLIENT_ID)
             .requestEmail()
@@ -81,11 +85,19 @@ class SignInFragment : Fragment() {
     }
 
     private fun signIn() {
-        val signInIntent: Intent = mGoogleSignInClient.signInIntent
+        val client = mGoogleSignInClient
+        if (client == null) {
+            if (isAdded) {
+                Toast.makeText(requireContext(), "Google Sign-In이 초기화되지 않았습니다.", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        val signInIntent: Intent = client.signInIntent
         googleSignInLauncher.launch(signInIntent)
     }
 
     private fun signOut() {
+        if (!isAdded) return
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val refreshToken = prefs.getString(REFRESH_TOKEN, null)
 
@@ -105,25 +117,32 @@ class SignInFragment : Fragment() {
                 if (response.isSuccessful) {
                     val logoutResponse = response.body()
                     Log.d(TAG, "서버 로그아웃 성공: ${logoutResponse?.message}")
-                    Toast.makeText(requireContext(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "서버 로그아웃 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(requireContext(), "서버 로그아웃 실패, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "서버 로그아웃 실패, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                    }
                 }
 
                 performLocalSignOut()
 
             } catch (e: Exception) {
                 Log.e(TAG, "로그아웃 요청 중 오류", e)
-                Toast.makeText(requireContext(), "네트워크 오류, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "네트워크 오류, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                }
                 performLocalSignOut()
             }
         }
     }
 
     private fun performLocalSignOut() {
-        mGoogleSignInClient.signOut().addOnCompleteListener {
+        mGoogleSignInClient?.signOut()?.addOnCompleteListener {
+            if (!isAdded) return@addOnCompleteListener
             val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().clear().apply()
 
@@ -135,7 +154,9 @@ class SignInFragment : Fragment() {
     private fun handleSignInResult(completedTask: com.google.android.gms.tasks.Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)
-            Toast.makeText(requireContext(), "Google 로그인 성공!", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "Google 로그인 성공!", Toast.LENGTH_SHORT).show()
+            }
 
             val idToken = account.idToken
             Log.d(TAG, account.displayName.toString())
@@ -148,12 +169,16 @@ class SignInFragment : Fragment() {
                 sendTokenToServer(idToken)
             } else {
                 Log.w(TAG, "ID Token is null")
-                Toast.makeText(requireContext(), "ID 토큰을 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "ID 토큰을 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                }
             }
             updateUI(account)
         } catch (e: ApiException) {
             Log.w(TAG, "signInResult:failed code=" + e.statusCode)
-            Toast.makeText(requireContext(), "로그인에 실패했습니다. (코드: ${e.statusCode})", Toast.LENGTH_LONG).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "로그인에 실패했습니다. (코드: ${e.statusCode})", Toast.LENGTH_LONG).show()
+            }
             updateUI(null)
         }
     }
@@ -169,10 +194,13 @@ class SignInFragment : Fragment() {
                         val backendToken = loginResponse.accessToken
                         val refreshToken = loginResponse.refreshToken
                         val username = loginResponse.name
+                        if (!isAdded) return@launch
                         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         prefs.edit().putString(KEY_TOKEN, backendToken).apply()
                         prefs.edit().putString(REFRESH_TOKEN, refreshToken).apply()
-                        Toast.makeText(requireContext(), "'$username'님, 서버 로그인 성공!", Toast.LENGTH_SHORT).show()
+                        if (isAdded) {
+                            Toast.makeText(requireContext(), "'$username'님, 서버 로그인 성공!", Toast.LENGTH_SHORT).show()
+                        }
                         Log.d(TAG, "토큰이 SharedPreferences에 저장되었습니다: $backendToken")
 
                         verifyTokenWithServer()
@@ -180,21 +208,28 @@ class SignInFragment : Fragment() {
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "서버 로그인 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(requireContext(), "서버 로그인 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "서버 로그인 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error sending token to server", e)
-                Toast.makeText(requireContext(), "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
 
     private fun verifyTokenWithServer() {
+        if (!isAdded) return
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val token = prefs.getString(KEY_TOKEN, null)
         Log.d(TAG, "token: ${token}")
         if (token.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "저장된 토큰이 없습니다. 먼저 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "저장된 토큰이 없습니다. 먼저 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
@@ -214,16 +249,21 @@ class SignInFragment : Fragment() {
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "프로필 정보 받기 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(requireContext(), "토큰 검증 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "토큰 검증 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error during profile verification", e)
-                Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
 
     private fun fetchUserProfile() {
+        if (!isAdded) return
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val token = prefs.getString(KEY_TOKEN, null)
 
@@ -257,11 +297,15 @@ class SignInFragment : Fragment() {
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "사용자 프로필 가져오기 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(requireContext(), "프로필 정보를 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "프로필 정보를 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching user profile", e)
-                Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -294,10 +338,11 @@ class SignInFragment : Fragment() {
     }
 
     private fun navigateToMain() {
-        val intent = Intent(requireContext(), ProfileActivity::class.java)
+        if (!isAdded) return
+        val intent = Intent(requireContext(), MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
-        requireActivity().finish()
+        activity?.finish()
     }
 
     override fun onDestroyView() {

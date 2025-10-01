@@ -19,7 +19,6 @@ import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import android.util.Log
 import android.view.MotionEvent
@@ -27,18 +26,12 @@ import android.view.ScaleGestureDetector
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.FrameLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
-import androidx.constraintlayout.widget.ConstraintLayout
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.ExecutionException
 import androidx.camera.core.ImageCaptureException
 import java.io.File
 import java.util.Locale
 import android.widget.Toast
-import android.graphics.BitmapFactory
 import android.content.ContentValues
 import android.provider.MediaStore
 import android.os.Build
@@ -68,7 +61,7 @@ import kotlinx.coroutines.launch
 class CameraFragment : Fragment() {
 
     companion object {
-        private const val TAG = "CameraXApp"
+        private const val TAG = "CameraFragment"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
     }
     private var _binding: FragmentCameraBinding? = null
@@ -101,6 +94,24 @@ class CameraFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupClickListeners()
+        cameraExecutor = Executors.newSingleThreadExecutor()
+
+        // Hide bottom navigation when camera fragment is shown
+        if (activity is MainActivity) {
+            (activity as? MainActivity)?.hideBottomNavigation()
+        }
+
+        // Start camera
+        startCamera()
+
+        // Get current location for GPS metadata
+        getCurrentLocation()
+    }
+
+    private fun setupClickListeners() {
+        val binding = _binding ?: return
+
         // Set up back button
         binding.btnBack.setOnClickListener {
             findNavController().popBackStack()
@@ -111,18 +122,6 @@ class CameraFragment : Fragment() {
         binding.btnSwitchCamera.setOnClickListener {
             switchCamera()
         }
-        cameraExecutor = Executors.newSingleThreadExecutor()
-
-        // Hide bottom navigation when camera fragment is shown
-        if (activity is MainActivity) {
-            (activity as MainActivity).hideBottomNavigation()
-        }
-
-        // Start camera
-        startCamera()
-
-        // Get current location for GPS metadata
-        getCurrentLocation()
     }
 
     private fun startCamera() {
@@ -154,7 +153,7 @@ class CameraFragment : Fragment() {
             }
 
         // ImageCapture
-        val rotation = binding.viewFinder.display?.rotation ?: android.view.Surface.ROTATION_0
+        val rotation = binding.viewFinder.display?.rotation?: android.view.Surface.ROTATION_0
         imageCapture = ImageCapture.Builder()
             .setTargetRotation(rotation)
             .build()
@@ -505,7 +504,11 @@ class CameraFragment : Fragment() {
             return
         }
 
-        val locationManager = currentContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val locationManager = currentContext.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        if (locationManager == null) {
+            Log.e(TAG, "LocationManager not available")
+            return
+        }
 
         try {
             // Get last known location from GPS provider

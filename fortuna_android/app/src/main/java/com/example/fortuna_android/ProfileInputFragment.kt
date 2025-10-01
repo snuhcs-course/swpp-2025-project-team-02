@@ -42,23 +42,25 @@ class ProfileInputFragment : Fragment() {
 
     private fun setupSpinners() {
         val binding = _binding ?: return
+        if (!isAdded) return
 
         // 년도 (1900-2025)
         val years = (1900..2025).map { it.toString() }
-        binding.birthYearSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, years).apply {
+        val context = context ?: return
+        binding.birthYearSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, years).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
         binding.birthYearSpinner.setSelection(years.size - 1)
 
         // 월 (1-12)
         val months = (1..12).map { it.toString() + "월" }
-        binding.birthMonthSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, months).apply {
+        binding.birthMonthSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, months).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
 
         // 일 (1-31)
         val days = (1..31).map { it.toString() + "일" }
-        binding.birthDaySpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, days).apply {
+        binding.birthDaySpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, days).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
     }
@@ -114,15 +116,21 @@ class ProfileInputFragment : Fragment() {
         val gender = selectedGender
 
         if (nickname.isEmpty()) {
-            Toast.makeText(requireContext(), "닉네임을 입력해주세요.", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "닉네임을 입력해주세요.", Toast.LENGTH_SHORT).show()
+            }
             return
         }
         if (solarOrLunar.isEmpty()) {
-            Toast.makeText(requireContext(), "음력/양력을 선택해주세요.", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "음력/양력을 선택해주세요.", Toast.LENGTH_SHORT).show()
+            }
             return
         }
         if (gender.isEmpty()) {
-            Toast.makeText(requireContext(), "성별을 선택해주세요.", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "성별을 선택해주세요.", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
@@ -132,7 +140,9 @@ class ProfileInputFragment : Fragment() {
     }
 
     private fun extractBirthTimeUnit(selectedItem: String): String {
-        return selectedItem.split(" ")[0]
+        if (selectedItem.isNullOrBlank()) return ""
+        val parts = selectedItem.split(" ")
+        return if (parts.isNotEmpty()) parts[0] else ""
     }
 
     private fun updateProfile(
@@ -142,11 +152,14 @@ class ProfileInputFragment : Fragment() {
         birthTimeUnits: String,
         gender: String
     ) {
+        if (!isAdded) return
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val token = prefs.getString(KEY_TOKEN, null)
 
         if (token.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "인증 토큰이 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            if (isAdded) {
+                Toast.makeText(requireContext(), "인증 토큰이 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            }
             navigateToSignIn()
             return
         }
@@ -166,26 +179,33 @@ class ProfileInputFragment : Fragment() {
                 if (response.isSuccessful) {
                     val updatedProfile = response.body()
                     Log.d(TAG, "프로필 업데이트 성공: $updatedProfile")
-                    Toast.makeText(requireContext(), "프로필이 성공적으로 업데이트되었습니다!", Toast.LENGTH_SHORT).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "프로필이 성공적으로 업데이트되었습니다!", Toast.LENGTH_SHORT).show()
+                    }
 
                     navigateToMain()
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "프로필 업데이트 실패: ${response.code()}, $errorBody")
-                    Toast.makeText(requireContext(), "프로필 업데이트 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "프로필 업데이트 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "프로필 업데이트 중 오류", e)
-                Toast.makeText(requireContext(), "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
 
     private fun navigateToMain() {
-        val intent = Intent(requireContext(), ProfileActivity::class.java)
+        if (!isAdded) return
+        val intent = Intent(requireContext(), MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
-        requireActivity().finish()
+        activity?.finish()
     }
 
     private fun navigateToSignIn() {
