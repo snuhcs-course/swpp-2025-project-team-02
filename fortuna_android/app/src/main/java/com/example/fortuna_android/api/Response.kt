@@ -1,17 +1,105 @@
-package com.example.fortuna_android.data.Api
+package com.example.fortuna_android.api
 
-import com.example.fortuna_android.BuildConfig
 import com.google.gson.annotations.SerializedName
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.PATCH
-import retrofit2.http.POST
 
-// Retrofit API 통신을 위한 데이터 클래스 정의
+// GET /api/core/chakra/images/
+data class ImageResponse(
+    val status: String,
+    val data: ImageData
+)
+data class ImageData(
+    val date: String,
+    val images: List<ImageItem>,
+    val count: Int
+)
+data class ImageItem(
+    val filename: String,
+    val path: String,
+    val url: String
+)
+
+// POST /api/core/chakra/upload/
+data class UploadResponse(
+    val status: String,
+    val data: UploadData?
+)
+data class UploadData(
+    val filename: String?,
+    val url: String?,
+    @SerializedName("chakra_type")
+    val chakraType: String?
+)
+
+// GET /api/core/fortune/tomorrow/
+data class FortuneResponse(
+    val status: String,
+    val data: FortuneData
+)
+
+data class FortuneData(
+    @SerializedName("user_id")
+    val userId: Int,
+    @SerializedName("generated_at")
+    val generatedAt: String,
+    @SerializedName("for_date")
+    val forDate: String,
+    @SerializedName("tomorrow_gapja")
+    val tomorrowGapja: TomorrowGapja,
+    val fortune: Fortune
+)
+
+data class TomorrowGapja(
+    val code: Int,
+    val name: String,
+    val chinese: String,
+    val element: String,
+    val animal: String
+)
+
+data class Fortune(
+    @SerializedName("tomorrow_date")
+    val tomorrowDate: String,
+    @SerializedName("saju_compatibility")
+    val sajuCompatibility: String,
+    @SerializedName("overall_fortune")
+    val overallFortune: Int,
+    @SerializedName("fortune_summary")
+    val fortuneSummary: String,
+    @SerializedName("element_balance")
+    val elementBalance: String,
+    @SerializedName("chakra_readings")
+    val chakraReadings: List<ChakraReading>,
+    @SerializedName("daily_guidance")
+    val dailyGuidance: DailyGuidance,
+    @SerializedName("special_message")
+    val specialMessage: String
+)
+
+data class ChakraReading(
+    @SerializedName("chakra_type")
+    val chakraType: String,
+    val strength: Int,
+    val message: String,
+    @SerializedName("location_significance")
+    val locationSignificance: String
+)
+
+data class DailyGuidance(
+    @SerializedName("best_time")
+    val bestTime: String,
+    @SerializedName("lucky_direction")
+    val luckyDirection: String,
+    @SerializedName("lucky_color")
+    val luckyColor: String,
+    @SerializedName("activities_to_embrace")
+    val activitiesToEmbrace: List<String>,
+    @SerializedName("activities_to_avoid")
+    val activitiesToAvoid: List<String>,
+    @SerializedName("key_advice")
+    val keyAdvice: String
+)
+
+// Authentication and user profile related data classes
 
 // POST /api/auth/google/ 요청 시 Body에 담을 데이터
 data class LoginRequest(
@@ -97,34 +185,3 @@ data class LogoutRequest(
 data class LogoutResponse(
     @SerializedName("message") val message: String?
 )
-
-interface LoginApiService {
-    @POST("api/user/auth/google/")
-    suspend fun loginWithGoogle(@Body request: LoginRequest): Response<LoginResponse>
-
-    @GET("api/user/profile/")
-    suspend fun getProfile(@Header("Authorization") token: String): Response<User>
-
-    @GET("api/user/profile/")
-    suspend fun getUserProfile(@Header("Authorization") token: String): Response<UserProfile>
-
-    @PATCH("api/user/profile/")
-    suspend fun updateUserProfile(
-        @Header("Authorization") token: String,
-        @Body request: UpdateProfileRequest
-    ): Response<UpdateProfileResponse>
-
-    @POST("api/user/auth/logout/")
-    suspend fun logout(@Body request: LogoutRequest): Response<LogoutResponse>
-}
-
-object RetrofitClient {
-    private val BASE_URL = BuildConfig.API_BASE_URL
-    val instance: LoginApiService by lazy {
-        val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-        retrofit.create(LoginApiService::class.java)
-    }
-}
