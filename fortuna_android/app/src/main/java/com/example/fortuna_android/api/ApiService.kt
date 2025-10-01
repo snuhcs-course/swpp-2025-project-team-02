@@ -10,6 +10,9 @@ interface ApiService {
     suspend fun loginWithGoogle(@Body request: LoginRequest): Response<LoginResponse>
 
     @GET("api/user/profile/")
+    suspend fun getProfile(@Header("Authorization") token: String): Response<User>
+
+    @GET("api/user/profile/")
     suspend fun getUserProfile(@Header("Authorization") token: String): Response<UserProfile>
 
     @PATCH("api/user/profile/")

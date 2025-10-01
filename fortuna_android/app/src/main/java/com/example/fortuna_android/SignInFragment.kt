@@ -216,7 +216,26 @@ class SignInFragment : Fragment() {
         Log.d(TAG, "프로필 요청에 사용할 토큰: $token")
         Log.d(TAG, "자동으로 토큰 검증을 시작합니다...")
 
-        fetchUserProfile()
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.getProfile("Bearer $token")
+
+                if (response.isSuccessful) {
+                    val userProfile = response.body()
+                    Log.d(TAG, "Profile API Response: $userProfile")
+                    Log.d(TAG, "토큰 검증 성공! 사용자 프로필을 확인합니다.")
+
+                    fetchUserProfile()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "프로필 정보 받기 실패: ${response.code()}, $errorBody")
+                    Toast.makeText(requireContext(), "토큰 검증 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during profile verification", e)
+                Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun fetchUserProfile() {
