@@ -5,8 +5,7 @@
     android:layout_height="match_parent"
     android:background="#000000"
     android:orientation="vertical"
-    android:padding="16dp"
-    tools:context=".ProfileActivity">
+    android:padding="16dp">
 
     <!-- 상단 앱바 -->
     <LinearLayout
