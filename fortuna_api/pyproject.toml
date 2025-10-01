@@ -53,6 +53,8 @@ cryptography = ">=42,<999"
 django-debug-toolbar = ">=6.0.0,<7.0.0"
 loguru = "^0.7.3"
 astronomy-engine = "^2.1.19"
+django-storages = "^1.14.6"
+boto3 = "^1.40.42"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
