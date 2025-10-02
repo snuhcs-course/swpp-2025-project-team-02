@@ -142,38 +142,17 @@ class TestFortuneService(TestCase):
             self.assertEqual(contexts[0]['filename'], 'no_photo')
             self.assertIsNone(contexts[0]['metadata']['location'])
 
-    @patch('core.services.fortune.generate_object')
-    def test_generate_fortune_with_ai_success(self, mock_generate):
+    @patch('openai.OpenAI')
+    def test_generate_fortune_with_ai_success(self, mock_openai):
         """Test successful AI fortune generation."""
-        # Mock AI SDK response
-        mock_fortune = FortuneResponse(
-            tomorrow_date="2024-01-02",
-            saju_compatibility="좋음 (75/100)",
-            overall_fortune=75,
-            fortune_summary="긍정적인 하루가 될 것입니다.",
-            element_balance="목과 화의 조화",
-            chakra_readings=[
-                ChakraReading(
-                    chakra_type="목",
-                    strength=80,
-                    message="성장의 에너지",
-                    location_significance="발전의 장소"
-                )
-            ],
-            daily_guidance=DailyGuidance(
-                best_time="오전 9-11시",
-                lucky_direction="동쪽",
-                lucky_color="청색",
-                activities_to_embrace=["새로운 시작", "창의적 활동"],
-                activities_to_avoid=["큰 결정"],
-                key_advice="오늘의 노력이 내일의 성과로"
-            ),
-            special_message="행운이 함께합니다."
-        )
+        # Mock OpenAI response
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = "긍정적인 하루가 될 것입니다. 새로운 시작에 좋은 날입니다."
 
-        mock_result = Mock()
-        mock_result.object = mock_fortune
-        mock_generate.return_value = mock_result
+        mock_client = Mock()
+        mock_client.chat.completions.create.return_value = mock_response
+        self.service.client = mock_client
 
         # Test data
         user_saju = self.service.get_user_saju_info(self.user_id)
@@ -203,10 +182,10 @@ class TestFortuneService(TestCase):
         self.assertEqual(result.tomorrow_date, "2024-01-02")
         self.assertEqual(result.overall_fortune, 75)
 
-    @patch('core.services.fortune.generate_object')
-    def test_generate_fortune_with_ai_failure(self, mock_generate):
+    def test_generate_fortune_with_ai_failure(self):
         """Test AI fortune generation with error."""
-        mock_generate.side_effect = Exception("API Error")
+        # Mock OpenAI client to raise exception
+        self.service.client = None
 
         user_saju = self.service.get_user_saju_info(self.user_id)
         tomorrow_date = self.test_date + timedelta(days=1)
@@ -230,9 +209,15 @@ class TestFortuneService(TestCase):
         self, mock_saju, mock_compat, mock_photo, mock_ai
     ):
         """Test complete tomorrow fortune generation."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        # Create user for FK constraint
+        user = User.objects.create_user(email='test@example.com', password='testpass123')
+
         # Setup mocks
         mock_saju.return_value = {
-            'user_id': self.user_id,
+            'user_id': user.id,
             'four_pillars': {
                 'day': {'code': 45, 'name': '무신', 'element': '토'}
             }
@@ -263,11 +248,11 @@ class TestFortuneService(TestCase):
         mock_ai.return_value = mock_fortune
 
         result = self.service.generate_tomorrow_fortune(
-            self.user_id, self.test_date, include_photos=True
+            user.id, self.test_date, include_photos=True
         )
 
         self.assertEqual(result['status'], 'success')
-        self.assertEqual(result['data']['user_id'], self.user_id)
+        self.assertEqual(result['data']['user_id'], user.id)
         self.assertIn('fortune', result['data'])
         self.assertIn('tomorrow_gapja', result['data'])
 

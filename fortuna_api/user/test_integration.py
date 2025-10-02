@@ -5,7 +5,7 @@ Fortuna API 통합 테스트
 
 import json
 from unittest.mock import patch, MagicMock
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
@@ -15,6 +15,7 @@ from datetime import date
 User = get_user_model()
 
 
+@override_settings(DEVELOPMENT_MODE=False)
 class FortunaAPIIntegrationTests(APITestCase):
     """
     Fortuna 앱의 6가지 핵심 API 통합 테스트

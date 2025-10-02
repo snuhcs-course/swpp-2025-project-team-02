@@ -19,6 +19,7 @@ from ..utils.concept import (
     FIVE_ELEMENTS
 )
 from .image import ImageService
+from core.models import FortuneResult
 
 logger = logging.getLogger(__name__)
 
@@ -389,12 +390,25 @@ class FortuneService:
                 photo_contexts
             )
 
+            # Save to database
+            fortune_result, created = FortuneResult.objects.update_or_create(
+                user_id=user_id,
+                for_date=tomorrow_date.date(),
+                defaults={
+                    'gapja_code': tomorrow_code,
+                    'gapja_name': tomorrow_gapja['korean_name'],
+                    'gapja_element': tomorrow_gapja['stem_element'],
+                    'fortune_data': fortune.model_dump() if fortune else {}
+                }
+            )
+
             # Prepare final response
             response = {
                 "status": "success",
                 "data": {
+                    "fortune_id": fortune_result.id,
                     "user_id": user_id,
-                    "generated_at": datetime.now().isoformat(),
+                    "generated_at": fortune_result.created_at.isoformat(),
                     "for_date": tomorrow_date.strftime('%Y-%m-%d'),
                     "tomorrow_gapja": {
                         "code": tomorrow_code,
