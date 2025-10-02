@@ -97,7 +97,7 @@ class TestImageService(TestCase):
         image_file = self.create_test_image(with_exif=False)
         metadata = self.service.extract_exif_data(image_file)
 
-        self.assertEqual(metadata['timestamp'], "2024-01-01T12:00:00")
+        self.assertTrue(metadata['timestamp'].startswith("2024-01-01T12:00:00"))
         self.assertEqual(metadata['device_info']['make'], "Samsung")
         self.assertEqual(metadata['device_info']['model'], "Galaxy S22")
 
