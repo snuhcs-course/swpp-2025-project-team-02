@@ -113,7 +113,7 @@ AUTH_USER_MODEL = 'user.User'  # Commented out - using default User model for no
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
 USE_TZ = True
 
