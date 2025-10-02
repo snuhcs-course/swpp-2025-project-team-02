@@ -95,7 +95,7 @@ JWT 토큰의 유효성을 검증합니다.
 }
 ```
 
-**Response (성공 - 200):**
+**Response (토큰 유효 - 200):**
 ```json
 {
   "message": "Token is valid",
@@ -103,7 +103,15 @@ JWT 토큰의 유효성을 검증합니다.
 }
 ```
 
-**Response (실패 - 400):**
+**Response (토큰 무효 - 200):**
+```json
+{
+  "message": "Token is invalid or expired",
+  "valid": false
+}
+```
+
+**Response (토큰 누락 - 400):**
 ```json
 {
   "error": "Missing token",

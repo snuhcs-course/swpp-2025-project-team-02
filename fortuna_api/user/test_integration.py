@@ -283,8 +283,9 @@ class FortunaAPIIntegrationTests(APITestCase):
             format='json'
         )
 
-        # 잘못된 토큰 거부 확인
-        self.assertEqual(invalid_verify_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        # 잘못된 토큰 검증 - 200 응답에 valid: false 반환 확인
+        self.assertEqual(invalid_verify_response.status_code, status.HTTP_200_OK)
+        self.assertFalse(invalid_verify_response.json()['valid'])
 
     def test_error_scenarios(self):
         """
