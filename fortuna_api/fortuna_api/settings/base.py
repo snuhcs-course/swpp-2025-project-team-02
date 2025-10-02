@@ -42,6 +42,8 @@ THIRD_PARTY_APPS = [
     # Extensions
     'django_extensions',
     'storages',
+    
+    'django_coverage_plugin',
 ]
 
 LOCAL_APPS = [
