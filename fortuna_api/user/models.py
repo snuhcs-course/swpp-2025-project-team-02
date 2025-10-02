@@ -24,7 +24,7 @@ class User(AbstractUser):
     ]
 
     TIME_UNIT_CHOICES = [
-        (unit.korean_name, unit.korean_name) for unit in TimeUnits
+        (unit.value, unit.value) for unit in TimeUnits
     ]
 
     # 기본 정보
