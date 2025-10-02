@@ -56,6 +56,7 @@ astronomy-engine = "^2.1.19"
 django-storages = "^1.14.6"
 boto3 = "^1.40.42"
 django-coverage-plugin = "^3.1.1"
+pylint = "^3.3.8"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
@@ -77,6 +78,11 @@ pre-commit = ">=3.6.0,<4.0.0"
 isort = ">=5.12.0,<6.0.0"
 flake8 = ">=6.0.0,<7.0.0"
 coverage = ">=7.0.0,<8.0.0"
+
+# Diagram Generation
+pydot = ">=3.0.0,<4.0.0"
+pylint = ">=3.0.0,<4.0.0"
+pydeps = ">=1.12.0,<2.0.0"
 
 [tool.poetry.group.production.dependencies]
 # Production Server
