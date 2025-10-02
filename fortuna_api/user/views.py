@@ -374,20 +374,20 @@ class CustomTokenRefreshView(APIView):
                 }
             }
         },
-        401: {
-            'description': 'Invalid or expired token',
+        200: {
+            'description': 'Token verification result (invalid)',
             'content': {
                 'application/json': {
                     'schema': {
                         'type': 'object',
                         'properties': {
-                            'detail': {'type': 'string'},
-                            'code': {'type': 'string'}
+                            'message': {'type': 'string'},
+                            'valid': {'type': 'boolean'}
                         }
                     },
                     'example': {
-                        'detail': 'Token is invalid or expired',
-                        'code': 'token_not_valid'
+                        'message': 'Token is invalid or expired',
+                        'valid': False
                     }
                 }
             }
@@ -416,9 +416,9 @@ class CustomTokenVerifyView(APIView):
             }, status=status.HTTP_200_OK)
         except (InvalidToken, TokenError) as e:
             return Response({
-                'detail': 'Token is invalid or expired',
-                'code': 'token_not_valid'
-            }, status=status.HTTP_401_UNAUTHORIZED)
+                'message': 'Token is invalid or expired',
+                'valid': False
+            }, status=status.HTTP_200_OK)
 
 
 @extend_schema(
