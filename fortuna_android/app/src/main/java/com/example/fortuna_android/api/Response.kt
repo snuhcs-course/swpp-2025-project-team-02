@@ -185,3 +185,13 @@ data class LogoutRequest(
 data class LogoutResponse(
     @SerializedName("message") val message: String?
 )
+
+// POST /api/user/auth/refresh/ 요청 시 Body에 담을 데이터
+data class RefreshTokenRequest(
+    @SerializedName("refresh") val refresh: String
+)
+
+// POST /api/user/auth/refresh/ 응답 데이터
+data class RefreshTokenResponse(
+    @SerializedName("access") val access: String
+)

@@ -24,6 +24,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import android.widget.Toast
+import com.example.fortuna_android.api.RefreshTokenRequest
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -120,7 +121,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        checkLoginStatus()
     }
 
     private fun setupGoogleSignIn() {
@@ -134,15 +134,65 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkLoginStatus() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val token = prefs.getString(KEY_TOKEN, null)
-        val account = GoogleSignIn.getLastSignedInAccount(this)
+        val accessToken = prefs.getString(KEY_TOKEN, null)
+        val refreshToken = prefs.getString(REFRESH_TOKEN, null)
 
-        if (token.isNullOrEmpty() || account == null) {
-            Log.d(TAG, "User not logged in, redirecting to SignInActivity")
+        if (accessToken.isNullOrEmpty() || refreshToken.isNullOrEmpty()) {
+            Log.d(TAG, "No tokens found, redirecting to SignInActivity")
             navigateToSignIn()
-        } else {
-            Log.d(TAG, "User is logged in")
-            //loadUserProfile(token)
+            return
+        }
+        // Validate token by trying to get profile
+        lifecycleScope.launch {
+            validateAndRefreshToken(accessToken, refreshToken)
+        }
+    }
+
+    private suspend fun validateAndRefreshToken(accessToken: String, refreshToken: String) {
+        try {
+            // Try to validate token by getting profile
+            val profileResponse = RetrofitClient.instance.getUserProfile("Bearer $accessToken")
+
+            if (profileResponse.isSuccessful) {
+                Log.d(TAG, "Token is valid, user is logged in")
+                // Token is valid, user can continue
+            } else if (profileResponse.code() == 401) {
+                Log.d(TAG, "Token expired, attempting to refresh")
+                // Token expired, try to refresh
+                refreshAccessToken(refreshToken)
+            } else {
+                Log.e(TAG, "Profile fetch failed: ${profileResponse.code()}")
+                navigateToSignIn()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error validating token", e)
+            navigateToSignIn()
+        }
+    }
+
+    private suspend fun refreshAccessToken(refreshToken: String) {
+        try {
+            val refreshRequest = RefreshTokenRequest(refresh = refreshToken)
+            val response = RetrofitClient.instance.refreshToken(refreshRequest)
+
+            if (response.isSuccessful) {
+                val newAccessToken = response.body()?.access
+                if (newAccessToken != null) {
+                    // Save new access token
+                    val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    prefs.edit().putString(KEY_TOKEN, newAccessToken).apply()
+                    Log.d(TAG, "Token refreshed successfully")
+                } else {
+                    Log.e(TAG, "Refresh token response body is null")
+                    navigateToSignIn()
+                }
+            } else {
+                Log.e(TAG, "Token refresh failed: ${response.code()}")
+                navigateToSignIn()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error refreshing token", e)
+            navigateToSignIn()
         }
     }
 

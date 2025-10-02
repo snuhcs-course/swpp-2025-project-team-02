@@ -57,6 +57,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import android.graphics.BitmapFactory
+import java.io.FileOutputStream
 
 class CameraFragment : Fragment() {
 
@@ -442,17 +444,51 @@ class CameraFragment : Fragment() {
         uploadImageToBackend(photoFile)
     }
 
+    private fun compressImageToWebP(jpegFile: File): File? {
+        return try {
+            val currentContext = context ?: return null
+
+            // Read the JPEG file as bitmap
+            val bitmap = BitmapFactory.decodeFile(jpegFile.absolutePath) ?: return null
+
+            // Create WebP file
+            val webpFileName = jpegFile.nameWithoutExtension + ".webp"
+            val webpFile = File(currentContext.getExternalFilesDir(null), webpFileName)
+
+            // Compress to WebP with quality 80 (good balance between size and quality)
+            FileOutputStream(webpFile).use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
+            }
+
+            val originalSize = jpegFile.length() / 1024 // KB
+            val compressedSize = webpFile.length() / 1024 // KB
+            Log.d(TAG, "Image compressed: ${originalSize}KB (JPEG) -> ${compressedSize}KB (WebP)")
+
+            // Recycle bitmap to free memory
+            bitmap.recycle()
+
+            webpFile
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to compress image to WebP", e)
+            null
+        }
+    }
+
     private fun uploadImageToBackend(photoFile: File) {
         lifecycleScope.launch {
             try {
                 // Show loading state (you can add a progress indicator in UI)
                 Log.d(TAG, "Uploading image to backend...")
 
-                // Prepare multipart request - specifically as JPEG
-                val requestFile = photoFile.asRequestBody("image/jpeg".toMediaType())
-                val imagePart = MultipartBody.Part.createFormData("image", photoFile.name, requestFile)
+                // Convert JPEG to WebP for smaller file size
+                val uploadFile = compressImageToWebP(photoFile) ?: photoFile
+                val mimeType = if (uploadFile.extension == "webp") "image/webp" else "image/jpeg"
 
-                Log.d(TAG, "Uploading file: ${photoFile.name} with MIME type: image/jpeg")
+                // Prepare multipart request
+                val requestFile = uploadFile.asRequestBody(mimeType.toMediaType())
+                val imagePart = MultipartBody.Part.createFormData("image", uploadFile.name, requestFile)
+
+                Log.d(TAG, "Uploading file: ${uploadFile.name} with MIME type: $mimeType")
                 val chakraTypePart = "water".toRequestBody("text/plain".toMediaType()) // Example chakra type
 
                 // Upload to backend
@@ -475,6 +511,11 @@ class CameraFragment : Fragment() {
 
                     // Still save to gallery even if upload fails
                     savePhotoToGallery(photoFile)
+                }
+
+                // Clean up WebP file if created
+                if (uploadFile != photoFile && uploadFile.exists()) {
+                    uploadFile.delete()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Upload error: ${e.message}", e)

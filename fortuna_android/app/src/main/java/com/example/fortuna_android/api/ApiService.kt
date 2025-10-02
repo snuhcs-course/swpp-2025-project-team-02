@@ -39,4 +39,7 @@ interface ApiService {
         @Query("date") date: String,
         @Query("include_photos") includePhotos: Boolean
     ): Response<FortuneResponse>
+
+    @POST("api/user/auth/refresh/")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
 }
