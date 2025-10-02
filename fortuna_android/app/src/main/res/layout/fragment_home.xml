@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:orientation="vertical"
+    android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvFortuneResult"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="20sp"
+            android:gravity="center"
+            android:padding="24dp"
+            android:layout_margin="16dp"
+            android:background="#F5F5F5" />
+
+        <Button
+            android:id="@+id/btnFortune"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fortune Button"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Include Photos: "
+                android:textSize="14sp"
+                android:layout_marginEnd="8dp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchIncludePhotos"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnHome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Camera Button"
+            android:layout_marginBottom="16dp" />
+
+
+</LinearLayout>
