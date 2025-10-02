@@ -92,6 +92,12 @@ CACHES = {
     }
 }
 
+# JWT Token settings for development (shorter expiration for testing)
+SIMPLE_JWT.update({
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+})
+
 # Console-only logging in development (파일 로깅 제거)
 LOGGING = {
     'version': 1,
