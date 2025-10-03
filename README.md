@@ -33,12 +33,19 @@ cd fortuna_android
 2. Create local configuration file:
 
 ```bash
-cp local.properties.example local.properties
+touch local.properties
 ```
 
 3. Add the following configuration to `local.properties`:
 
 ```properties
+# Android SDK location (replace with your actual Android SDK path)
+# Common paths:
+# - macOS: /Users/YOUR_USERNAME/Library/Android/sdk
+# - Linux: /home/YOUR_USERNAME/Android/Sdk
+# - Windows: C:\Users\YOUR_USERNAME\AppData\Local\Android\Sdk
+sdk.dir=/path/to/your/Android/sdk
+
 GOOGLE_CLIENT_ID=891993316970-vdr3b8vrilumhc762bs17qda2ma1s7u8.apps.googleusercontent.com
 
 # API Configuration
@@ -46,11 +53,13 @@ API_BASE_URL=https://fortuna.up.railway.app/
 API_HOST=fortuna.up.railway.app
 ```
 
+**Note**: Replace `/path/to/your/Android/sdk` with your actual Android SDK installation path.
+
 4. Build the release APK (ensure Java 17 is active):
 
 ```bash
 ./gradlew assembleRelease \
-    -Pandroid.injected.signing.store.file=../testkey.jks \
+    -Pandroid.injected.signing.store.file=$(pwd)/testkey.jks \
     -Pandroid.injected.signing.store.password=1q2w3e4r! \
     -Pandroid.injected.signing.key.alias=key0 \
     -Pandroid.injected.signing.key.password=1q2w3e4r!
