@@ -2,6 +2,19 @@ package com.example.fortuna_android.api
 
 import com.google.gson.annotations.SerializedName
 
+abstract class ServerResponse<T>  {
+    abstract val status: Int
+    abstract val data: T
+}
+
+// GET /api/core/chakra/upload-url/
+data class UploadUrlData(
+    val uploadUrl: String,
+    val key: String,
+    val fileId: String,
+    val expiresIn: Int
+)
+
 // GET /api/core/chakra/images/
 data class ImageResponse(
     val status: String,

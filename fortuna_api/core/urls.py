@@ -24,6 +24,120 @@ fortune_service = FortuneService(image_service)
 
 
 @extend_schema(
+    summary="Get Presigned Upload URL",
+    description="Get presigned URL for direct S3 upload",
+    parameters=[
+        OpenApiParameter(
+            name='chakra_type',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Type of chakra',
+            required=False,
+            default='default'
+        )
+    ],
+    responses={
+        200: {
+            'description': 'Presigned URL generated successfully',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'status': 'success',
+                        'data': {
+                            'upload_url': 'https://s3.../presigned-url',
+                            'key': 'chakras/1/2024-01-01/uuid.jpg',
+                            'file_id': 'uuid-string',
+                            'expires_in': 3600
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['GET'])
+@permission_classes([DevelopmentOrAuthenticated])
+def get_upload_presigned_url(request):
+    """
+    Get presigned URL for direct S3 upload.
+
+    Client should:
+    1. Call this endpoint to get upload URL
+    2. PUT the image file to the upload_url with Content-Type: image/jpeg
+    3. Use the returned key/file_id for metadata registration
+    """
+    user_id = request.user.id
+    chakra_type = request.GET.get('chakra_type', 'default')
+
+    result = image_service.generate_upload_presigned_url(
+        user_id=user_id,
+        chakra_type=chakra_type
+    )
+
+    if result['status'] == 'success':
+        return Response(result, status=status.HTTP_200_OK)
+    else:
+        return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    summary="Get Presigned Upload URL",
+    description="Get presigned URL for direct S3 upload",
+    parameters=[
+        OpenApiParameter(
+            name='chakra_type',
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description='Type of chakra',
+            required=False,
+            default='default'
+        )
+    ],
+    responses={
+        200: {
+            'description': 'Presigned URL generated successfully',
+            'content': {
+                'application/json': {
+                    'example': {
+                        'status': 'success',
+                        'data': {
+                            'upload_url': 'https://s3.../presigned-url',
+                            'key': 'chakras/1/2024-01-01/uuid.jpg',
+                            'file_id': 'uuid-string',
+                            'expires_in': 3600
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+@api_view(['GET'])
+@permission_classes([DevelopmentOrAuthenticated])
+def get_upload_presigned_url(request):
+    """
+    Get presigned URL for direct S3 upload.
+
+    Client should:
+    1. Call this endpoint to get upload URL
+    2. PUT the image file to the upload_url with Content-Type: image/jpeg
+    3. Use the returned key/file_id for metadata registration
+    """
+    user_id = request.user.id
+    chakra_type = request.GET.get('chakra_type', 'default')
+
+    result = image_service.generate_upload_presigned_url(
+        user_id=user_id,
+        chakra_type=chakra_type
+    )
+
+    if result['status'] == 'success':
+        return Response(result, status=status.HTTP_200_OK)
+    else:
+        return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
     summary="Upload Chakra Image",
     description="Upload a photo with automatic metadata extraction (location, timestamp)",
     request={
@@ -209,6 +323,7 @@ def get_tomorrow_fortune(request):
     from core.models import FortuneResult
     from datetime import timedelta
 
+    # 개발환경에서는 mock user_id 사용
     user_id = request.user.id
 
     # Get date parameter from GET or POST data
@@ -415,6 +530,7 @@ def get_user_images(request):
 # URL patterns
 urlpatterns = [
     # Image endpoints
+    path('chakra/upload-url/', get_upload_presigned_url, name='get_upload_presigned_url'),
     path('chakra/upload/', upload_chakra_image, name='upload_chakra'),
     path('chakra/images/', get_user_images, name='get_user_images'),
 

@@ -5,6 +5,8 @@ import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
+typealias ApiResponse<T> = Response<ServerResponse<T>>
+
 interface ApiService {
     @POST("api/user/auth/google/")
     suspend fun loginWithGoogle(@Body request: LoginRequest): Response<LoginResponse>
@@ -29,6 +31,9 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Query("date") date: String
     ): Response<ImageResponse>
+
+    @GET("api/core/chakra/upload-url/")
+    suspend fun getImageUploadUrl(): ApiResponse<UploadUrlData>
 
     @Multipart
     @POST("api/core/chakra/upload/") // Replace with your actual upload endpoint
