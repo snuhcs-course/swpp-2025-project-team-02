@@ -50,7 +50,7 @@ API_HOST=fortuna.up.railway.app
 
 ```bash
 ./gradlew assembleRelease \
-    -Pandroid.injected.signing.store.file=/Users/gimchang-a/Desktop/swpp-2025-project-team-02/testkey.jks \
+    -Pandroid.injected.signing.store.file=../testkey.jks \
     -Pandroid.injected.signing.store.password=1q2w3e4r! \
     -Pandroid.injected.signing.key.alias=key0 \
     -Pandroid.injected.signing.key.password=1q2w3e4r!
