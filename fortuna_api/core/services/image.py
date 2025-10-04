@@ -11,6 +11,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.conf import settings
 from django.core.files.storage import default_storage
+from django.utils import timezone
 from core.models import ChakraImage
 import logging
 
@@ -49,9 +50,9 @@ class ImageService:
                     # Extract timestamp
                     if tag == "DateTime" or tag == "DateTimeOriginal":
                         try:
-                            metadata["timestamp"] = datetime.strptime(
-                                value, "%Y:%m:%d %H:%M:%S"
-                            ).isoformat()
+                            naive_dt = datetime.strptime(value, "%Y:%m:%d %H:%M:%S")
+                            aware_dt = timezone.make_aware(naive_dt, timezone.get_current_timezone())
+                            metadata["timestamp"] = aware_dt.isoformat()
                         except Exception as e:
                             logger.warning(f"Failed to parse datetime: {e}")
 
@@ -84,7 +85,7 @@ class ImageService:
 
         # If no timestamp in EXIF, use current time
         if not metadata["timestamp"]:
-            metadata["timestamp"] = datetime.now().isoformat()
+            metadata["timestamp"] = timezone.now().isoformat()
 
         return metadata
 
@@ -164,10 +165,16 @@ class ImageService:
         """
         from user.models import User
 
+        # Verify user exists
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise ValueError(f"User with id {user_id} does not exist")
+
         timestamp = datetime.fromisoformat(metadata["timestamp"])
 
         chakra_image = ChakraImage(
-            user_id=user_id,
+            user=user,
             image=image_file,
             chakra_type=chakra_type,
             date=timestamp.date(),
