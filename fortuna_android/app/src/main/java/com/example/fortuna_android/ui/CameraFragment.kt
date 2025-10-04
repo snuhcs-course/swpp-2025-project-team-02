@@ -444,6 +444,7 @@ class CameraFragment : Fragment() {
         uploadImageToBackend(photoFile)
     }
 
+    // Webp file compression (test)
     private fun compressImageToWebP(jpegFile: File): File? {
         return try {
             val currentContext = context ?: return null
@@ -457,7 +458,12 @@ class CameraFragment : Fragment() {
 
             // Compress to WebP with quality 80 (good balance between size and quality)
             FileOutputStream(webpFile).use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
+                } else {
+                    @Suppress("DEPRECATION")
+                    bitmap.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
+                }
             }
 
             val originalSize = jpegFile.length() / 1024 // KB
@@ -480,15 +486,11 @@ class CameraFragment : Fragment() {
                 // Show loading state (you can add a progress indicator in UI)
                 Log.d(TAG, "Uploading image to backend...")
 
-                // Convert JPEG to WebP for smaller file size
-                val uploadFile = compressImageToWebP(photoFile) ?: photoFile
-                val mimeType = if (uploadFile.extension == "webp") "image/webp" else "image/jpeg"
+                // Prepare multipart request - specifically as JPEG
+                val requestFile = photoFile.asRequestBody("image/jpeg".toMediaType())
+                val imagePart = MultipartBody.Part.createFormData("image", photoFile.name, requestFile)
 
-                // Prepare multipart request
-                val requestFile = uploadFile.asRequestBody(mimeType.toMediaType())
-                val imagePart = MultipartBody.Part.createFormData("image", uploadFile.name, requestFile)
-
-                Log.d(TAG, "Uploading file: ${uploadFile.name} with MIME type: $mimeType")
+                Log.d(TAG, "Uploading file: ${photoFile.name} with MIME type: image/jpeg")
                 val chakraTypePart = "water".toRequestBody("text/plain".toMediaType()) // Example chakra type
 
                 // Upload to backend
@@ -513,10 +515,10 @@ class CameraFragment : Fragment() {
                     savePhotoToGallery(photoFile)
                 }
 
-                // Clean up WebP file if created
-                if (uploadFile != photoFile && uploadFile.exists()) {
-                    uploadFile.delete()
-                }
+//                Clean up WebP file if created
+//                if (uploadFile != photoFile && uploadFile.exists()) {
+//                    uploadFile.delete()
+//                }
             } catch (e: Exception) {
                 Log.e(TAG, "Upload error: ${e.message}", e)
                 if (isAdded) {
