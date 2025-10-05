@@ -28,18 +28,33 @@ class ChakraImage(models.Model):
 
 class FortuneResult(models.Model):
     """Stores generated fortune results."""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     for_date = models.DateField()
 
     # Gapja info
-    gapja_code = models.IntegerField()
-    gapja_name = models.CharField(max_length=10)
-    gapja_element = models.CharField(max_length=5)
+    gapja_code = models.IntegerField(default=0)
+    gapja_name = models.CharField(max_length=10, default='')
+    gapja_element = models.CharField(max_length=5, default='')
 
     # Fortune data (JSON)
-    fortune_data = models.JSONField()
+    fortune_data = models.JSONField(default=dict)
+
+    # Status tracking for incremental updates
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text='Current status of fortune generation'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ['user', 'for_date']
