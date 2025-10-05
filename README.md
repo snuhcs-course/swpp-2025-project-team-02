@@ -69,3 +69,7 @@ API_HOST=fortuna.up.railway.app
    - Locate the generated APK at: `app/build/outputs/apk/release/app-release.apk`
    - Transfer the APK file to your Android smartphone
    - Install and run the app
+
+## Demo Video
+
+[Demo Video](iteration-1-demo.mp4.zip)
