@@ -37,49 +37,53 @@ data class FortuneResponse(
 )
 
 data class FortuneData(
+    @SerializedName("fortune_id")
+    val fortuneId: Int,
     @SerializedName("user_id")
     val userId: Int,
-    @SerializedName("generated_at")
-    val generatedAt: String,
     @SerializedName("for_date")
     val forDate: String,
+    @SerializedName("fortune_status")
+    val fortuneStatus: String,
+    val fortune: Fortune,
+    @SerializedName("created_at")
+    val createdAt: String,
+    @SerializedName("updated_at")
+    val updatedAt: String,
     @SerializedName("tomorrow_gapja")
-    val tomorrowGapja: TomorrowGapja,
-    val fortune: Fortune
+    val tomorrowGapja: TomorrowGapja
 )
 
 data class TomorrowGapja(
     val code: Int,
     val name: String,
-    val chinese: String,
-    val element: String,
-    val animal: String
+    val element: String
 )
 
 data class Fortune(
     @SerializedName("tomorrow_date")
     val tomorrowDate: String,
-    @SerializedName("saju_compatibility")
-    val sajuCompatibility: String,
-    @SerializedName("overall_fortune")
-    val overallFortune: Int,
-    @SerializedName("fortune_summary")
-    val fortuneSummary: String,
-    @SerializedName("element_balance")
-    val elementBalance: String,
-    @SerializedName("chakra_readings")
-    val chakraReadings: List<ChakraReading>,
     @SerializedName("daily_guidance")
     val dailyGuidance: DailyGuidance,
+    @SerializedName("chakra_readings")
+    val chakraReadings: List<ChakraReading>,
+    @SerializedName("element_balance")
+    val elementBalance: String,
+    @SerializedName("fortune_summary")
+    val fortuneSummary: String,
+    @SerializedName("overall_fortune")
+    val overallFortune: Int,
     @SerializedName("special_message")
-    val specialMessage: String
+    val specialMessage: String,
+    @SerializedName("saju_compatibility")
+    val sajuCompatibility: String
 )
 
 data class ChakraReading(
+    val message: String,
+    val strength: Int,
     @SerializedName("chakra_type")
     val chakraType: String,
-    val strength: Int,
-    val message: String,
     @SerializedName("location_significance")
     val locationSignificance: String
 )
@@ -87,16 +91,16 @@ data class ChakraReading(
 data class DailyGuidance(
     @SerializedName("best_time")
     val bestTime: String,
-    @SerializedName("lucky_direction")
-    val luckyDirection: String,
+    @SerializedName("key_advice")
+    val keyAdvice: String,
     @SerializedName("lucky_color")
     val luckyColor: String,
-    @SerializedName("activities_to_embrace")
-    val activitiesToEmbrace: List<String>,
+    @SerializedName("lucky_direction")
+    val luckyDirection: String,
     @SerializedName("activities_to_avoid")
     val activitiesToAvoid: List<String>,
-    @SerializedName("key_advice")
-    val keyAdvice: String
+    @SerializedName("activities_to_embrace")
+    val activitiesToEmbrace: List<String>
 )
 
 // Authentication and user profile related data classes
