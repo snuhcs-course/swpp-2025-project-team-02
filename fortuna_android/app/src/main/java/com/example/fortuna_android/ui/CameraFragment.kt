@@ -591,13 +591,20 @@ class CameraFragment : Fragment() {
 
             // Add timestamp metadata
             val currentDateTime = Date()
+
+            // Standard EXIF format for EXIF tags
             val dateTimeFormat = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.getDefault())
             dateTimeFormat.timeZone = TimeZone.getDefault()
             val dateTimeString = dateTimeFormat.format(currentDateTime)
 
-            exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME, dateTimeString)
-            exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL, dateTimeString)
-            exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_DIGITIZED, dateTimeString)
+            // ISO 8601 format for backend processing
+            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
+            isoFormat.timeZone = TimeZone.getDefault()
+            val isoTimestamp = isoFormat.format(currentDateTime)
+
+            exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME, isoTimestamp)
+            exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL, isoTimestamp)
+            exif.setAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_DIGITIZED, isoTimestamp)
 
             // Add device information metadata
             val deviceMake = Build.MANUFACTURER
@@ -616,7 +623,7 @@ class CameraFragment : Fragment() {
             // Save all metadata
             exif.saveAttributes()
 
-            Log.d(TAG, "Comprehensive metadata added - Device: $deviceMake $deviceModel, Time: $dateTimeString, Camera: $cameraType")
+            Log.d(TAG, "Comprehensive metadata added - Device: $deviceMake $deviceModel, Time: $isoTimestamp, Camera: $cameraType")
         } catch (e: IOException) {
             Log.e(TAG, "Failed to add metadata to photo", e)
         }

@@ -36,8 +36,7 @@ interface ApiService {
 
     @GET("api/core/fortune/tomorrow/")
     suspend fun getFortune(
-        @Query("date") date: String,
-        @Query("include_photos") includePhotos: Boolean
+        @Query("date") date: String
     ): Response<FortuneResponse>
 
     @POST("api/user/auth/refresh/")

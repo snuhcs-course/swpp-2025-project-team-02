@@ -35,7 +35,7 @@ class FortuneViewModel : ViewModel() {
     // Coroutine job for fortune generation
     private var fortuneJob: Job? = null
 
-    fun getFortune(includePhotos: Boolean = true) {
+    fun getFortune(isTomorrow: Boolean = true) {
         // Don't start new request if one is already running
         if (_isLoading.value == true) {
             Log.d(TAG, "Fortune generation already in progress")
@@ -57,30 +57,54 @@ class FortuneViewModel : ViewModel() {
 
                 // Prepare request parameters
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val currentDate = dateFormat.format(Date())
+                val currentDate = if (isTomorrow) {
+                    dateFormat.format(Date())
+                } else {
+                    // Calculate yesterday's date
+                    val calendar = java.util.Calendar.getInstance()
+                    calendar.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                    dateFormat.format(calendar.time)
+                }
 
-                Log.d(TAG, "Fortune request parameters: date=$currentDate, includePhotos=$includePhotos")
+                Log.d(TAG, "Fortune request parameters: date=$currentDate")
 
                 // Network call on IO thread
-                val response = RetrofitClient.instance.getFortune(currentDate, includePhotos)
+                val response = RetrofitClient.instance.getFortune(currentDate)
 
                 // Process result
                 if (response.isSuccessful && response.body() != null) {
                     val fortuneResponse = response.body()!!
                     Log.d(TAG, "Fortune received: ${fortuneResponse.status}")
 
-                    // Update success state
-                    _fortuneResult.postValue(fortuneResponse.data.fortune.fortuneSummary)
-                    _isLoading.postValue(false)
-                    _errorMessage.postValue(null)
+                    // Check if fortune data is complete
+                    val fortune = fortuneResponse.data.fortune
+                    if (!fortune.fortuneSummary.isNullOrEmpty()) {
+                        // Update success state
+                        val fortuneText = "${fortuneResponse.data.forDate}\n${fortune.fortuneSummary}\nOverall Fortune: ${fortune.overallFortune}\n${fortune.specialMessage}"
+                        _fortuneResult.postValue(fortuneText)
+                        _isLoading.postValue(false)
+                        _errorMessage.postValue(null)
+                    } else {
+                        // Fortune is pending or incomplete
+                        Log.w(TAG, "Fortune data is incomplete or pending")
+                        _fortuneResult.postValue(null)
+                        _isLoading.postValue(false)
+                        _errorMessage.postValue("Your fortune is still being generated. Please wait until it's ready.")
+                    }
 
                 } else {
                     Log.e(TAG, "Fortune request failed: ${response.code()}")
 
+                    // Handle specific error codes
+                    val errorMessage = when (response.code()) {
+                        404 -> "No fortune available for today. Please take some photos first to generate your fortune."
+                        else -> "Failed to get fortune. Server returned ${response.code()}. Please try again."
+                    }
+
                     // Update error state
                     _fortuneResult.postValue(null)
                     _isLoading.postValue(false)
-                    _errorMessage.postValue("Failed to get fortune. Server returned ${response.code()}. Please try again.")
+                    _errorMessage.postValue(errorMessage)
                 }
 
             } catch (e: Exception) {

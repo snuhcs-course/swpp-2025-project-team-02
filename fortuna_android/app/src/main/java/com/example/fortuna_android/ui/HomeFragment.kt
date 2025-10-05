@@ -123,10 +123,10 @@ class HomeFragment : Fragment() {
     private fun getFortune() {
         val binding = _binding ?: return
         // Get the include photos setting
-        val includePhotos = binding.switchIncludePhotos.isChecked
+        val isTomorrow = binding.switchIncludePhotos.isChecked
 
         // Use ViewModel to generate fortune
-        fortuneViewModel.getFortune(includePhotos)
+        fortuneViewModel.getFortune(isTomorrow)
     }
 
     private fun checkPermissions() {
