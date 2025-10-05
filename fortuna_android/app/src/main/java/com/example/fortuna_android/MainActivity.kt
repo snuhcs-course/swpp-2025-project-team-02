@@ -121,6 +121,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // 다른 앱 방문 후 되돌아 올 때 로그인 풀리며 프로필 정보 불러오지 못하는 버그 수정.
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val accessToken = prefs.getString(KEY_TOKEN, null)
+        val refreshToken = prefs.getString(REFRESH_TOKEN, null)
+
+        if (accessToken.isNullOrEmpty() || refreshToken.isNullOrEmpty()) {
+            // 토큰이 없으면 로그인 화면으로 이동
+            navigateToSignIn()
+        } else {
+            // 토큰이 있으면 유효성 검증 및 갱신
+            lifecycleScope.launch {
+                validateAndRefreshToken(accessToken, refreshToken)
+            }
+        }
     }
 
     private fun setupGoogleSignIn() {
