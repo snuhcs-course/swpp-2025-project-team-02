@@ -35,7 +35,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Include Photos: "
+                android:text="Today / Tomorrow : "
                 android:textSize="14sp"
                 android:layout_marginEnd="8dp" />
 
@@ -43,7 +43,7 @@
                 android:id="@+id/switchIncludePhotos"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:checked="true" />
+                android:checked="false" />
 
         </LinearLayout>
 
