@@ -41,6 +41,7 @@ INTERNAL_IPS = [
 DEBUG_TOOLBAR_CONFIG = {
     'DISABLE_PANELS': [
         'debug_toolbar.panels.redirects.RedirectsPanel',
+        'debug_toolbar.panels.profiling.ProfilingPanel',  # 프로파일링 충돌 방지
     ],
     'SHOW_TEMPLATE_CONTEXT': True,
 }
@@ -118,10 +119,10 @@ LOGGING = {
             'formatter': 'simple',
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
-    },
+    # 'root': {
+    #     'handlers': ['console'],
+    #     'level': 'DEBUG',
+    # },
     'loggers': {
         'django': {
             'handlers': ['console'],

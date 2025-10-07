@@ -31,7 +31,6 @@ class TestAuthenticationMiddleware:
 
         # X-Test-User-Id 헤더 확인
         test_user_id = request.META.get('HTTP_X_TEST_USER_ID')
-        print(f"test_user_id: {test_user_id}")
 
         if test_user_id:
             try:
