@@ -52,6 +52,7 @@ LOGGING_CONFIG = None
 
 # Test-specific settings
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
+TESTING_MODE = True
 
 # Disable channels for testing
 CHANNEL_LAYERS = {

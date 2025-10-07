@@ -26,7 +26,9 @@ INSTALLED_APPS += [
 ]
 
 # Development-specific middleware
-MIDDLEWARE += [
+MIDDLEWARE = [
+    'core.middleware.TestAuthenticationMiddleware',  # X-Test-User-Id 헤더 지원
+] + MIDDLEWARE + [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
@@ -65,6 +67,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
     'x-forwarded-for',
     'x-forwarded-proto',
+    'x-test-user-id',  # 테스트용 인증 우회 헤더
 ]
 
 # Disable CSRF for development API testing
