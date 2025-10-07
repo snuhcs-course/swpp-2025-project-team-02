@@ -61,7 +61,7 @@ class FortuneService:
         if api_key:
             self.client = openai.OpenAI(api_key=api_key)
         else:
-            raise ValueError("OPENAI_API_KEY is not set")
+            self.client = None
         # logger.info(f"FortuneService initialized with OpenAI client: {api_key}")
         self.image_service = image_service if image_service else ImageService()
 
