@@ -126,7 +126,7 @@ class HomeFragment : Fragment() {
         val isTomorrow = binding.switchIncludePhotos.isChecked
 
         // Use ViewModel to generate fortune
-        fortuneViewModel.getFortune(isTomorrow)
+        fortuneViewModel.getFortune(requireContext(), isTomorrow)
     }
 
     private fun checkPermissions() {

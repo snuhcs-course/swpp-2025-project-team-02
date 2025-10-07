@@ -486,6 +486,21 @@ class CameraFragment : Fragment() {
                 // Show loading state (you can add a progress indicator in UI)
                 Log.d(TAG, "Uploading image to backend...")
 
+                // Get JWT token from SharedPreferences
+                val currentContext = context ?: return@launch
+                val prefs = currentContext.getSharedPreferences("fortuna_prefs", android.content.Context.MODE_PRIVATE)
+                val accessToken = prefs.getString("jwt_token", null)
+
+                if (accessToken.isNullOrEmpty()) {
+                    Log.e(TAG, "No access token found")
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "Authentication required. Please log in again.", Toast.LENGTH_LONG).show()
+                    }
+                    hidePhotoPreview()
+                    findNavController().popBackStack()
+                    return@launch
+                }
+
                 // Prepare multipart request - specifically as JPEG
                 val requestFile = photoFile.asRequestBody("image/jpeg".toMediaType())
                 val imagePart = MultipartBody.Part.createFormData("image", photoFile.name, requestFile)
@@ -494,7 +509,7 @@ class CameraFragment : Fragment() {
                 val chakraTypePart = "water".toRequestBody("text/plain".toMediaType()) // Example chakra type
 
                 // Upload to backend
-                val response = RetrofitClient.instance.uploadImage(imagePart, chakraTypePart)
+                val response = RetrofitClient.instance.uploadImage("Bearer $accessToken", imagePart, chakraTypePart)
 
                 if (response.isSuccessful && response.body() != null) {
                     val uploadResponse = response.body()!!

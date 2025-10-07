@@ -1,5 +1,6 @@
 package com.example.fortuna_android.ui
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -23,6 +24,8 @@ class SearchFragment : Fragment() {
 
     companion object {
         private const val TAG = "SearchFragment"
+        private const val PREFS_NAME = "fortuna_prefs"
+        private const val KEY_TOKEN = "jwt_token"
     }
 
     override fun onCreateView(
@@ -53,9 +56,18 @@ class SearchFragment : Fragment() {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val currentDate = dateFormat.format(Date())
 
+        // Get JWT token from SharedPreferences
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val accessToken = prefs.getString(KEY_TOKEN, null)
+        Log.d(TAG, "Accesstoken: $accessToken")
+        if (accessToken.isNullOrEmpty()) {
+            showError("Authentication required. Please log in again.")
+            return
+        }
+
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getImages(currentDate)
+                val response = RetrofitClient.instance.getImages("Bearer $accessToken", currentDate)
 
                 // Check binding before updating UI
                 val currentBinding = _binding ?: return@launch
