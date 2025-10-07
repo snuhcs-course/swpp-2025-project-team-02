@@ -26,7 +26,9 @@ INSTALLED_APPS += [
 ]
 
 # Development-specific middleware
-MIDDLEWARE += [
+MIDDLEWARE = [
+    'core.middleware.TestAuthenticationMiddleware',  # X-Test-User-Id 헤더 지원
+] + MIDDLEWARE + [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
@@ -39,6 +41,7 @@ INTERNAL_IPS = [
 DEBUG_TOOLBAR_CONFIG = {
     'DISABLE_PANELS': [
         'debug_toolbar.panels.redirects.RedirectsPanel',
+        'debug_toolbar.panels.profiling.ProfilingPanel',  # 프로파일링 충돌 방지
     ],
     'SHOW_TEMPLATE_CONTEXT': True,
 }
@@ -65,6 +68,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
     'x-forwarded-for',
     'x-forwarded-proto',
+    'x-test-user-id',  # 테스트용 인증 우회 헤더
 ]
 
 # Disable CSRF for development API testing
@@ -115,10 +119,10 @@ LOGGING = {
             'formatter': 'simple',
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
-    },
+    # 'root': {
+    #     'handlers': ['console'],
+    #     'level': 'DEBUG',
+    # },
     'loggers': {
         'django': {
             'handlers': ['console'],

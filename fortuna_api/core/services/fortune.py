@@ -5,7 +5,6 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 
 import os
 import json
-import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
@@ -20,8 +19,7 @@ from ..utils.concept import (
 )
 from .image import ImageService
 from core.models import FortuneResult
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class ChakraReading(BaseModel):
@@ -57,14 +55,15 @@ class FortuneResponse(BaseModel):
 class FortuneService:
     """Service for generating Saju-based fortune tellings."""
 
-    def __init__(self):
+    def __init__(self, image_service: ImageService | None = None):
         """Initialize FortuneService with OpenAI client."""
         api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
         if api_key:
             self.client = openai.OpenAI(api_key=api_key)
         else:
-            self.client = None
-        self.image_service = ImageService()
+            raise ValueError("OPENAI_API_KEY is not set")
+        # logger.info(f"FortuneService initialized with OpenAI client: {api_key}")
+        self.image_service = image_service if image_service else ImageService()
 
     def calculate_gapja_code(self, date: datetime) -> int:
         """
@@ -176,13 +175,15 @@ class FortuneService:
 
         photo_contexts = []
         for photo in photos:
-            # In production, retrieve stored metadata from database
+            # Extract filename from URL or use photo ID
+            filename = photo["url"].split('/')[-1] if photo.get("url") else f"image_{photo['id']}.jpg"
+
             photo_context = {
-                "filename": photo["filename"],
+                "filename": filename,
                 "url": photo["url"],
                 "metadata": {
-                    "timestamp": date.isoformat(),
-                    "location": {
+                    "timestamp": photo.get("timestamp", date.isoformat()),
+                    "location": photo.get("location") or {
                         "latitude": 37.5665,  # Mock Seoul coordinates
                         "longitude": 126.9780
                     }
@@ -268,14 +269,13 @@ class FortuneService:
         try:
             if not self.client:
                 raise ValueError("OpenAI client not initialized")
-
+            
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-nano",
                 messages=[
                     {"role": "system", "content": context},
                     {"role": "user", "content": "내일의 운세를 자세히 풀어주세요."}
-                ],
-                temperature=0.8
+                ]
             )
 
             # Parse the response content into a structured format

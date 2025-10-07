@@ -303,7 +303,7 @@ class TestAPIIntegration(APITestCase):
             HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}'
         )
 
-    @patch('core.tasks.update_fortune_async')
+    @patch('core.tasks.schedule_fortune_update')
     @patch('core.services.image.ImageService.process_image_upload')
     def test_complete_workflow(self, mock_upload, mock_task):
         """Test complete workflow: upload image then get fortune."""

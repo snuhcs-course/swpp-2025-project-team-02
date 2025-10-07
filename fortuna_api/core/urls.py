@@ -20,7 +20,7 @@ app_name = 'core'
 
 # Initialize services
 image_service = ImageService()
-fortune_service = FortuneService()
+fortune_service = FortuneService(image_service)
 
 
 @extend_schema(
@@ -85,11 +85,7 @@ def upload_chakra_image(request):
 
     image_file = request.FILES['image']
 
-    # 개발환경에서는 mock user_id 사용
-    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
-        user_id = 1  # 개발용 기본 사용자 ID
-    else:
-        user_id = request.user.id
+    user_id = request.user.id
 
     # Get additional data from request
     additional_data = {
@@ -106,7 +102,6 @@ def upload_chakra_image(request):
     if result['status'] == 'success':
         # Get or create FortuneResult for incremental updates
         from core.models import FortuneResult
-        from core.tasks import update_fortune_async
         from datetime import timedelta
 
         # Extract image timestamp
@@ -128,7 +123,8 @@ def upload_chakra_image(request):
         )
 
         # Trigger async fortune update (fire-and-forget)
-        update_fortune_async(user_id, image_date.strftime('%Y-%m-%d'))
+        from core.tasks import schedule_fortune_update
+        schedule_fortune_update(user_id, image_date.strftime('%Y-%m-%d'))
 
         # Add fortune info to response
         result['data']['fortune'] = {
@@ -219,11 +215,7 @@ def get_tomorrow_fortune(request):
     from core.models import FortuneResult
     from datetime import timedelta
 
-    # 개발환경에서는 mock user_id 사용
-    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
-        user_id = 1  # 개발용 기본 사용자 ID
-    else:
-        user_id = request.user.id
+    user_id = request.user.id
 
     # Get date parameter
     date_str = request.GET.get('date')
@@ -323,11 +315,7 @@ def get_hourly_fortune(request):
     - 인시 (03:00-05:00): Wood
     - And so on...
     """
-    # 개발환경에서는 mock user_id 사용
-    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
-        user_id = 1  # 개발용 기본 사용자 ID
-    else:
-        user_id = request.user.id
+    user_id = request.user.id
 
     # Get datetime parameter
     datetime_str = request.GET.get('datetime')
@@ -395,11 +383,7 @@ def get_user_images(request):
     """
     Get all images uploaded by the user on a specific date.
     """
-    # 개발환경에서는 mock user_id 사용
-    if getattr(settings, 'DEVELOPMENT_MODE', False) and not request.user.is_authenticated:
-        user_id = 1  # 개발용 기본 사용자 ID
-    else:
-        user_id = request.user.id
+    user_id = request.user.id
 
     date_str = request.GET.get('date')
     if not date_str:

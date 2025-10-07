@@ -266,6 +266,19 @@ SPECTACULAR_SETTINGS = {
     'REDOC_UI_SETTINGS': {
         'hideDownloadButton': True,
     },
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'TestUserAuth': {
+                'type': 'apiKey',
+                'in': 'header',
+                'name': 'X-Test-User-Id',
+                'description': 'Development only: Bypass authentication by providing user ID',
+            }
+        }
+    },
+    'SECURITY': [
+        {'TestUserAuth': []},
+    ],
 }
 
 # Logging Configuration
