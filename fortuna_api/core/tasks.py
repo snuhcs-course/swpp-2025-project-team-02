@@ -89,7 +89,7 @@ async def update_fortune_async(user_id: int, image_date_str: str) -> None:
             
             if result['status'] == 'success':
                 if hasattr(fortune_result, 'status'):
-                    fortune_result.status = 'completed' 
+                    fortune_result.status = 'completed' # FIXME : 하루에 여러 번 올리는 걸 쪼개 받는 식으로 나눠 구현해야 함.
                     await sync_to_async(fortune_result.save)(update_fields=['status'])
 
                 logger.info(
