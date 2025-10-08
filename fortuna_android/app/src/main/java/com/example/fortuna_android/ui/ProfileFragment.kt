@@ -54,17 +54,24 @@ class ProfileFragment : Fragment() {
 
     fun loadUserProfile() {
         if (!isAdded) return
-        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val token = prefs.getString(KEY_TOKEN, null)
 
-        if (token.isNullOrEmpty()) {
-            Log.e(TAG, "No token available")
+        // Get JWT token from SharedPreferences
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val accessToken = prefs.getString(KEY_TOKEN, null)
+
+        if (accessToken.isNullOrEmpty()) {
+            Log.e(TAG, "No access token found")
+            if (isAdded) {
+                Toast.makeText(requireContext(), "Authentication required. Please log in again.", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
+        Log.d(TAG, "Access token found: ${accessToken}")
+
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getUserProfile("Bearer $token")
+                val response = RetrofitClient.instance.getUserProfile("Bearer $accessToken")
 
                 if (response.isSuccessful) {
                     val profile = response.body()
