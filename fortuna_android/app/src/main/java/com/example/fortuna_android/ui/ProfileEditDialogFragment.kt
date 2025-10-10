@@ -146,8 +146,12 @@ class ProfileEditDialogFragment : DialogFragment() {
             "lunar" -> binding.lunarRadioButton.isChecked = true
         }
 
-        // 성별 선택
-        selectedGender = profile.gender ?: ""
+        // 성별 선택 - 기존 성별을 기본값으로 설정
+        selectedGender = when (profile.gender) {
+            "남자", "M" -> "M"
+            "여자", "F" -> "F"
+            else -> ""
+        }
         updateGenderButtons()
 
         // 태어난 시간 선택

@@ -1,13 +1,11 @@
 package com.example.fortuna_android.ui
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -16,17 +14,17 @@ import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
-import com.example.fortuna_android.databinding.FragmentProfileBinding
+import com.example.fortuna_android.databinding.FragmentSettingsBinding
 import kotlinx.coroutines.launch
 
-class ProfileFragment : Fragment() {
-    private var _binding: FragmentProfileBinding? = null
+class SettingsFragment : Fragment() {
+    private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
     private var currentProfile: UserProfile? = null
 
     companion object {
-        private const val TAG = "ProfileFragment"
+        private const val TAG = "SettingsFragment"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"
     }
@@ -36,7 +34,7 @@ class ProfileFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentProfileBinding.inflate(inflater, container, false)
+        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -50,12 +48,59 @@ class ProfileFragment : Fragment() {
     private fun setupClickListeners() {
         val binding = _binding ?: return
 
-        binding.settingsButton.setOnClickListener {
-            findNavController().navigate(R.id.action_profile_to_settings)
+        // 뒤로가기 버튼
+        binding.backButton.setOnClickListener {
+            findNavController().navigateUp()
+        }
+
+        // 프로필 카드 클릭 → 프로필 편집 Dialog
+        binding.profileCard.setOnClickListener {
+            val profile = currentProfile
+            if (profile != null) {
+                showEditProfileDialog(profile)
+            } else {
+                Toast.makeText(requireContext(), "프로필 정보를 불러오는 중입니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 알림 클릭
+        binding.notificationItem.setOnClickListener {
+            Toast.makeText(requireContext(), "알림 설정 (추후 구현 예정)", Toast.LENGTH_SHORT).show()
+        }
+
+        // 로그아웃 클릭
+        binding.logoutItem.setOnClickListener {
+            (activity as? MainActivity)?.logout()
+        }
+
+        // 탈퇴하기 클릭
+        binding.deleteAccountItem.setOnClickListener {
+            showDeleteAccountDialog()
         }
     }
 
-    fun loadUserProfile() {
+    private fun showDeleteAccountDialog() {
+        if (!isAdded) return
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("회원 탈퇴")
+            .setMessage("정말로 탈퇴하시겠습니까?\n\n탈퇴 시 모든 사주 정보와 운세 기록이 삭제되며, 복구할 수 없습니다.")
+            .setPositiveButton("탈퇴하기") { _, _ ->
+                deleteAccount()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun deleteAccount() {
+        // TODO: 서버에 회원 탈퇴 API 호출 구현
+        Toast.makeText(requireContext(), "회원 탈퇴 기능은 추후 구현 예정입니다.", Toast.LENGTH_LONG).show()
+
+        // 임시: 로그아웃 처리
+        // (activity as? MainActivity)?.logout()
+    }
+
+    private fun loadUserProfile() {
         if (!isAdded) return
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val token = prefs.getString(KEY_TOKEN, null)
@@ -92,63 +137,16 @@ class ProfileFragment : Fragment() {
 
     private fun updateUI(profile: UserProfile) {
         val binding = _binding ?: return
-
         val nickname = profile.nickname ?: profile.name
-        binding.welcomeTextView.text = "환영합니다, ${nickname}님!"
-        binding.sajuViewText.text = "${nickname}님의 사주팔자"
-
-        displaySaju(
-            profile.yearlyGanji,
-            profile.monthlyGanji,
-            profile.dailyGanji,
-            profile.hourlyGanji
-        )
+        binding.profileName.text = nickname
     }
 
-    private fun displaySaju(yearly: String?, monthly: String?, daily: String?, hourly: String?) {
-        val binding = _binding ?: return
-
-        // 각 간지를 천간(첫글자)과 지지(둘째글자)로 분리하여 표시
-        if (yearly != null && yearly.length == 2) {
-            setGanjiText(binding.yearlyGanji1, yearly[0].toString())
-            setGanjiText(binding.yearlyGanji2, yearly[1].toString())
+    private fun showEditProfileDialog(profile: UserProfile) {
+        val dialog = ProfileEditDialogFragment.newInstance(profile) {
+            // Callback when profile is updated
+            loadUserProfile()
         }
-
-        if (monthly != null && monthly.length == 2) {
-            setGanjiText(binding.monthlyGanji1, monthly[0].toString())
-            setGanjiText(binding.monthlyGanji2, monthly[1].toString())
-        }
-
-        if (daily != null && daily.length == 2) {
-            setGanjiText(binding.dailyGanji1, daily[0].toString())
-            setGanjiText(binding.dailyGanji2, daily[1].toString())
-        }
-
-        if (hourly != null && hourly.length == 2) {
-            setGanjiText(binding.hourlyGanji1, hourly[0].toString())
-            setGanjiText(binding.hourlyGanji2, hourly[1].toString())
-        }
-    }
-
-    private fun setGanjiText(textView: TextView, text: String) {
-        textView.text = text
-        textView.setBackgroundColor(getGanjiColor(text))
-    }
-
-    private fun getGanjiColor(ganji: String): Int {
-        return when (ganji) {
-            // 목(木) - 초록색
-            "갑", "을", "인", "묘" -> Color.parseColor("#0BEFA0")
-            // 화(火) - 빨간색
-            "병", "정", "사", "오" -> Color.parseColor("#F93E3E")
-            // 토(土) - 노란색
-            "무", "기", "술", "미", "축", "진" -> Color.parseColor("#FF9500")
-            // 금(金) - 흰색
-            "경", "신", "유" -> Color.parseColor("#C1BFBF")
-            // 수(水) - 회색
-            "임", "계", "자", "해" -> Color.parseColor("#2BB3FC")
-            else -> Color.parseColor("#CCCCCC")
-        }
+        dialog.show(childFragmentManager, "ProfileEditDialog")
     }
 
     override fun onDestroyView() {
