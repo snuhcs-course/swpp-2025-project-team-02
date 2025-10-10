@@ -25,6 +25,17 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/edit_profile_button"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/button_text_color"
+            android:text="프로필 수정"
+            android:textSize="12sp" />
+
+        <Button
             android:id="@+id/logout_button"
             style="?android:attr/borderlessButtonStyle"
             android:layout_width="wrap_content"

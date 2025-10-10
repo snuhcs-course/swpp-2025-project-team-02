@@ -21,6 +21,8 @@ class ProfileFragment : Fragment() {
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
 
+    private var currentProfile: UserProfile? = null
+
     companion object {
         private const val TAG = "ProfileFragment"
         private const val PREFS_NAME = "fortuna_prefs"
@@ -46,10 +48,27 @@ class ProfileFragment : Fragment() {
     private fun setupClickListeners() {
         val binding = _binding ?: return
 
+        binding.editProfileButton.setOnClickListener {
+            val profile = currentProfile
+            if (profile != null) {
+                showEditProfileDialog(profile)
+            } else {
+                Toast.makeText(requireContext(), "프로필 정보를 불러오는 중입니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         binding.logoutButton.setOnClickListener {
             // Notify parent activity to handle logout
             (activity as? MainActivity)?.logout()
         }
+    }
+
+    private fun showEditProfileDialog(profile: UserProfile) {
+        val dialog = ProfileEditDialogFragment.newInstance(profile) {
+            // Callback when profile is updated
+            loadUserProfile()
+        }
+        dialog.show(childFragmentManager, "ProfileEditDialog")
     }
 
     fun loadUserProfile() {
@@ -69,6 +88,7 @@ class ProfileFragment : Fragment() {
                 if (response.isSuccessful) {
                     val profile = response.body()
                     if (profile != null) {
+                        currentProfile = profile
                         updateUI(profile)
                     }
                 } else {
