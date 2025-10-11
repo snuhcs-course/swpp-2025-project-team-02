@@ -188,17 +188,27 @@ class TestFortuneAPIEndpoints(APITestCase):
             response.data['data']['fortune']['overall_fortune'], 85
         )
 
-    def test_generate_tomorrow_fortune_post(self):
-        """Test tomorrow fortune endpoint does not accept POST."""
+    @patch('core.services.fortune.FortuneService.generate_tomorrow_fortune')
+    def test_generate_tomorrow_fortune_post(self, mock_generate):
+        """Test tomorrow fortune generation with POST request."""
+        mock_generate.return_value = {
+            'status': 'success',
+            'data': {'fortune': {'overall_fortune': 75}}
+        }
+
         url = reverse('core:tomorrow_fortune')
         response = self.client.post(
             url,
-            {'date': '2024-01-01'},
+            {'date': '2024-01-01', 'include_photos': False},
             format='json'
         )
 
-        # GET-only endpoint should return 405 Method Not Allowed
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_generate.assert_called_with(
+            user_id=self.user.id,
+            date=datetime(2024, 1, 1),
+            include_photos=False
+        )
 
     def test_generate_tomorrow_fortune_invalid_date(self):
         """Test fortune generation with invalid date."""
@@ -208,23 +218,36 @@ class TestFortuneAPIEndpoints(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Invalid date format', response.data['message'])
 
-    def test_generate_tomorrow_fortune_default_date(self):
-        """Test fortune retrieval without date returns 404 if not exists."""
+    @patch('core.services.fortune.FortuneService.generate_tomorrow_fortune')
+    def test_generate_tomorrow_fortune_default_date(self, mock_generate):
+        """Test fortune generation without date (uses today)."""
+        mock_generate.return_value = {'status': 'success', 'data': {}}
+
         url = reverse('core:tomorrow_fortune')
         response = self.client.get(url)
 
-        # Should return 404 if no fortune exists for tomorrow
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data['status'], 'not_found')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Should be called with today's date
+        self.assertTrue(mock_generate.called)
+        call_args = mock_generate.call_args
+        self.assertIsInstance(call_args.kwargs['date'], datetime)
 
-    def test_generate_tomorrow_fortune_not_found(self):
-        """Test fortune retrieval when fortune doesn't exist."""
+    @patch('core.services.fortune.FortuneService.generate_tomorrow_fortune')
+    def test_generate_tomorrow_fortune_error(self, mock_generate):
+        """Test fortune generation with service error."""
+        mock_generate.return_value = {
+            'status': 'error',
+            'message': 'Service error'
+        }
+
         url = reverse('core:tomorrow_fortune')
-        response = self.client.get(url, {'date': '2024-01-01'})
+        response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data['status'], 'not_found')
-        self.assertIn('not yet generated', response.data['message'])
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        self.assertEqual(response.data['status'], 'error')
 
     @patch('core.services.fortune.FortuneService.get_hourly_fortune')
     def test_get_hourly_fortune_success(self, mock_hourly):
@@ -361,7 +384,7 @@ class TestAPIIntegration(APITestCase):
         fortune_url = reverse('core:tomorrow_fortune')
         fortune_response = self.client.get(
             fortune_url,
-            {'date': '2024-01-01'}
+            {'date': '2024-01-01', 'include_photos': 'true'}
         )
 
         self.assertEqual(fortune_response.status_code, status.HTTP_200_OK)
@@ -369,6 +392,9 @@ class TestAPIIntegration(APITestCase):
             fortune_response.data['data']['fortune']['overall_fortune'],
             90
         )
+        # Verify gapja info is included in response
+        self.assertIn('tomorrow_gapja', fortune_response.data['data'])
+        self.assertEqual(fortune_response.data['data']['tomorrow_gapja']['code'], 1)
 
     def create_test_image(self):
         """Helper method to create test image."""
