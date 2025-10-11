@@ -51,14 +51,12 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.example.fortuna_android.api.RetrofitClient
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import android.graphics.BitmapFactory
+import androidx.annotation.RequiresApi
 import java.io.FileOutputStream
+import com.example.fortuna_android.service.S3UploadService
 
 class CameraFragment : Fragment() {
 
@@ -83,6 +81,7 @@ class CameraFragment : Fragment() {
 
     private lateinit var cameraExecutor: ExecutorService
     private var currentLocation: Location? = null
+    private val s3UploadService = S3UploadService()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -444,6 +443,7 @@ class CameraFragment : Fragment() {
         uploadImageToBackend(photoFile)
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     // Webp file compression (test)
     private fun compressImageToWebP(jpegFile: File): File? {
         return try {
@@ -483,14 +483,18 @@ class CameraFragment : Fragment() {
     private fun uploadImageToBackend(photoFile: File) {
         lifecycleScope.launch {
             try {
-                // Show loading state (you can add a progress indicator in UI)
-                Log.d(TAG, "Uploading image to backend...")
+                // Show loading state
+                Log.d(TAG, "Uploading image to S3...")
 
-                // Prepare multipart request - specifically as JPEG
-                val requestFile = photoFile.asRequestBody("image/jpeg".toMediaType())
-                val imagePart = MultipartBody.Part.createFormData("image", photoFile.name, requestFile)
+                // Convert JPEG to WebP for smaller file size
+                val uploadFile = compressImageToWebP(photoFile) ?: photoFile
+                val mimeType = if (uploadFile.extension == "webp") "image/webp" else "image/jpeg"
 
-                Log.d(TAG, "Uploading file: ${photoFile.name} with MIME type: image/jpeg")
+                // Prepare multipart request
+                val requestFile = uploadFile.asRequestBody(mimeType.toMediaType())
+                val imagePart = MultipartBody.Part.createFormData("image", uploadFile.name, requestFile)
+
+                Log.d(TAG, "Uploading file: ${uploadFile.name} with MIME type: $mimeType")
                 val chakraTypePart = "water".toRequestBody("text/plain".toMediaType()) // Example chakra type
 
                 // Upload to backend
@@ -502,16 +506,12 @@ class CameraFragment : Fragment() {
                     if (isAdded) {
                         Toast.makeText(requireContext(), "Image uploaded successfully!", Toast.LENGTH_SHORT).show()
                     }
-
-                    // After successful upload, save to gallery
                     savePhotoToGallery(photoFile)
-                } else {
-                    Log.e(TAG, "Upload failed: ${response.code()} - ${response.message()}")
+                }.onFailure { error ->
+                    Log.e(TAG, "S3 upload failed: ${error.message}", error)
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "Upload failed: ${response.code()}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), "Upload failed: ${error.message}", Toast.LENGTH_LONG).show()
                     }
-
-                    // Still save to gallery even if upload fails
                     savePhotoToGallery(photoFile)
                 }
 
@@ -524,11 +524,8 @@ class CameraFragment : Fragment() {
                 if (isAdded) {
                     Toast.makeText(requireContext(), "Upload error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
-
-                // Still save to gallery even if upload fails
                 savePhotoToGallery(photoFile)
             } finally {
-                // Hide preview and navigate back regardless of upload result
                 hidePhotoPreview()
                 findNavController().popBackStack()
             }
