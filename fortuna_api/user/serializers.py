@@ -45,9 +45,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         if input_birth_date and input_calendar_type:
             instance.set_birth_date_and_calculate_saju(input_birth_date, input_calendar_type, input_birth_time_units)
 
-        instance.save()
-
         # 프로필 완성도 체크
         instance.update_profile_completeness_status()
+
+        instance.save()
 
         return instance

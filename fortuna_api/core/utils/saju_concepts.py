@@ -77,13 +77,13 @@ class TenStems(Enum):
         return stems[(current_index + offset) % len(stems)]
 
     @classmethod
-    def get_by_index(cls, index: int) -> 'TenStems':
+    def find_by_index(cls, index: int) -> 'TenStems':
         """인덱스로 천간 찾기"""
         all_stems = list(cls)
         return all_stems[index % len(all_stems)]
 
     @classmethod
-    def find(cls, name: str) -> 'TenStems':
+    def find_by_name(cls, name: str) -> 'TenStems':
         """한글 이름으로 천간 찾기"""
         for stem in cls:
             if stem.korean_name == name:
@@ -119,13 +119,13 @@ class TwelveBranches(Enum):
         return branches[(current_index + offset) % len(branches)]
 
     @classmethod
-    def get_by_index(cls, index: int) -> 'TwelveBranches':
+    def find_by_index(cls, index: int) -> 'TwelveBranches':
         """인덱스로 지지 찾기"""
         all_branches = list(cls)
         return all_branches[index % len(all_branches)]
 
     @classmethod
-    def find(cls, name: str) -> 'TwelveBranches':
+    def find_by_name(cls, name: str) -> 'TwelveBranches':
         """한글 이름으로 지지 찾기"""
         for branch in cls:
             if branch.korean_name == name:
@@ -336,41 +336,41 @@ class GanJi:
         """60갑자 캐시 생성 (Kotlin의 cached 로직)"""
         if cls._cached is None:
             cls._cached = [
-                GanJi(TenStems.get_by_index(index % 10), TwelveBranches.get_by_index(index % 12))
+                GanJi(TenStems.find_by_index(index % 10), TwelveBranches.find_by_index(index % 12))
                 for index in range(60)
             ]
         return cls._cached
 
     @classmethod
-    def get_by_index(cls, index: int) -> 'GanJi':
+    def find_by_index(cls, index: int) -> 'GanJi':
         """인덱스로 간지 찾기 (Kotlin: GanJi.idxAt)"""
         cached_ganji_list = cls._get_cached()
         return cached_ganji_list[index % len(cached_ganji_list)]
 
     @classmethod
-    def find(cls, *args) -> 'GanJi':
+    def find_by_name(cls, *args) -> 'GanJi':
         """간지 찾기 (Kotlin의 find 오버로딩)"""
         if len(args) == 1:
-            # find(text: String)
+            # find_by_name(text: String)
             ganji_text = args[0]
             if len(ganji_text) == 2:
-                return cls.find(ganji_text[0], ganji_text[1])
+                return cls.find_by_name(ganji_text[0], ganji_text[1])
             raise ValueError(f"간지 이름은 2글자여야 합니다: {ganji_text}")
         elif len(args) == 2:
             if isinstance(args[0], str) and isinstance(args[1], str):
-                # find(a: String, b: String)
-                stem = TenStems.find(args[0])
-                branch = TwelveBranches.find(args[1])
-                return cls.find(stem, branch)
+                # find_by_name(a: String, b: String)
+                stem = TenStems.find_by_name(args[0])
+                branch = TwelveBranches.find_by_name(args[1])
+                return cls.find_by_name(stem, branch)
             elif isinstance(args[0], TenStems) and isinstance(args[1], TwelveBranches):
-                # find(천간: 천간, 지지: 지지)
+                # find_by_name(천간: 천간, 지지: 지지)
                 target_stem, target_branch = args
                 cached_ganji_list = cls._get_cached()
                 for ganji in cached_ganji_list:
                     if ganji.stem == target_stem and ganji.branch == target_branch:
                         return ganji
                 raise ValueError(f"간지를 찾을 수 없습니다: {target_stem.korean_name}{target_branch.korean_name}")
-        raise ValueError("Invalid arguments for find()")
+        raise ValueError("Invalid arguments for find_by_name()")
 
     def __str__(self):
         return self.two_letters
@@ -403,7 +403,7 @@ class Saju:
     def _calculate_year_pillar(birth_date: date) -> GanJi:
         """년주 계산 (Kotlin: private fun year)"""
         years_from_1900 = birth_date.year - 1900
-        base_ganji_1900 = GanJi.find("경자")
+        base_ganji_1900 = GanJi.find_by_name("경자")
         return GanJi(
             base_ganji_1900.stem.next(years_from_1900),
             base_ganji_1900.branch.next(years_from_1900)
@@ -442,7 +442,7 @@ class Saju:
         """일주 계산 (Kotlin: private fun daily)"""
         reference_date_1925 = date(1925, 2, 9)
         days_from_reference = (birth_date - reference_date_1925).days
-        return GanJi.get_by_index(days_from_reference)
+        return GanJi.find_by_index(days_from_reference)
 
     @staticmethod
     def _calculate_hour_pillar(birth_time: time, daily_pillar: GanJi) -> GanJi:

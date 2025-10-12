@@ -78,30 +78,27 @@ class User(AbstractUser):
         return f"{self.email} ({self.nickname or 'No nickname'})"
     
     def update_last_login(self):
-        """마지막 로그인 시간 업데이트"""
+        """마지막 로그인 시간 업데이트 - 부모 메서드에서 save() 호출 필요"""
         self.last_login = timezone.now()
-        self.save(update_fields=['last_login'])
     
     def update_profile_completeness_status(self):
-        """프로필 완성도를 체크하고 is_profile_complete 필드를 업데이트"""
-        is_complete = self._check_profile_completeness()
-
+        """프로필 완성도를 검증하고 is_profile_complete 필드를 업데이트 - 부모 메서드에서 save() 호출 필요"""
+        is_complete = self._validate_profile_completeness()
         self.is_profile_complete = is_complete
-        self.save(update_fields=['is_profile_complete'])
         return self.is_profile_complete
 
-    def _check_profile_completeness(self) -> bool:
-        """프로필 완성도 확인"""
-        if not self._are_required_fields_filled():
+    def _validate_profile_completeness(self) -> bool:
+        """프로필 완성도 검증"""
+        if not self._validate_required_fields_filled():
             return False
 
-        if not self._is_nickname_valid():
+        if not self._validate_nickname():
             return False
 
         return True
 
-    def _are_required_fields_filled(self) -> bool:
-        """필수 필드가 모두 채워졌는지 확인"""
+    def _validate_required_fields_filled(self) -> bool:
+        """필수 필드가 모두 채워졌는지 검증"""
         required_fields = [
             self.nickname,
             self.birth_date_solar,
@@ -113,7 +110,7 @@ class User(AbstractUser):
 
         return all(field is not None and field != '' for field in required_fields)
 
-    def _is_nickname_valid(self) -> bool:
+    def _validate_nickname(self) -> bool:
         """닉네임 유효성 검증"""
         if not self.nickname:
             return False

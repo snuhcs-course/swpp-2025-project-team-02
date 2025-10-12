@@ -148,7 +148,7 @@ class GoogleAuthView(APIView):
 
     def _verify_google_token(self, google_id_token: str):
         """Google ID Token 검증"""
-        return GoogleOAuthUtils.verify_and_extract_google_user_info(google_id_token)
+        return GoogleOAuthUtils.verify_google_token(google_id_token)
 
     def _process_user_login(self, google_user_data: dict):
         """사용자 로그인 처리"""
@@ -156,6 +156,7 @@ class GoogleAuthView(APIView):
             with transaction.atomic():
                 user, is_new_user = self._get_or_create_user_from_google(google_user_data)
                 user.update_last_login()
+                user.save(update_fields=['last_login'])
 
                 jwt_token_pair = GoogleOAuthUtils.generate_jwt_token_pair(user)
                 response_data = self._build_auth_response(

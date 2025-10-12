@@ -53,7 +53,7 @@ class FortunaAPIIntegrationTests(APITestCase):
 
     def _mock_google_login(self, id_token='fake_google_token'):
         """Google 로그인을 모킹하고 응답을 반환하는 헬퍼"""
-        with patch('user.utils.GoogleOAuthUtils.verify_and_extract_google_user_info') as mock_verify:
+        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
             mock_verify.return_value = self.valid_google_user_data
             response = self.client.post(
                 reverse('user:google_auth'),
@@ -279,7 +279,7 @@ class FortunaAPIIntegrationTests(APITestCase):
         """
 
         # 1. 잘못된 Google 토큰으로 로그인 시도
-        with patch('user.utils.GoogleOAuthUtils.verify_and_extract_google_user_info') as mock_verify:
+        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
             mock_verify.return_value = None
             invalid_login_response = self.client.post(
                 reverse('user:google_auth'),

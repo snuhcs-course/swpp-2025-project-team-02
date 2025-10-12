@@ -13,7 +13,7 @@ class GoogleOAuthUtils:
     ALLOWED_ISSUERS = ['accounts.google.com', 'https://accounts.google.com']
 
     @staticmethod
-    def verify_and_extract_google_user_info(google_id_token: str) -> dict:
+    def verify_google_token(google_id_token: str) -> dict:
         """Google ID Token 검증 및 사용자 정보 추출"""
         try:
             # Google 토큰 검증
