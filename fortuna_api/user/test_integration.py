@@ -49,6 +49,74 @@ class FortunaAPIIntegrationTests(APITestCase):
             'gender': 'M'                # 남성
         }
 
+    # ========== Helper Methods ==========
+
+    def _mock_google_login(self, id_token='fake_google_token'):
+        """Google 로그인을 모킹하고 응답을 반환하는 헬퍼"""
+        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
+            mock_verify.return_value = self.valid_google_user_data
+            response = self.client.post(
+                reverse('user:google_auth'),
+                data={'id_token': id_token},
+                format='json'
+            )
+        return response
+
+    def _set_auth_header(self, access_token):
+        """인증 헤더를 설정하는 헬퍼"""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+    def _get_profile(self):
+        """프로필 조회 헬퍼"""
+        return self.client.get(reverse('user:user_profile'))
+
+    def _update_profile(self, data):
+        """프로필 업데이트 헬퍼"""
+        return self.client.patch(reverse('user:user_profile'), data=data, format='json')
+
+    def _refresh_token(self, refresh_token):
+        """토큰 갱신 헬퍼"""
+        return self.client.post(
+            reverse('user:token_refresh'),
+            data={'refresh': refresh_token},
+            format='json'
+        )
+
+    def _logout(self, refresh_token):
+        """로그아웃 헬퍼"""
+        return self.client.post(
+            reverse('user:logout'),
+            data={'refresh_token': refresh_token},
+            format='json'
+        )
+
+    def _assert_login_successful(self, response, is_new_user=True):
+        """로그인 성공 검증 헬퍼"""
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertIn('access_token', data)
+        self.assertIn('refresh_token', data)
+        self.assertEqual(data['is_new_user'], is_new_user)
+        return data
+
+    def _assert_profile_complete(self, profile_data):
+        """프로필 완성 검증 헬퍼"""
+        self.assertIsNotNone(profile_data['birth_date_solar'])
+        self.assertIsNotNone(profile_data['birth_date_lunar'])
+        self.assertIsNotNone(profile_data['yearly_ganji'])
+        self.assertIsNotNone(profile_data['monthly_ganji'])
+        self.assertIsNotNone(profile_data['daily_ganji'])
+        self.assertIsNotNone(profile_data['hourly_ganji'])
+
+    def _assert_saju_calculated(self, user_data):
+        """사주 계산 결과 검증 헬퍼"""
+        ganji_fields = ['yearly_ganji', 'monthly_ganji', 'daily_ganji', 'hourly_ganji']
+        for field in ganji_fields:
+            self.assertIsNotNone(user_data[field], f"{field} should be calculated")
+            self.assertEqual(len(user_data[field]), 2, f"{field} should be 2 characters")
+
+    # ========== Test Cases ==========
+
     def test_complete_user_journey_new_user(self):
         """
         시나리오 1: 새로운 사용자의 완전한 여정
@@ -65,90 +133,50 @@ class FortunaAPIIntegrationTests(APITestCase):
         5. 로그아웃
         """
 
-        # === 1단계: Google 로그인으로 새 계정 생성 ===
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
-            mock_verify.return_value = self.valid_google_user_data
+        # 1단계: Google 로그인으로 새 계정 생성
+        login_response = self._mock_google_login(id_token='fake_google_token_123')
+        login_data = self._assert_login_successful(login_response, is_new_user=True)
+        self.assertTrue(login_data['needs_additional_info'])
 
-            login_response = self.client.post(
-                reverse('user:google_auth'),
-                data={'id_token': 'fake_google_token_123'},
-                format='json'
-            )
-
-        # 로그인 성공 검증
-        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
-
-        login_data = login_response.json()
-        self.assertIn('access_token', login_data)
-        self.assertIn('refresh_token', login_data)
-        self.assertTrue(login_data['is_new_user'])          # 새 사용자임을 확인
-        self.assertTrue(login_data['needs_additional_info'])  # 추가 정보 필요함을 확인
-
-        # 발급받은 토큰들 저장
         access_token = login_data['access_token']
         refresh_token = login_data['refresh_token']
-        user_id = login_data['user_id']
 
-        # === 2단계: 초기 프로필 조회 ===
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        # 2단계: 초기 프로필 조회 - 불완전한 프로필 확인
+        self._set_auth_header(access_token)
+        initial_profile_response = self._get_profile()
 
-        initial_profile_response = self.client.get(reverse('user:user_profile'))
-
-        # 프로필 조회 성공 검증
         self.assertEqual(initial_profile_response.status_code, status.HTTP_200_OK)
-
         initial_profile = initial_profile_response.json()
         self.assertEqual(initial_profile['email'], self.valid_google_user_data['email'])
         self.assertEqual(initial_profile['name'], self.valid_google_user_data['name'])
-        self.assertIsNone(initial_profile['birth_date_solar'])  # 아직 생년월일 없음
-        self.assertIsNone(initial_profile['gender'])           # 아직 성별 없음
+        self.assertIsNone(initial_profile['birth_date_solar'])
+        self.assertIsNone(initial_profile['gender'])
 
-        # === 3단계: 프로필 업데이트 (생년월일, 성별, 닉네임 입력) ===
-        profile_update_response = self.client.patch(
-            reverse('user:user_profile'),
-            data=self.birth_data,
-            format='json'
-        )
+        # 3단계: 프로필 업데이트 - 생년월일, 성별, 닉네임 입력
+        update_response = self._update_profile(self.birth_data)
 
-        # 프로필 업데이트 성공 검증
-        self.assertEqual(profile_update_response.status_code, status.HTTP_200_OK)
-
-        update_data = profile_update_response.json()
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        update_data = update_response.json()
         self.assertEqual(update_data['message'], 'Profile updated successfully')
 
         updated_user = update_data['user']
         self.assertEqual(updated_user['nickname'], self.birth_data['nickname'])
-        self.assertEqual(updated_user['gender'], '남자')  # 'M' → '남자'로 변환 확인
-        self.assertIsNotNone(updated_user['birth_date_solar'])
-        self.assertIsNotNone(updated_user['birth_date_lunar'])
+        self.assertEqual(updated_user['gender'], '남자')
+        self._assert_saju_calculated(updated_user)
 
-        # 사주 계산 결과 확인
-        self.assertIsNotNone(updated_user['yearly_ganji'])   # 년주 계산됨
-        self.assertIsNotNone(updated_user['monthly_ganji'])  # 월주 계산됨
-        self.assertIsNotNone(updated_user['daily_ganji'])    # 일주 계산됨
-        self.assertIsNotNone(updated_user['hourly_ganji'])   # 시주 계산됨
-
-        # === 4단계: 완성된 프로필 재조회 ===
-        final_profile_response = self.client.get(reverse('user:user_profile'))
-
+        # 4단계: 완성된 프로필 재조회
+        final_profile_response = self._get_profile()
         self.assertEqual(final_profile_response.status_code, status.HTTP_200_OK)
 
         final_profile = final_profile_response.json()
         self.assertEqual(final_profile['nickname'], self.birth_data['nickname'])
         self.assertEqual(final_profile['gender'], '남자')
-        self.assertIsNotNone(final_profile['yearly_ganji'])
+        self._assert_profile_complete(final_profile)
 
-        # === 5단계: 로그아웃 ===
-        logout_response = self.client.post(
-            reverse('user:logout'),
-            data={'refresh_token': refresh_token},
-            format='json'
-        )
-
-        # 로그아웃 성공 검증
+        # 5단계: 로그아웃
+        logout_response = self._logout(refresh_token)
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
-        logout_data = logout_response.json()
-        self.assertEqual(logout_data['message'], 'Successfully logged out')
+        self.assertEqual(logout_response.json()['message'], 'Successfully logged out')
 
     def test_complete_user_journey_existing_user(self):
         """
@@ -167,7 +195,7 @@ class FortunaAPIIntegrationTests(APITestCase):
         6. 로그아웃
         """
 
-        # === 사전 조건: 기존 사용자 생성 ===
+        # 사전 조건: 기존 사용자 생성
         existing_user = User.objects.create_user(
             email=self.valid_google_user_data['email'],
             first_name='기존사용자',
@@ -175,76 +203,43 @@ class FortunaAPIIntegrationTests(APITestCase):
             nickname='기존닉네임'
         )
 
-        # === 1단계: 기존 사용자 Google 로그인 ===
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
-            mock_verify.return_value = self.valid_google_user_data
-
-            login_response = self.client.post(
-                reverse('user:google_auth'),
-                data={'id_token': 'fake_google_token_456'},
-                format='json'
-            )
-
-        # 기존 사용자 로그인 검증
-        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
-
-        login_data = login_response.json()
-        self.assertFalse(login_data['is_new_user'])  # 기존 사용자임을 확인
+        # 1단계: 기존 사용자 Google 로그인
+        login_response = self._mock_google_login(id_token='fake_google_token_456')
+        login_data = self._assert_login_successful(login_response, is_new_user=False)
         self.assertEqual(login_data['user_id'], existing_user.id)
 
         access_token = login_data['access_token']
         refresh_token = login_data['refresh_token']
 
-        # === 2단계: 기존 프로필 조회 ===
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
-
-        profile_response = self.client.get(reverse('user:user_profile'))
+        # 2단계: 기존 프로필 조회
+        self._set_auth_header(access_token)
+        profile_response = self._get_profile()
 
         self.assertEqual(profile_response.status_code, status.HTTP_200_OK)
-        profile_data = profile_response.json()
-        self.assertEqual(profile_data['nickname'], '기존닉네임')
+        self.assertEqual(profile_response.json()['nickname'], '기존닉네임')
 
-        # === 3단계: 닉네임 변경 ===
-        nickname_update_response = self.client.patch(
-            reverse('user:user_profile'),
-            data={'nickname': '새로운닉네임'},
-            format='json'
-        )
+        # 3단계: 닉네임 변경
+        update_response = self._update_profile({'nickname': '새로운닉네임'})
 
-        self.assertEqual(nickname_update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.json()['user']['nickname'], '새로운닉네임')
 
-        update_data = nickname_update_response.json()
-        self.assertEqual(update_data['user']['nickname'], '새로운닉네임')
+        # 4단계: 토큰 갱신 테스트
+        refresh_response = self._refresh_token(refresh_token)
+        self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
 
-        # === 4단계: 토큰 갱신 테스트 ===
-        token_refresh_response = self.client.post(
-            reverse('user:token_refresh'),
-            data={'refresh': refresh_token},
-            format='json'
-        )
-
-        # 토큰 갱신 성공 검증
-        self.assertEqual(token_refresh_response.status_code, status.HTTP_200_OK)
-
-        refresh_data = token_refresh_response.json()
+        refresh_data = refresh_response.json()
         self.assertIn('access', refresh_data)
-
         new_access_token = refresh_data['access']
-        self.assertNotEqual(new_access_token, access_token)  # 새 토큰 발급 확인
+        self.assertNotEqual(new_access_token, access_token)
 
-        # === 5단계: 새 토큰으로 API 접근 테스트 ===
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {new_access_token}')
-
-        new_token_profile_response = self.client.get(reverse('user:user_profile'))
+        # 5단계: 새 토큰으로 API 접근 테스트
+        self._set_auth_header(new_access_token)
+        new_token_profile_response = self._get_profile()
         self.assertEqual(new_token_profile_response.status_code, status.HTTP_200_OK)
 
-        # === 6단계: 로그아웃 ===
-        logout_response = self.client.post(
-            reverse('user:logout'),
-            data={'refresh_token': refresh_token},
-            format='json'
-        )
-
+        # 6단계: 로그아웃
+        logout_response = self._logout(refresh_token)
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
 
     def test_token_verification_api(self):
@@ -255,35 +250,24 @@ class FortunaAPIIntegrationTests(APITestCase):
         """
 
         # 사용자 생성 및 로그인
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
-            mock_verify.return_value = self.valid_google_user_data
-
-            login_response = self.client.post(
-                reverse('user:google_auth'),
-                data={'id_token': 'fake_token'},
-                format='json'
-            )
-
+        login_response = self._mock_google_login()
         access_token = login_response.json()['access_token']
 
-        # === 유효한 토큰 검증 ===
+        # 유효한 토큰 검증
         verify_response = self.client.post(
             reverse('user:token_verify'),
             data={'token': access_token},
             format='json'
         )
-
-        # 토큰 검증 성공 확인
         self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(verify_response.json()['valid'])
 
-        # === 잘못된 토큰 검증 ===
+        # 잘못된 토큰 검증
         invalid_verify_response = self.client.post(
             reverse('user:token_verify'),
             data={'token': 'invalid_token_12345'},
             format='json'
         )
-
-        # 잘못된 토큰 검증 - 200 응답에 valid: false 반환 확인
         self.assertEqual(invalid_verify_response.status_code, status.HTTP_200_OK)
         self.assertFalse(invalid_verify_response.json()['valid'])
 
@@ -294,10 +278,9 @@ class FortunaAPIIntegrationTests(APITestCase):
         목적: API들이 잘못된 요청에 대해 적절한 에러를 반환하는지 확인
         """
 
-        # === 1. 잘못된 Google 토큰으로 로그인 시도 ===
+        # 1. 잘못된 Google 토큰으로 로그인 시도
         with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
-            mock_verify.return_value = None  # Google 토큰 검증 실패
-
+            mock_verify.return_value = None
             invalid_login_response = self.client.post(
                 reverse('user:google_auth'),
                 data={'id_token': 'invalid_google_token'},
@@ -305,50 +288,27 @@ class FortunaAPIIntegrationTests(APITestCase):
             )
 
         self.assertEqual(invalid_login_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(invalid_login_response.json()['error'], 'Invalid token')
 
-        error_data = invalid_login_response.json()
-        self.assertEqual(error_data['error'], 'Invalid token')
+        # 2. 인증 없이 프로필 접근 시도
+        unauthorized_response = self._get_profile()
+        self.assertEqual(unauthorized_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # === 2. 인증 없이 프로필 접근 시도 ===
-        unauthorized_profile_response = self.client.get(reverse('user:user_profile'))
-
-        self.assertEqual(unauthorized_profile_response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        # === 3. 잘못된 refresh token으로 갱신 시도 ===
-        invalid_refresh_response = self.client.post(
-            reverse('user:token_refresh'),
-            data={'refresh': 'invalid_refresh_token_123'},
-            format='json'
-        )
-
+        # 3. 잘못된 refresh token으로 갱신 시도
+        invalid_refresh_response = self._refresh_token('invalid_refresh_token_123')
         self.assertEqual(invalid_refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # === 4. 필수 데이터 없이 프로필 업데이트 시도 ===
-        # 먼저 정상 로그인
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
-            mock_verify.return_value = self.valid_google_user_data
-
-            login_response = self.client.post(
-                reverse('user:google_auth'),
-                data={'id_token': 'fake_token'},
-                format='json'
-            )
-
+        # 4. 필수 데이터 없이 프로필 업데이트 시도
+        login_response = self._mock_google_login()
         access_token = login_response.json()['access_token']
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        self._set_auth_header(access_token)
 
-        # 잘못된 데이터로 프로필 업데이트 시도
-        invalid_update_response = self.client.patch(
-            reverse('user:user_profile'),
-            data={
-                'birth_date': 'invalid_date_format',  # 잘못된 날짜 형식
-                'solar_or_lunar': 'invalid_calendar',  # 잘못된 달력 타입
-                'gender': 'invalid_gender'             # 잘못된 성별
-            },
-            format='json'
-        )
-
-        # 데이터 검증 실패 확인
+        invalid_data = {
+            'birth_date': 'invalid_date_format',
+            'solar_or_lunar': 'invalid_calendar',
+            'gender': 'invalid_gender'
+        }
+        invalid_update_response = self._update_profile(invalid_data)
         self.assertEqual(invalid_update_response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_saju_calculation_integration(self):
@@ -358,20 +318,12 @@ class FortunaAPIIntegrationTests(APITestCase):
         목적: 프로필 업데이트 시 사주가 올바르게 계산되는지 확인
         """
 
-        # 로그인
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
-            mock_verify.return_value = self.valid_google_user_data
-
-            login_response = self.client.post(
-                reverse('user:google_auth'),
-                data={'id_token': 'fake_token'},
-                format='json'
-            )
-
+        # 로그인 및 인증 설정
+        login_response = self._mock_google_login()
         access_token = login_response.json()['access_token']
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        self._set_auth_header(access_token)
 
-        # === 양력 생년월일로 사주 계산 테스트 ===
+        # 양력 생년월일로 사주 계산 테스트
         solar_birth_data = {
             'nickname': '사주테스트',
             'birth_date': '1990-05-15',
@@ -379,51 +331,23 @@ class FortunaAPIIntegrationTests(APITestCase):
             'birth_time_units': '진시',
             'gender': 'F'
         }
+        solar_response = self._update_profile(solar_birth_data)
+        self.assertEqual(solar_response.status_code, status.HTTP_200_OK)
 
-        solar_update_response = self.client.patch(
-            reverse('user:user_profile'),
-            data=solar_birth_data,
-            format='json'
-        )
+        solar_user = solar_response.json()['user']
+        self._assert_saju_calculated(solar_user)
 
-        self.assertEqual(solar_update_response.status_code, status.HTTP_200_OK)
-
-        solar_user = solar_update_response.json()['user']
-
-        # 사주 계산 결과 검증
-        self.assertIsNotNone(solar_user['birth_date_solar'])
-        self.assertIsNotNone(solar_user['birth_date_lunar'])
-        self.assertIsNotNone(solar_user['yearly_ganji'])
-        self.assertIsNotNone(solar_user['monthly_ganji'])
-        self.assertIsNotNone(solar_user['daily_ganji'])
-        self.assertIsNotNone(solar_user['hourly_ganji'])
-
-        # 각 간지가 2글자인지 확인 (한국 전통 간지 형식)
-        self.assertEqual(len(solar_user['yearly_ganji']), 2)
-        self.assertEqual(len(solar_user['monthly_ganji']), 2)
-        self.assertEqual(len(solar_user['daily_ganji']), 2)
-        self.assertEqual(len(solar_user['hourly_ganji']), 2)
-
-        # === 음력 생년월일로 사주 계산 테스트 ===
+        # 음력 생년월일로 사주 계산 테스트
         lunar_birth_data = {
-            'birth_date': '1985-12-01',  # 음력 - 다른 년도와 달
+            'birth_date': '1985-12-01',
             'solar_or_lunar': 'lunar',
-            'birth_time_units': '해시',  # 다른 시진
+            'birth_time_units': '해시',
         }
+        lunar_response = self._update_profile(lunar_birth_data)
+        self.assertEqual(lunar_response.status_code, status.HTTP_200_OK)
 
-        lunar_update_response = self.client.patch(
-            reverse('user:user_profile'),
-            data=lunar_birth_data,
-            format='json'
-        )
-
-        self.assertEqual(lunar_update_response.status_code, status.HTTP_200_OK)
-
-        lunar_user = lunar_update_response.json()['user']
-
-        # 음력→양력 변환 및 사주 재계산 확인
-        self.assertIsNotNone(lunar_user['birth_date_solar'])
-        self.assertIsNotNone(lunar_user['birth_date_lunar'])
+        lunar_user = lunar_response.json()['user']
+        self._assert_saju_calculated(lunar_user)
 
         # 달력 타입 변경으로 인한 사주 변경 확인
         self.assertNotEqual(solar_user['yearly_ganji'], lunar_user['yearly_ganji'])
