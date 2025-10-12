@@ -120,12 +120,19 @@ class GoogleAuthView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # 1. 입력 데이터 검증
+        """
+        Google OAuth 로그인 처리
+
+        1. 클라이언트가 전송한 Google ID token 검증
+        2. Google 사용자 정보로 DB 조회 또는 신규 사용자 생성
+        3. JWT 토큰 페어 생성 및 반환
+        """
+        # 입력 데이터 검증
         validation_result = self._validate_request_data(request.data)
         if validation_result:
             return validation_result
 
-        # 2. Google Token 검증
+        # Google Token 검증 및 사용자 정보 추출
         google_user_data = self._verify_google_token(request.data['id_token'])
         if not google_user_data:
             return self._create_error_response(
@@ -133,7 +140,7 @@ class GoogleAuthView(APIView):
                 'Google ID token verification failed'
             )
 
-        # 3. 사용자 처리 및 토큰 생성
+        # 사용자 조회/생성 및 JWT 토큰 발급
         return self._process_user_login(google_user_data)
 
     def _validate_request_data(self, data):
@@ -151,13 +158,21 @@ class GoogleAuthView(APIView):
         return GoogleOAuthUtils.verify_google_token(google_id_token)
 
     def _process_user_login(self, google_user_data: dict):
-        """사용자 로그인 처리"""
+        """
+        사용자 로그인 처리
+
+        사용자 조회/생성, 로그인 시간 업데이트, JWT 토큰 발급을 트랜잭션으로 처리
+        """
         try:
             with transaction.atomic():
+                # 기존 사용자 조회 또는 신규 사용자 생성
                 user, is_new_user = self._get_or_create_user_from_google(google_user_data)
+
+                # 마지막 로그인 시간 업데이트
                 user.update_last_login()
                 user.save(update_fields=['last_login'])
 
+                # JWT 토큰 페어 생성 및 응답 구성
                 jwt_token_pair = GoogleOAuthUtils.generate_jwt_token_pair(user)
                 response_data = self._build_auth_response(
                     user, jwt_token_pair, is_new_user
@@ -196,15 +211,20 @@ class GoogleAuthView(APIView):
         }
 
     def _get_or_create_user_from_google(self, google_user_data: dict) -> tuple:
-        """Google OAuth 데이터로부터 사용자 조회 또는 생성"""
+        """
+        Google OAuth 데이터로부터 사용자 조회 또는 생성
+
+        Returns:
+            tuple: (User 객체, 신규 생성 여부)
+        """
         user_email = google_user_data['email']
         user_google_id = google_user_data['google_id']
 
         try:
-            # 기존 사용자 조회
+            # 이메일로 기존 사용자 조회
             user = User.objects.get(email=user_email)
 
-            # Google ID가 없는 경우 업데이트
+            # Google ID가 없는 경우 업데이트 (초기 이메일 가입자가 나중에 Google 로그인 사용)
             if not user.google_id:
                 user.google_id = user_google_id
                 user.save(update_fields=['google_id'])
@@ -212,7 +232,7 @@ class GoogleAuthView(APIView):
             return user, False
 
         except User.DoesNotExist:
-            # 새 사용자 생성
+            # 신규 사용자 생성
             user = User.objects.create_user_from_google_oauth(google_user_data)
             return user, True
 
@@ -300,12 +320,17 @@ class CustomTokenRefreshView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # 1. Refresh 토큰 추출
+        """
+        JWT 토큰 갱신
+
+        Refresh 토큰을 이용해 새로운 Access 토큰 발급
+        """
+        # Refresh 토큰 추출
         refresh_token_string = request.data.get('refresh')
         if not refresh_token_string:
             return self._create_token_error_response()
 
-        # 2. 새 Access 토큰 생성
+        # Refresh 토큰을 사용하여 새 Access 토큰 생성
         try:
             refresh_token = RefreshToken(refresh_token_string)
             new_access_token = str(refresh_token.access_token)
@@ -413,7 +438,12 @@ class CustomTokenVerifyView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # 1. 토큰 추출
+        """
+        JWT 토큰 유효성 검증
+
+        토큰의 서명, 만료 시간 등을 검증하여 유효 여부 반환
+        """
+        # 토큰 추출
         access_token_string = request.data.get('token')
         if not access_token_string:
             return Response({
@@ -421,7 +451,7 @@ class CustomTokenVerifyView(APIView):
                 'message': 'Token field is required'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. 토큰 검증
+        # 토큰 검증 (서명, 만료 시간 등)
         try:
             UntypedToken(access_token_string)
             return Response({
@@ -540,12 +570,17 @@ class UserProfileView(APIView):
         return Response(profile_data)
 
     def _get_user_for_profile(self, request):
-        """프로필 조회를 위한 사용자 확인"""
-        # 개발환경에서 user_id 파라미터 처리
+        """
+        프로필 조회를 위한 사용자 확인
+
+        개발환경에서는 user_id 파라미터로 다른 사용자 조회 가능
+        프로덕션환경에서는 본인의 프로필만 조회 가능
+        """
+        # 개발 모드: user_id 파라미터를 통한 다른 사용자 조회 허용
         if getattr(settings, 'DEVELOPMENT_MODE', False):
             return self._handle_development_mode_user(request)
 
-        # 프로덕션 환경: 인증된 사용자만 허용
+        # 프로덕션 모드: 인증된 사용자만 본인의 프로필 조회
         if not request.user.is_authenticated:
             return Response(
                 {'error': 'Authentication required'},
@@ -555,12 +590,19 @@ class UserProfileView(APIView):
         return request.user
 
     def _handle_development_mode_user(self, request):
-        """개발 모드에서 사용자 처리"""
+        """
+        개발 모드에서 사용자 처리
+
+        user_id 파라미터가 있으면 해당 사용자 조회
+        없으면 인증된 현재 사용자 사용
+        """
         user_id = request.GET.get('user_id')
 
+        # user_id 파라미터가 주어진 경우 해당 사용자 조회
         if user_id:
             return self._get_user_by_id(user_id)
 
+        # user_id가 없으면 인증된 사용자 사용
         if not request.user.is_authenticated:
             return Response(
                 {'error': 'Authentication required or provide user_id parameter in development'},
@@ -601,18 +643,17 @@ class UserProfileView(APIView):
     def _get_birth_date_info(self, user) -> dict:
         """생년월일 정보 추출"""
         return {
-            'birth_date_solar': (
-                user.birth_date_solar.isoformat()
-                if user.birth_date_solar else None
-            ),
-            'birth_date_lunar': (
-                user.birth_date_lunar.isoformat()
-                if user.birth_date_lunar else None
-            ),
+            'birth_date_solar': self._format_date(user.birth_date_solar),
+            'birth_date_lunar': self._format_date(user.birth_date_lunar),
             'solar_or_lunar': user.solar_or_lunar,
             'birth_time_units': user.birth_time_units,
             'gender': user.get_gender_display() if user.gender else None,
         }
+
+    @staticmethod
+    def _format_date(date_value) -> str:
+        """날짜를 ISO 형식 문자열로 변환 (None-safe)"""
+        return date_value.isoformat() if date_value else None
 
     def _get_saju_info(self, user) -> dict:
         """사주 정보 추출"""
@@ -627,10 +668,7 @@ class UserProfileView(APIView):
         """메타데이터 추출"""
         return {
             'created_at': user.created_at.isoformat(),
-            'last_login': (
-                user.last_login.isoformat()
-                if user.last_login else None
-            )
+            'last_login': self._format_date(user.last_login)
         }
 
     @extend_schema(
@@ -726,8 +764,13 @@ class UserProfileView(APIView):
         }
     )
     def patch(self, request):
-        """프로필 업데이트"""
-        # 1. 데이터 검증
+        """
+        사용자 프로필 업데이트
+
+        닉네임, 생년월일, 성별 등의 프로필 정보를 업데이트하고
+        사주팔자를 자동으로 계산하여 저장
+        """
+        # 입력 데이터 검증
         serializer = UserProfileUpdateSerializer(
             request.user,
             data=request.data,
@@ -740,7 +783,7 @@ class UserProfileView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. 프로필 업데이트
+        # 프로필 업데이트 (사주 계산 포함)
         updated_user = serializer.save()
         user_data = self._build_profile_update_response(updated_user)
 
@@ -804,6 +847,12 @@ class LogoutView(APIView):
     permission_classes = [DevelopmentOrAuthenticated]
 
     def post(self, request):
+        """
+        사용자 로그아웃
+
+        Refresh 토큰을 블랙리스트에 추가하여 재사용 방지
+        블랙리스트 실패 시에도 로그아웃 성공으로 처리 (클라이언트에서 토큰 삭제)
+        """
         # Refresh 토큰 블랙리스트 처리
         refresh_token_string = request.data.get('refresh_token')
 
@@ -813,7 +862,7 @@ class LogoutView(APIView):
                 refresh_token.blacklist()
             except Exception as error:
                 logger.error(f"Token blacklist error: {error}")
-                # 에러가 발생해도 로그아웃은 성공으로 처리
+                # 블랙리스트 실패해도 로그아웃은 성공으로 처리 (클라이언트가 토큰을 삭제하므로)
 
         return Response({
             'message': 'Successfully logged out'

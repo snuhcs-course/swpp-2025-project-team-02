@@ -264,8 +264,16 @@ class SolarTerms(Enum):
 
     @classmethod
     def find_by_date(cls, date_value: date) -> 'SolarTerms':
-        """날짜로 절기 찾기 (태양 황경 기준)"""
+        """
+        날짜로 절기 찾기 (태양 황경 기준)
+
+        천문학적으로 정확한 절기 계산: 태양의 황경(ecliptic longitude)을 계산하여
+        24절기 중 어느 구간에 속하는지 판단
+        """
+        # 현재 날짜의 태양 황경 계산
         current_longitude = cls.get_solar_longitude(date_value)
+
+        # 주요 절기 목록 (입절 기준 12개)
         major_terms = cls._get_major_solar_terms()
 
         # 현재 황경이 어느 절기 구간에 속하는지 확인
@@ -274,7 +282,7 @@ class SolarTerms(Enum):
             if term:
                 return term
 
-        # 기본값 (도달하지 않아야 함)
+        # 기본값 (정상적으로는 도달하지 않음)
         return cls.IPCHUN
 
     @classmethod
@@ -297,16 +305,22 @@ class SolarTerms(Enum):
 
     @staticmethod
     def _find_solar_term_in_range(current_longitude: float, major_terms: list, index: int):
-        """주어진 인덱스의 절기 범위에 황경이 속하는지 확인"""
+        """
+        주어진 인덱스의 절기 범위에 황경이 속하는지 확인
+
+        연말-연초 경계를 고려한 범위 체크
+        예: 소한(285°) ~ 입춘(315°) 구간은 285° ~ 360° 또는 0° ~ 315° 범위
+        """
         term, start_longitude = major_terms[index]
         next_index = (index + 1) % len(major_terms)
         next_longitude = major_terms[next_index][1]
 
-        # 연말->연초 경계 처리 (소한 285° ~ 입춘 315°)
+        # 연말->연초 경계 처리 (start > next인 경우)
         if start_longitude > next_longitude:
             if current_longitude >= start_longitude or current_longitude < next_longitude:
                 return term
         else:
+            # 일반적인 범위 체크
             if start_longitude <= current_longitude < next_longitude:
                 return term
         return None
@@ -392,7 +406,12 @@ class Saju:
 
     @classmethod
     def from_date(cls, birth_date: date, birth_time: time) -> 'Saju':
-        """생년월일시로부터 사주 계산 (Kotlin: SaJu.from)"""
+        """
+        생년월일시로부터 사주팔자 계산
+
+        년주, 월주, 일주, 시주를 순차적으로 계산하여 사주 객체 생성
+        월주는 년주에 의존, 시주는 일주에 의존하므로 계산 순서 중요
+        """
         yearly_pillar = cls._calculate_year_pillar(birth_date)
         monthly_pillar = cls._calculate_month_pillar(birth_date, yearly_pillar)
         daily_pillar = cls._calculate_day_pillar(birth_date)
@@ -401,9 +420,13 @@ class Saju:
 
     @staticmethod
     def _calculate_year_pillar(birth_date: date) -> GanJi:
-        """년주 계산 (Kotlin: private fun year)"""
+        """
+        년주 계산
+
+        1900년(경자년)을 기준으로 경과 연수만큼 간지를 이동시켜 계산
+        """
         years_from_1900 = birth_date.year - 1900
-        base_ganji_1900 = GanJi.find_by_name("경자")
+        base_ganji_1900 = GanJi.find_by_name("경자")  # 1900년 = 경자년
         return GanJi(
             base_ganji_1900.stem.next(years_from_1900),
             base_ganji_1900.branch.next(years_from_1900)
@@ -411,8 +434,16 @@ class Saju:
 
     @staticmethod
     def _calculate_month_pillar(birth_date: date, yearly_pillar: GanJi) -> GanJi:
-        """월주 계산 (Kotlin: private fun month) - 절기 기준"""
+        """
+        월주 계산 (절기 기준)
+
+        양력 날짜로부터 태양 황경을 계산하여 절기(24절기) 판단
+        절기에 따라 월지(月支)가 결정되고, 년간에 따라 월간(月干) 결정
+        """
+        # 태양 황경으로 현재 절기 판단
         solar_term = SolarTerms.find_by_date(birth_date)
+
+        # 년간으로부터 월간의 시작점 계산
         base_month_stem = Saju._get_base_month_stem(yearly_pillar.stem)
 
         return GanJi(
@@ -421,8 +452,30 @@ class Saju:
         )
 
     @staticmethod
+    def _get_base_stem_from_mapping(source_stem: TenStems, stem_mapping: dict) -> TenStems:
+        """
+        천간 매핑 테이블에서 기준 천간을 찾는 공통 로직
+
+        Args:
+            source_stem: 조회할 천간
+            stem_mapping: (천간 튜플) -> 기준 천간 매핑 딕셔너리
+
+        Returns:
+            매핑된 기준 천간 (없으면 갑(GAHP) 반환)
+        """
+        for stems_tuple, base_stem in stem_mapping.items():
+            if source_stem in stems_tuple:
+                return base_stem
+        return TenStems.GAHP
+
+    @staticmethod
     def _get_base_month_stem(year_stem: TenStems) -> TenStems:
-        """년간으로부터 월간의 기준 천간 계산"""
+        """
+        년간으로부터 월간의 기준 천간 계산
+
+        사주에서 년간에 따라 월간의 시작 천간이 결정됨
+        예: 갑년/기년 -> 정월이 병인(丙寅)월로 시작
+        """
         stem_mapping = {
             (TenStems.GAHP, TenStems.GI): TenStems.BYUNG,
             (TenStems.EUL, TenStems.GYUNG): TenStems.MU,
@@ -430,23 +483,26 @@ class Saju:
             (TenStems.JUNG, TenStems.IM): TenStems.IM,
             (TenStems.MU, TenStems.GYE): TenStems.GAHP,
         }
-
-        for stems, base_stem in stem_mapping.items():
-            if year_stem in stems:
-                return base_stem
-
-        return TenStems.GAHP
+        return Saju._get_base_stem_from_mapping(year_stem, stem_mapping)
 
     @staticmethod
     def _calculate_day_pillar(birth_date: date) -> GanJi:
-        """일주 계산 (Kotlin: private fun daily)"""
-        reference_date_1925 = date(1925, 2, 9)
+        """
+        일주 계산
+
+        1925년 2월 9일(갑자일)을 기준으로 경과 일수를 60갑자로 변환
+        """
+        reference_date_1925 = date(1925, 2, 9)  # 갑자일
         days_from_reference = (birth_date - reference_date_1925).days
         return GanJi.find_by_index(days_from_reference)
 
     @staticmethod
     def _calculate_hour_pillar(birth_time: time, daily_pillar: GanJi) -> GanJi:
-        """시주 계산 (Kotlin: private fun hourly)"""
+        """
+        시주 계산
+
+        일간에 따라 시간의 시작 천간이 결정되고, 시진(십이시)으로 지지 결정
+        """
         birth_time_unit = TimeUnits.from_time(birth_time)
         base_hour_stem = Saju._get_base_hour_stem(daily_pillar.stem)
         time_unit_index = list(TimeUnits).index(birth_time_unit)
@@ -458,20 +514,20 @@ class Saju:
 
     @staticmethod
     def _get_base_hour_stem(day_stem: TenStems) -> TenStems:
-        """일간으로부터 시간의 기준 천간 계산"""
+        """
+        일간으로부터 시간의 기준 천간 계산
+
+        사주에서 일간에 따라 자시(子時)의 천간이 결정됨
+        예: 갑일/기일 -> 자시가 갑자(甲子)시로 시작
+        """
         stem_mapping = {
-            (TenStems.GAHP, TenStems.GI): TenStems.GAHP,      # 갑일/기일 -> 갑자시 시작
-            (TenStems.EUL, TenStems.GYUNG): TenStems.BYUNG,   # 을일/경일 -> 병자시 시작
-            (TenStems.BYUNG, TenStems.SIN): TenStems.MU,      # 병일/신일 -> 무자시 시작
-            (TenStems.JUNG, TenStems.IM): TenStems.GYUNG,     # 정일/임일 -> 경자시 시작
-            (TenStems.MU, TenStems.GYE): TenStems.IM,         # 무일/계일 -> 임자시 시작
+            (TenStems.GAHP, TenStems.GI): TenStems.GAHP,
+            (TenStems.EUL, TenStems.GYUNG): TenStems.BYUNG,
+            (TenStems.BYUNG, TenStems.SIN): TenStems.MU,
+            (TenStems.JUNG, TenStems.IM): TenStems.GYUNG,
+            (TenStems.MU, TenStems.GYE): TenStems.IM,
         }
-
-        for stems, base_stem in stem_mapping.items():
-            if day_stem in stems:
-                return base_stem
-
-        return TenStems.GAHP
+        return Saju._get_base_stem_from_mapping(day_stem, stem_mapping)
 
     def to_dict(self) -> dict:
         """사주를 딕셔너리로 변환"""
