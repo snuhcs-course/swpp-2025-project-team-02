@@ -1,3 +1,28 @@
 <resources>
     <string name="app_name">fortuna_android</string>
+
+    <!-- 태어난 시간 선택 옵션 -->
+    <string-array name="birth_time_units">
+        <item>자시 (23:30~01:29)</item>
+        <item>축시 (01:30~03:29)</item>
+        <item>인시 (03:30~05:29)</item>
+        <item>묘시 (05:30~07:29)</item>
+        <item>진시 (07:30~09:29)</item>
+        <item>사시 (09:30~11:29)</item>
+        <item>오시 (11:30~13:29)</item>
+        <item>미시 (13:30~15:29)</item>
+        <item>신시 (15:30~17:29)</item>
+        <item>유시 (17:30~19:29)</item>
+        <item>술시 (19:30~21:29)</item>
+        <item>해시 (21:30~23:29)</item>
+    </string-array>
+
+    <!-- string for camera feature -->
+    <string name="take_photo">Take Photo</string>
+    <string name="start_capture">Start Capture</string>
+    <string name="stop_capture">Stop Capture</string>
+    <string name="back">Back</string>
+    <string name="switch_camera">Switch Camera</string>
+    <string name="capture_photo">Capture Photo</string>
+
 </resources>

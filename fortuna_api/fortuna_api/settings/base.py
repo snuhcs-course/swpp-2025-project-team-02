@@ -42,6 +42,8 @@ THIRD_PARTY_APPS = [
     # Extensions
     'django_extensions',
     'storages',
+    
+    'django_coverage_plugin',
 ]
 
 LOCAL_APPS = [
@@ -111,7 +113,7 @@ AUTH_USER_MODEL = 'user.User'  # Commented out - using default User model for no
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
 USE_TZ = True
 
@@ -264,6 +266,19 @@ SPECTACULAR_SETTINGS = {
     'REDOC_UI_SETTINGS': {
         'hideDownloadButton': True,
     },
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'TestUserAuth': {
+                'type': 'apiKey',
+                'in': 'header',
+                'name': 'X-Test-User-Id',
+                'description': 'Development only: Bypass authentication by providing user ID',
+            }
+        }
+    },
+    'SECURITY': [
+        {'TestUserAuth': []},
+    ],
 }
 
 # Logging Configuration
