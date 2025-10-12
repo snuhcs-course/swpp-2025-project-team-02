@@ -69,10 +69,12 @@ class TestAuthenticationMiddlewareTestCase(TestCase):
     @override_settings(DEVELOPMENT_MODE=False)
     def test_middleware_disabled_in_production(self):
         """프로덕션 환경에서는 미들웨어 비활성화"""
+        # 프로덕션 환경용 새로운 미들웨어 인스턴스 생성
+        middleware = TestAuthenticationMiddleware(lambda r: None)
         request = self.factory.get('/', HTTP_X_TEST_USER_ID=str(self.test_user.id))
         request.user = AnonymousUser()
 
-        self.middleware(request)
+        middleware(request)
 
         # 프로덕션에서는 헤더가 있어도 인증 우회 안 됨
         self.assertIsInstance(request.user, AnonymousUser)
