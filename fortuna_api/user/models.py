@@ -82,8 +82,8 @@ class User(AbstractUser):
         self.last_login = timezone.now()
         self.save(update_fields=['last_login'])
     
-    def check_profile_completeness(self):
-        """프로필 완성도 체크"""
+    def update_profile_completeness_status(self):
+        """프로필 완성도를 체크하고 is_profile_complete 필드를 업데이트"""
         # 필수 필드 리스트 정의
         required_fields = [
             self.nickname,           # 닉네임
@@ -105,8 +105,8 @@ class User(AbstractUser):
         self.save(update_fields=['is_profile_complete'])
         return self.is_profile_complete
 
-    def set_birth_info(self, birth_date, calendar_type, time_units):
-        """생년월일 정보 설정 및 사주 계산"""
+    def set_birth_date_and_calculate_saju(self, birth_date, calendar_type, time_units):
+        """생년월일 정보 설정 및 사주 사주팔자 계산"""
         # 1. 입력 데이터 검증
         if not birth_date:
             raise ValueError("생년월일은 필수입니다.")
@@ -126,8 +126,8 @@ class User(AbstractUser):
             self.solar_or_lunar = calendar_type
             self.birth_time_units = time_units
 
-        except Exception as e:
-            logger.error(f"달력 변환 오류: {e}")
+        except Exception as error:
+            logger.error(f"달력 변환 오류: {error}")
             # 변환 실패 시 원본 데이터 사용
             if calendar_type == 'solar':
                 self.birth_date_solar = birth_date
@@ -140,10 +140,10 @@ class User(AbstractUser):
             self.birth_time_units = time_units
 
         # 3. 사주 계산
-        self._calculate_saju_data()
+        self._calculate_and_store_saju_pillars()
 
-    def _calculate_saju_data(self):
-        """사주 데이터 계산 (내부 메서드)"""
+    def _calculate_and_store_saju_pillars(self):
+        """사주 사주팔자(년월일시 간지) 계산하여 DB에 저장 (내부 메서드)"""
         if not self.birth_date_lunar:
             return
 
@@ -152,19 +152,19 @@ class User(AbstractUser):
             default_birth_time = time(12, 0)
 
             # 사주 계산 수행
-            saju_data = SajuCalculator.calculate_saju(
+            saju_pillars_data = SajuCalculator.calculate_saju(
                 self.birth_date_lunar,
                 default_birth_time
             )
 
             # 계산 결과 저장
-            self.yearly_ganji = saju_data['yearly_ganji']
-            self.monthly_ganji = saju_data['monthly_ganji']
-            self.daily_ganji = saju_data['daily_ganji']
-            self.hourly_ganji = saju_data['hourly_ganji']
+            self.yearly_ganji = saju_pillars_data['yearly_ganji']
+            self.monthly_ganji = saju_pillars_data['monthly_ganji']
+            self.daily_ganji = saju_pillars_data['daily_ganji']
+            self.hourly_ganji = saju_pillars_data['hourly_ganji']
 
-        except Exception as e:
-            logger.error(f"사주 계산 오류: {e}")
+        except Exception as error:
+            logger.error(f"사주 계산 오류: {error}")
             # 계산 실패 시 기본값 설정
             self.yearly_ganji = None
             self.monthly_ganji = None

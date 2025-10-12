@@ -11,13 +11,13 @@ class GoogleLoginSerializer(serializers.Serializer):
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """프로필 업데이트 시리얼라이저"""
-    birth_date = serializers.DateField(write_only=True)
-    solar_or_lunar = serializers.ChoiceField(choices=['solar', 'lunar'], write_only=True)
+    input_birth_date = serializers.DateField(write_only=True, source='birth_date')
+    input_calendar_type = serializers.ChoiceField(choices=['solar', 'lunar'], write_only=True, source='solar_or_lunar')
 
     class Meta:
         model = User
         fields = [
-            'nickname', 'birth_date', 'solar_or_lunar', 'birth_time_units', 'gender'
+            'nickname', 'input_birth_date', 'input_calendar_type', 'birth_time_units', 'gender'
         ]
 
     def validate_nickname(self, value):
@@ -33,21 +33,21 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # 생년월일 정보 처리
-        birth_date = validated_data.pop('birth_date', None)
-        calendar_type = validated_data.pop('solar_or_lunar', None)
-        birth_time_units = validated_data.get('birth_time_units')
+        input_birth_date = validated_data.pop('birth_date', None)
+        input_calendar_type = validated_data.pop('solar_or_lunar', None)
+        input_birth_time_units = validated_data.get('birth_time_units')
 
         # 다른 필드들 업데이트
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        for attribute_name, attribute_value in validated_data.items():
+            setattr(instance, attribute_name, attribute_value)
 
         # 생년월일과 시진 정보 설정
-        if birth_date and calendar_type:
-            instance.set_birth_info(birth_date, calendar_type, birth_time_units)
+        if input_birth_date and input_calendar_type:
+            instance.set_birth_date_and_calculate_saju(input_birth_date, input_calendar_type, input_birth_time_units)
 
         instance.save()
 
         # 프로필 완성도 체크
-        instance.check_profile_completeness()
+        instance.update_profile_completeness_status()
 
         return instance

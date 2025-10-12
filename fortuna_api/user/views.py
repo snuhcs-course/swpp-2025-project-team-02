@@ -128,11 +128,11 @@ class GoogleAuthView(APIView):
                 'Google ID token verification failed'
             )
 
-        id_token = serializer.validated_data['id_token']
+        google_id_token = serializer.validated_data['id_token']
 
         # 2. Google Token 검증
-        google_data = GoogleOAuthUtils.verify_google_token(id_token)
-        if not google_data:
+        google_user_data = GoogleOAuthUtils.verify_and_extract_google_user_info(google_id_token)
+        if not google_user_data:
             return self._create_error_response(
                 'Invalid token',
                 'Google ID token verification failed'
@@ -141,12 +141,12 @@ class GoogleAuthView(APIView):
         # 3. 사용자 처리 및 토큰 생성
         try:
             with transaction.atomic():
-                user, is_new_user = self._get_or_create_user(google_data)
+                user, is_new_user = self._get_or_create_user_from_google(google_user_data)
                 user.update_last_login()
 
-                tokens = GoogleOAuthUtils.generate_jwt_tokens(user)
+                jwt_token_pair = GoogleOAuthUtils.generate_jwt_token_pair(user)
                 response_data = self._build_auth_response(
-                    user, tokens, is_new_user
+                    user, jwt_token_pair, is_new_user
                 )
 
                 logger.info(
@@ -154,8 +154,8 @@ class GoogleAuthView(APIView):
                 )
                 return Response(response_data, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            logger.error(f"Login error: {e}")
+        except Exception as error:
+            logger.error(f"Login error: {error}")
             return self._create_error_response(
                 'Invalid token',
                 'Google ID token verification failed'
@@ -168,11 +168,11 @@ class GoogleAuthView(APIView):
             'message': message
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    def _build_auth_response(self, user, tokens: dict, is_new_user: bool) -> dict:
+    def _build_auth_response(self, user, jwt_token_pair: dict, is_new_user: bool) -> dict:
         """인증 성공 시 응답 데이터 구성"""
         return {
-            'access_token': tokens['access_token'],
-            'refresh_token': tokens['refresh_token'],
+            'access_token': jwt_token_pair['access_token'],
+            'refresh_token': jwt_token_pair['refresh_token'],
             'user_id': user.id,
             'email': user.email,
             'name': user.first_name or user.username,
@@ -181,25 +181,25 @@ class GoogleAuthView(APIView):
             'needs_additional_info': not user.is_profile_complete
         }
 
-    def _get_or_create_user(self, google_data: dict) -> tuple:
-        """사용자 조회 또는 생성"""
-        email = google_data['email']
-        google_id = google_data['google_id']
+    def _get_or_create_user_from_google(self, google_user_data: dict) -> tuple:
+        """Google OAuth 데이터로부터 사용자 조회 또는 생성"""
+        user_email = google_user_data['email']
+        user_google_id = google_user_data['google_id']
 
         try:
             # 기존 사용자 조회
-            user = User.objects.get(email=email)
+            user = User.objects.get(email=user_email)
 
             # Google ID가 없는 경우 업데이트
             if not user.google_id:
-                user.google_id = google_id
+                user.google_id = user_google_id
                 user.save(update_fields=['google_id'])
 
             return user, False
 
         except User.DoesNotExist:
             # 새 사용자 생성
-            user = User.objects.create_from_google(google_data)
+            user = User.objects.create_user_from_google_oauth(google_user_data)
             return user, True
 
 
@@ -287,21 +287,21 @@ class CustomTokenRefreshView(APIView):
 
     def post(self, request):
         # 1. Refresh 토큰 추출
-        refresh_token = request.data.get('refresh')
-        if not refresh_token:
+        refresh_token_string = request.data.get('refresh')
+        if not refresh_token_string:
             return self._create_token_error_response()
 
         # 2. 새 Access 토큰 생성
         try:
-            refresh = RefreshToken(refresh_token)
-            new_access_token = str(refresh.access_token)
+            refresh_token = RefreshToken(refresh_token_string)
+            new_access_token = str(refresh_token.access_token)
 
             return Response({
                 'access': new_access_token
             })
 
-        except Exception as e:
-            logger.error(f"Token refresh error: {e}")
+        except Exception as error:
+            logger.error(f"Token refresh error: {error}")
             return self._create_token_error_response()
 
     def _create_token_error_response(self):
@@ -400,8 +400,8 @@ class CustomTokenVerifyView(APIView):
 
     def post(self, request):
         # 1. 토큰 추출
-        token = request.data.get('token')
-        if not token:
+        access_token_string = request.data.get('token')
+        if not access_token_string:
             return Response({
                 'error': 'Missing token',
                 'message': 'Token field is required'
@@ -409,12 +409,12 @@ class CustomTokenVerifyView(APIView):
 
         # 2. 토큰 검증
         try:
-            UntypedToken(token)
+            UntypedToken(access_token_string)
             return Response({
                 'message': 'Token is valid',
                 'valid': True
             }, status=status.HTTP_200_OK)
-        except (InvalidToken, TokenError) as e:
+        except (InvalidToken, TokenError) as error:
             return Response({
                 'message': 'Token is invalid or expired',
                 'valid': False
@@ -773,14 +773,14 @@ class LogoutView(APIView):
 
     def post(self, request):
         # Refresh 토큰 블랙리스트 처리
-        refresh_token = request.data.get('refresh_token')
+        refresh_token_string = request.data.get('refresh_token')
 
-        if refresh_token:
+        if refresh_token_string:
             try:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            except Exception as e:
-                logger.error(f"Token blacklist error: {e}")
+                refresh_token = RefreshToken(refresh_token_string)
+                refresh_token.blacklist()
+            except Exception as error:
+                logger.error(f"Token blacklist error: {error}")
                 # 에러가 발생해도 로그아웃은 성공으로 처리
 
         return Response({
