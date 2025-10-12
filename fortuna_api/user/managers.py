@@ -21,13 +21,13 @@ class UserManager(BaseUserManager):
         
         return self.create_user(email, password, **extra_fields)
     
-    def create_from_google(self, google_data):
-        """Google 정보로부터 사용자 생성"""
+    def create_user_from_google_oauth(self, google_user_data):
+        """Google OAuth 인증 정보로부터 사용자 생성"""
         user = self.create_user(
-            email=google_data['email'],
-            first_name=google_data.get('name', ''),
-            google_id=google_data['google_id'],
-            profile_image=google_data.get('profile_image', '')
+            email=google_user_data['email'],
+            first_name=google_user_data.get('name', ''),
+            google_id=google_user_data['google_id'],
+            profile_image=google_user_data.get('profile_image', '')
         )
 
         return user

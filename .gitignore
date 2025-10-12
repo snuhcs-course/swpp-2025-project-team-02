@@ -76,5 +76,3 @@ dmypy.json
 
 # Documentation files
 fortuna_api/CLAUDE.md
-fortuna_api/FRONTEND_AUTH_GUIDE.md
-fortuna_api/PM_TESTING_GUIDE.md
