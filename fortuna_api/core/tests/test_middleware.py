@@ -66,7 +66,7 @@ class TestAuthenticationMiddlewareTestCase(TestCase):
 
         self.assertIsInstance(request.user, AnonymousUser)
 
-    @override_settings(DEVELOPMENT_MODE=False)
+    @override_settings(DEVELOPMENT_MODE=False, TESTING_MODE=False)
     def test_middleware_disabled_in_production(self):
         """프로덕션 환경에서는 미들웨어 비활성화"""
         # 프로덕션 환경용 새로운 미들웨어 인스턴스 생성
