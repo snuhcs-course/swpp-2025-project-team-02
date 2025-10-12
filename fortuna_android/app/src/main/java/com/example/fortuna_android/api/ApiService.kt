@@ -25,17 +25,22 @@ interface ApiService {
     suspend fun logout(@Body request: LogoutRequest): Response<LogoutResponse>
 
     @GET("api/core/chakra/images/")
-    suspend fun getImages(@Query("date") date: String): Response<ImageResponse>
+    suspend fun getImages(
+        @Header("Authorization") token: String,
+        @Query("date") date: String
+    ): Response<ImageResponse>
 
     @Multipart
     @POST("api/core/chakra/upload/") // Replace with your actual upload endpoint
     suspend fun uploadImage(
+        @Header("Authorization") token: String,
         @Part image: MultipartBody.Part,
         @Part("chakra_type") chakraType: RequestBody
     ): Response<UploadResponse>
 
     @GET("api/core/fortune/tomorrow/")
     suspend fun getFortune(
+        @Header("Authorization") token: String,
         @Query("date") date: String
     ): Response<FortuneResponse>
 

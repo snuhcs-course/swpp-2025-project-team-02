@@ -1,5 +1,6 @@
 package com.example.fortuna_android.ui
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.LiveData
@@ -18,6 +19,8 @@ class FortuneViewModel : ViewModel() {
 
     companion object {
         private const val TAG = "FortuneViewModel"
+        private const val PREFS_NAME = "fortuna_prefs"
+        private const val KEY_TOKEN = "jwt_token"
     }
 
     // LiveData for fortune result
@@ -35,7 +38,7 @@ class FortuneViewModel : ViewModel() {
     // Coroutine job for fortune generation
     private var fortuneJob: Job? = null
 
-    fun getFortune(isTomorrow: Boolean = true) {
+    fun getFortune(context: Context, isTomorrow: Boolean = true) {
         // Don't start new request if one is already running
         if (_isLoading.value == true) {
             Log.d(TAG, "Fortune generation already in progress")
@@ -55,6 +58,16 @@ class FortuneViewModel : ViewModel() {
 
                 Log.d(TAG, "Starting background fortune generation...")
 
+                // Get JWT token from SharedPreferences
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val accessToken = prefs.getString(KEY_TOKEN, null)
+
+                if (accessToken.isNullOrEmpty()) {
+                    _isLoading.postValue(false)
+                    _errorMessage.postValue("Authentication required. Please log in again.")
+                    return@launch
+                }
+
                 // Prepare request parameters
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                 val currentDate = if (isTomorrow) {
@@ -69,7 +82,7 @@ class FortuneViewModel : ViewModel() {
                 Log.d(TAG, "Fortune request parameters: date=$currentDate")
 
                 // Network call on IO thread
-                val response = RetrofitClient.instance.getFortune(currentDate)
+                val response = RetrofitClient.instance.getFortune("Bearer $accessToken", currentDate)
 
                 // Process result
                 if (response.isSuccessful && response.body() != null) {
