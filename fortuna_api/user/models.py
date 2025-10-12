@@ -84,63 +84,93 @@ class User(AbstractUser):
     
     def update_profile_completeness_status(self):
         """프로필 완성도를 체크하고 is_profile_complete 필드를 업데이트"""
-        # 필수 필드 리스트 정의
-        required_fields = [
-            self.nickname,           # 닉네임
-            self.birth_date_solar,   # 양력 생년월일
-            self.birth_date_lunar,   # 음력 생년월일
-            self.solar_or_lunar,     # 달력 타입
-            self.birth_time_units,   # 시진
-            self.gender,             # 성별
-        ]
-
-        # 모든 필수 필드가 채워졌는지 확인
-        is_complete = all(field is not None and field != '' for field in required_fields)
-
-        # 닉네임 길이 추가 검증
-        if self.nickname and (len(self.nickname.strip()) < 2 or len(self.nickname.strip()) > 20):
-            is_complete = False
+        is_complete = self._check_profile_completeness()
 
         self.is_profile_complete = is_complete
         self.save(update_fields=['is_profile_complete'])
         return self.is_profile_complete
 
+    def _check_profile_completeness(self) -> bool:
+        """프로필 완성도 확인"""
+        if not self._are_required_fields_filled():
+            return False
+
+        if not self._is_nickname_valid():
+            return False
+
+        return True
+
+    def _are_required_fields_filled(self) -> bool:
+        """필수 필드가 모두 채워졌는지 확인"""
+        required_fields = [
+            self.nickname,
+            self.birth_date_solar,
+            self.birth_date_lunar,
+            self.solar_or_lunar,
+            self.birth_time_units,
+            self.gender,
+        ]
+
+        return all(field is not None and field != '' for field in required_fields)
+
+    def _is_nickname_valid(self) -> bool:
+        """닉네임 유효성 검증"""
+        if not self.nickname:
+            return False
+
+        nickname_length = len(self.nickname.strip())
+        return 2 <= nickname_length <= 20
+
     def set_birth_date_and_calculate_saju(self, birth_date, calendar_type, time_units):
         """생년월일 정보 설정 및 사주 사주팔자 계산"""
         # 1. 입력 데이터 검증
+        self._validate_birth_date_input(birth_date, calendar_type)
+
+        # 2. 양력/음력 변환 및 저장
+        self._convert_and_store_birth_dates(birth_date, calendar_type, time_units)
+
+        # 3. 사주 계산
+        self._calculate_and_store_saju_pillars()
+
+    def _validate_birth_date_input(self, birth_date, calendar_type):
+        """생년월일 입력 데이터 검증"""
         if not birth_date:
             raise ValueError("생년월일은 필수입니다.")
 
         if calendar_type not in ['solar', 'lunar']:
             raise ValueError("달력 타입은 'solar' 또는 'lunar'여야 합니다.")
 
-        # 2. 양력/음력 변환 및 저장
+    def _convert_and_store_birth_dates(self, birth_date, calendar_type, time_units):
+        """양력/음력 변환 및 저장"""
         try:
-            if calendar_type == 'solar':
-                self.birth_date_solar = birth_date
-                self.birth_date_lunar = SajuCalculator.solar_to_lunar(birth_date)
-            else:  # lunar
-                self.birth_date_lunar = birth_date
-                self.birth_date_solar = SajuCalculator.lunar_to_solar(birth_date)
-
+            self._perform_calendar_conversion(birth_date, calendar_type)
             self.solar_or_lunar = calendar_type
             self.birth_time_units = time_units
 
         except Exception as error:
             logger.error(f"달력 변환 오류: {error}")
-            # 변환 실패 시 원본 데이터 사용
-            if calendar_type == 'solar':
-                self.birth_date_solar = birth_date
-                self.birth_date_lunar = birth_date  # Fallback
-            else:
-                self.birth_date_lunar = birth_date
-                self.birth_date_solar = birth_date  # Fallback
+            self._handle_conversion_failure(birth_date, calendar_type, time_units)
 
-            self.solar_or_lunar = calendar_type
-            self.birth_time_units = time_units
+    def _perform_calendar_conversion(self, birth_date, calendar_type):
+        """달력 변환 수행"""
+        if calendar_type == 'solar':
+            self.birth_date_solar = birth_date
+            self.birth_date_lunar = SajuCalculator.solar_to_lunar(birth_date)
+        else:  # lunar
+            self.birth_date_lunar = birth_date
+            self.birth_date_solar = SajuCalculator.lunar_to_solar(birth_date)
 
-        # 3. 사주 계산
-        self._calculate_and_store_saju_pillars()
+    def _handle_conversion_failure(self, birth_date, calendar_type, time_units):
+        """달력 변환 실패 시 처리"""
+        if calendar_type == 'solar':
+            self.birth_date_solar = birth_date
+            self.birth_date_lunar = birth_date  # Fallback
+        else:
+            self.birth_date_lunar = birth_date
+            self.birth_date_solar = birth_date  # Fallback
+
+        self.solar_or_lunar = calendar_type
+        self.birth_time_units = time_units
 
     def _calculate_and_store_saju_pillars(self):
         """사주 사주팔자(년월일시 간지) 계산하여 DB에 저장 (내부 메서드)"""

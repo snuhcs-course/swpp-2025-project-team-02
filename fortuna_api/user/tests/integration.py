@@ -43,17 +43,17 @@ class FortunaAPIIntegrationTests(APITestCase):
         # 테스트용 생년월일 데이터 (사주 계산용)
         self.birth_data = {
             'nickname': '운세왕',
-            'birth_date': '1995-03-15',  # 1995년 3월 15일
-            'solar_or_lunar': 'solar',   # 양력
-            'birth_time_units': '오시',  # 오전 11시-오후 1시
-            'gender': 'M'                # 남성
+            'input_birth_date': '1995-03-15',  # 1995년 3월 15일
+            'input_calendar_type': 'solar',     # 양력
+            'birth_time_units': '오시',         # 오전 11시-오후 1시
+            'gender': 'M'                       # 남성
         }
 
     # ========== Helper Methods ==========
 
     def _mock_google_login(self, id_token='fake_google_token'):
         """Google 로그인을 모킹하고 응답을 반환하는 헬퍼"""
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
+        with patch('user.utils.GoogleOAuthUtils.verify_and_extract_google_user_info') as mock_verify:
             mock_verify.return_value = self.valid_google_user_data
             response = self.client.post(
                 reverse('user:google_auth'),
@@ -279,7 +279,7 @@ class FortunaAPIIntegrationTests(APITestCase):
         """
 
         # 1. 잘못된 Google 토큰으로 로그인 시도
-        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
+        with patch('user.utils.GoogleOAuthUtils.verify_and_extract_google_user_info') as mock_verify:
             mock_verify.return_value = None
             invalid_login_response = self.client.post(
                 reverse('user:google_auth'),
@@ -326,8 +326,8 @@ class FortunaAPIIntegrationTests(APITestCase):
         # 양력 생년월일로 사주 계산 테스트
         solar_birth_data = {
             'nickname': '사주테스트',
-            'birth_date': '1990-05-15',
-            'solar_or_lunar': 'solar',
+            'input_birth_date': '1990-05-15',
+            'input_calendar_type': 'solar',
             'birth_time_units': '진시',
             'gender': 'F'
         }
@@ -339,8 +339,8 @@ class FortunaAPIIntegrationTests(APITestCase):
 
         # 음력 생년월일로 사주 계산 테스트
         lunar_birth_data = {
-            'birth_date': '1985-12-01',
-            'solar_or_lunar': 'lunar',
+            'input_birth_date': '1985-12-01',
+            'input_calendar_type': 'lunar',
             'birth_time_units': '해시',
         }
         lunar_response = self._update_profile(lunar_birth_data)

@@ -121,17 +121,12 @@ class GoogleAuthView(APIView):
 
     def post(self, request):
         # 1. 입력 데이터 검증
-        serializer = GoogleLoginSerializer(data=request.data)
-        if not serializer.is_valid():
-            return self._create_error_response(
-                'Invalid token',
-                'Google ID token verification failed'
-            )
-
-        google_id_token = serializer.validated_data['id_token']
+        validation_result = self._validate_request_data(request.data)
+        if validation_result:
+            return validation_result
 
         # 2. Google Token 검증
-        google_user_data = GoogleOAuthUtils.verify_and_extract_google_user_info(google_id_token)
+        google_user_data = self._verify_google_token(request.data['id_token'])
         if not google_user_data:
             return self._create_error_response(
                 'Invalid token',
@@ -139,6 +134,24 @@ class GoogleAuthView(APIView):
             )
 
         # 3. 사용자 처리 및 토큰 생성
+        return self._process_user_login(google_user_data)
+
+    def _validate_request_data(self, data):
+        """요청 데이터 검증"""
+        serializer = GoogleLoginSerializer(data=data)
+        if not serializer.is_valid():
+            return self._create_error_response(
+                'Invalid token',
+                'Google ID token verification failed'
+            )
+        return None
+
+    def _verify_google_token(self, google_id_token: str):
+        """Google ID Token 검증"""
+        return GoogleOAuthUtils.verify_and_extract_google_user_info(google_id_token)
+
+    def _process_user_login(self, google_user_data: dict):
+        """사용자 로그인 처리"""
         try:
             with transaction.atomic():
                 user, is_new_user = self._get_or_create_user_from_google(google_user_data)
@@ -516,45 +529,77 @@ class UserProfileView(APIView):
     )
     def get(self, request):
         """프로필 조회"""
-        # 개발환경에서 user_id 파라미터로 특정 사용자 조회 허용
+        # 사용자 확인
+        user = self._get_user_for_profile(request)
+        if isinstance(user, Response):
+            return user
+
+        # 프로필 응답 생성
+        profile_data = self._build_profile_response(user)
+        return Response(profile_data)
+
+    def _get_user_for_profile(self, request):
+        """프로필 조회를 위한 사용자 확인"""
+        # 개발환경에서 user_id 파라미터 처리
         if getattr(settings, 'DEVELOPMENT_MODE', False):
-            user_id = request.GET.get('user_id')
-            if user_id:
-                try:
-                    user = User.objects.get(id=user_id)
-                    profile_data = self._build_profile_response(user)
-                    return Response(profile_data)
-                except User.DoesNotExist:
-                    return Response(
-                        {'error': f'User with id {user_id} not found'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-            elif not request.user.is_authenticated:
-                return Response(
-                    {'error': 'Authentication required or provide user_id parameter in development'},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-        elif not request.user.is_authenticated:
+            return self._handle_development_mode_user(request)
+
+        # 프로덕션 환경: 인증된 사용자만 허용
+        if not request.user.is_authenticated:
             return Response(
                 {'error': 'Authentication required'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        user = request.user
-        profile_data = self._build_profile_response(user)
-        return Response(profile_data)
+        return request.user
+
+    def _handle_development_mode_user(self, request):
+        """개발 모드에서 사용자 처리"""
+        user_id = request.GET.get('user_id')
+
+        if user_id:
+            return self._get_user_by_id(user_id)
+
+        if not request.user.is_authenticated:
+            return Response(
+                {'error': 'Authentication required or provide user_id parameter in development'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        return request.user
+
+    def _get_user_by_id(self, user_id: str):
+        """ID로 사용자 조회"""
+        try:
+            return User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': f'User with id {user_id} not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     def _build_profile_response(self, user) -> dict:
         """프로필 조회 응답 데이터 구성"""
         return {
-            # 기본 정보
+            **self._get_basic_user_info(user),
+            **self._get_birth_date_info(user),
+            **self._get_saju_info(user),
+            **self._get_metadata(user)
+        }
+
+    def _get_basic_user_info(self, user) -> dict:
+        """기본 사용자 정보 추출"""
+        return {
             'user_id': user.id,
             'email': user.email,
             'name': user.first_name or user.username,
             'profile_image': user.profile_image or '',
             'nickname': user.nickname,
+        }
 
-            # 생년월일 정보
+    def _get_birth_date_info(self, user) -> dict:
+        """생년월일 정보 추출"""
+        return {
             'birth_date_solar': (
                 user.birth_date_solar.isoformat()
                 if user.birth_date_solar else None
@@ -566,14 +611,20 @@ class UserProfileView(APIView):
             'solar_or_lunar': user.solar_or_lunar,
             'birth_time_units': user.birth_time_units,
             'gender': user.get_gender_display() if user.gender else None,
+        }
 
-            # 사주 정보
+    def _get_saju_info(self, user) -> dict:
+        """사주 정보 추출"""
+        return {
             'yearly_ganji': user.yearly_ganji,
             'monthly_ganji': user.monthly_ganji,
             'daily_ganji': user.daily_ganji,
             'hourly_ganji': user.hourly_ganji,
+        }
 
-            # 메타데이터
+    def _get_metadata(self, user) -> dict:
+        """메타데이터 추출"""
+        return {
             'created_at': user.created_at.isoformat(),
             'last_login': (
                 user.last_login.isoformat()
@@ -700,29 +751,9 @@ class UserProfileView(APIView):
     def _build_profile_update_response(self, user) -> dict:
         """프로필 업데이트 응답 데이터 구성"""
         return {
-            'user_id': user.id,
-            'email': user.email,
-            'name': user.first_name or user.username,
-            'nickname': user.nickname,
-
-            # 생년월일 정보
-            'birth_date_solar': (
-                user.birth_date_solar.isoformat()
-                if user.birth_date_solar else None
-            ),
-            'birth_date_lunar': (
-                user.birth_date_lunar.isoformat()
-                if user.birth_date_lunar else None
-            ),
-            'solar_or_lunar': user.solar_or_lunar,
-            'birth_time_units': user.birth_time_units,
-            'gender': user.get_gender_display() if user.gender else None,
-
-            # 계산된 사주 정보
-            'yearly_ganji': user.yearly_ganji,
-            'monthly_ganji': user.monthly_ganji,
-            'daily_ganji': user.daily_ganji,
-            'hourly_ganji': user.hourly_ganji
+            **self._get_basic_user_info(user),
+            **self._get_birth_date_info(user),
+            **self._get_saju_info(user)
         }
 
 
