@@ -214,14 +214,34 @@ class GoogleAuthView(APIView):
         """
         Google OAuth 데이터로부터 사용자 조회 또는 생성
 
+        탈퇴한 사용자가 재가입하는 경우 새로운 계정 생성
+        (과거 데이터와 완전히 분리)
+
         Returns:
             tuple: (User 객체, 신규 생성 여부)
         """
         user_email = google_user_data['email']
         user_google_id = google_user_data['google_id']
 
+        # 탈퇴한 사용자를 포함하여 조회
+        deleted_user = User.all_objects.filter(
+            email=user_email,
+            deleted_at__isnull=False
+        ).first()
+
+        # 탈퇴한 사용자가 재가입하는 경우
+        if deleted_user:
+            # 기존 이메일을 변경하여 새 계정이 사용할 수 있도록 함
+            deleted_user.email = f"{deleted_user.email}_deleted_{deleted_user.id}"
+            deleted_user.google_id = None  # Google ID도 해제
+            deleted_user.save(update_fields=['email', 'google_id'])
+
+            # 새 계정 생성
+            user = User.objects.create_user_from_google_oauth(google_user_data)
+            return user, True
+
         try:
-            # 이메일로 기존 사용자 조회
+            # 활성 사용자 조회
             user = User.objects.get(email=user_email)
 
             # Google ID가 없는 경우 업데이트 (초기 이메일 가입자가 나중에 Google 로그인 사용)
@@ -799,6 +819,91 @@ class UserProfileView(APIView):
             **self._get_birth_date_info(user),
             **self._get_saju_info(user)
         }
+
+
+@extend_schema(
+    summary="User Account Deletion",
+    description="Soft delete user account by setting deleted_at timestamp"
+)
+class UserDeletionView(APIView):
+    """사용자 계정 탈퇴 (soft delete)"""
+    permission_classes = [DevelopmentOrAuthenticated]
+
+    @extend_schema(
+        summary="Delete User Account",
+        description="Soft delete the current user's account. Deleted users can re-register with a new account using the same Google account.",
+        responses={
+            200: {
+                'description': 'Account deleted successfully',
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'message': {
+                                    'type': 'string',
+                                    'description': 'Success message'
+                                },
+                                'deleted_at': {
+                                    'type': 'string',
+                                    'format': 'date-time',
+                                    'description': 'Deletion timestamp'
+                                }
+                            },
+                            'required': ['message', 'deleted_at']
+                        },
+                        'example': {
+                            'message': 'Account deleted successfully',
+                            'deleted_at': '2024-01-15T14:30:00Z'
+                        }
+                    }
+                }
+            },
+            401: {
+                'description': 'Authentication required',
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'error': {'type': 'string'}
+                            }
+                        },
+                        'example': {
+                            'error': 'Authentication required'
+                        }
+                    }
+                }
+            }
+        }
+    )
+    def delete(self, request):
+        """
+        사용자 계정 탈퇴 처리
+
+        soft delete 방식으로 deleted_at 필드에 현재 시간 기록
+        탈퇴한 사용자는 동일 Google 계정으로 재가입 가능 (새 계정 생성)
+        """
+        user = request.user
+
+        # 이미 탈퇴한 사용자인지 확인
+        if user.is_deleted():
+            return Response({
+                'error': 'Account already deleted',
+                'message': 'This account has already been deleted'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Soft delete 처리
+        with transaction.atomic():
+            user.soft_delete()
+            user.save(update_fields=['deleted_at'])
+
+            logger.info(f"User deleted: {user.email} (ID: {user.id})")
+
+        return Response({
+            'message': 'Account deleted successfully',
+            'deleted_at': user.deleted_at.isoformat()
+        }, status=status.HTTP_200_OK)
 
 
 @extend_schema(

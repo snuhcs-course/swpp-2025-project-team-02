@@ -65,8 +65,10 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_login = models.DateTimeField(null=True, blank=True)
-    
+    deleted_at = models.DateTimeField(null=True, blank=True, help_text="탈퇴 시간 (soft delete)")
+
     objects = UserManager()
+    all_objects = models.Manager()  # 탈퇴한 사용자 포함 전체 조회용
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -80,6 +82,19 @@ class User(AbstractUser):
     def update_last_login(self):
         """마지막 로그인 시간 업데이트 - 부모 메서드에서 save() 호출 필요"""
         self.last_login = timezone.now()
+
+    def soft_delete(self):
+        """
+        사용자 탈퇴 처리 (soft delete)
+
+        deleted_at 필드에 현재 시간을 기록하여 탈퇴 처리
+        이 메서드 호출 후 반드시 save() 필요
+        """
+        self.deleted_at = timezone.now()
+
+    def is_deleted(self):
+        """사용자가 탈퇴했는지 확인"""
+        return self.deleted_at is not None
     
     def update_profile_completeness_status(self):
         """

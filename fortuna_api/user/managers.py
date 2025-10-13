@@ -1,8 +1,17 @@
 from django.contrib.auth.models import BaseUserManager
+from django.db import models
 
-class UserManager(BaseUserManager):
+class ActiveUserManager(BaseUserManager):
+    """활성 사용자만 조회하는 매니저 (탈퇴한 사용자 제외)"""
+
+    def get_queryset(self):
+        """탈퇴하지 않은 사용자만 조회"""
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class UserManager(ActiveUserManager):
     """커스텀 사용자 매니저"""
-    
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('이메일은 필수입니다.')
