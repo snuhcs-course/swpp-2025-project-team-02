@@ -46,4 +46,7 @@ interface ApiService {
 
     @POST("api/user/auth/refresh/")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
+
+    @DELETE("api/user/delete/")
+    suspend fun deleteAccount(@Header("Authorization") token: String): Response<Unit>
 }

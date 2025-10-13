@@ -93,11 +93,46 @@ class SettingsFragment : Fragment() {
     }
 
     private fun deleteAccount() {
-        // TODO: 서버에 회원 탈퇴 API 호출 구현
-        Toast.makeText(requireContext(), "회원 탈퇴 기능은 추후 구현 예정입니다.", Toast.LENGTH_LONG).show()
+        if (!isAdded) return
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val token = prefs.getString(KEY_TOKEN, null)
 
-        // 임시: 로그아웃 처리
-        // (activity as? MainActivity)?.logout()
+        if (token.isNullOrEmpty()) {
+            Log.e(TAG, "No token available for account deletion")
+            Toast.makeText(requireContext(), "인증 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.deleteAccount("Bearer $token")
+
+                if (response.isSuccessful) {
+                    if (isAdded) {
+                        // Clear tokens first
+                        prefs.edit().clear().apply()
+
+                        // Show toast and logout after a short delay to avoid system UI error
+                        Toast.makeText(requireContext(), "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+
+                        // Delay logout to ensure toast is displayed
+                        view?.postDelayed({
+                            (activity as? MainActivity)?.logout()
+                        }, 500)
+                    }
+                } else {
+                    Log.e(TAG, "Account deletion failed: ${response.code()}")
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "회원 탈퇴에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error deleting account", e)
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun loadUserProfile() {
