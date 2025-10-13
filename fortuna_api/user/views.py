@@ -231,10 +231,12 @@ class GoogleAuthView(APIView):
 
         # 탈퇴한 사용자가 재가입하는 경우
         if deleted_user:
-            # 기존 이메일을 변경하여 새 계정이 사용할 수 있도록 함
-            deleted_user.email = f"{deleted_user.email}_deleted_{deleted_user.id}"
+            # 기존 이메일과 username을 변경하여 새 계정이 사용할 수 있도록 함
+            new_email = f"{deleted_user.email}_deleted_{deleted_user.id}"
+            deleted_user.email = new_email
+            deleted_user.username = new_email  # username도 email과 동일하게 변경
             deleted_user.google_id = None  # Google ID도 해제
-            deleted_user.save(update_fields=['email', 'google_id'])
+            deleted_user.save(update_fields=['email', 'username', 'google_id'])
 
             # 새 계정 생성
             user = User.objects.create_user_from_google_oauth(google_user_data)
