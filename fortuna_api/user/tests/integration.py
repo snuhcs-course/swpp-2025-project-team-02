@@ -352,10 +352,93 @@ class FortunaAPIIntegrationTests(APITestCase):
         # 달력 타입 변경으로 인한 사주 변경 확인
         self.assertNotEqual(solar_user['yearly_ganji'], lunar_user['yearly_ganji'])
 
+    def test_user_deletion_and_reregistration(self):
+        """
+        시나리오 6: 사용자 탈퇴 및 재가입 테스트
+
+        사용자 스토리:
+        "사용자로서, 앱에서 탈퇴하고, 나중에 같은 Google 계정으로
+         다시 가입할 수 있어야 합니다."
+
+        단계:
+        1. Google 로그인으로 신규 가입
+        2. 프로필 업데이트
+        3. 계정 탈퇴
+        4. 동일 Google 계정으로 재로그인
+        5. 새 계정 생성 확인 (과거 데이터 없음)
+        """
+
+        # 1단계: 첫 번째 가입
+        login_response = self._mock_google_login()
+        first_login_data = self._assert_login_successful(login_response, is_new_user=True)
+
+        first_access_token = first_login_data['access_token']
+        first_user_id = first_login_data['user_id']
+
+        # 2단계: 프로필 업데이트
+        self._set_auth_header(first_access_token)
+        update_response = self._update_profile(self.birth_data)
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+
+        # 3단계: 계정 탈퇴
+        delete_response = self.client.delete(reverse('user:user_deletion'))
+        self.assertEqual(delete_response.status_code, status.HTTP_200_OK)
+        delete_data = delete_response.json()
+        self.assertEqual(delete_data['message'], 'Account deleted successfully')
+        self.assertIn('deleted_at', delete_data)
+
+        # 탈퇴 후 프로필 조회 불가 확인
+        profile_response = self._get_profile()
+        self.assertEqual(profile_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 4단계: 동일 Google 계정으로 재로그인
+        # 인증 헤더 제거 (탈퇴한 사용자의 토큰 제거)
+        self.client.credentials()
+        relogin_response = self._mock_google_login(id_token='fake_google_token_456')
+        relogin_data = self._assert_login_successful(relogin_response, is_new_user=True)
+
+        # 5단계: 새 계정 확인
+        second_user_id = relogin_data['user_id']
+        self.assertNotEqual(first_user_id, second_user_id)
+        self.assertTrue(relogin_data['needs_additional_info'])
+
+        # 새 계정의 프로필이 비어있는지 확인
+        self._set_auth_header(relogin_data['access_token'])
+        new_profile_response = self._get_profile()
+        self.assertEqual(new_profile_response.status_code, status.HTTP_200_OK)
+
+        new_profile = new_profile_response.json()
+        self.assertIsNone(new_profile['birth_date_solar'])
+        self.assertIsNone(new_profile['nickname'])
+
+    def test_user_deletion_authentication_after_delete(self):
+        """
+        시나리오 7: 탈퇴 후 인증 검증
+
+        목적: 탈퇴한 사용자의 토큰이 더 이상 유효하지 않음을 확인
+        """
+
+        # 로그인
+        login_response = self._mock_google_login()
+        access_token = login_response.json()['access_token']
+        self._set_auth_header(access_token)
+
+        # 계정 탈퇴
+        delete_response = self.client.delete(reverse('user:user_deletion'))
+        self.assertEqual(delete_response.status_code, status.HTTP_200_OK)
+
+        # 탈퇴 후에는 해당 토큰으로 API 호출 불가 (인증 실패)
+        profile_response = self._get_profile()
+        self.assertEqual(profile_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 탈퇴 후 재탈퇴 시도도 인증 실패
+        second_delete_response = self.client.delete(reverse('user:user_deletion'))
+        self.assertEqual(second_delete_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def tearDown(self):
         """테스트 후 정리"""
-        # 테스트 중 생성된 모든 사용자 데이터 삭제
-        User.objects.all().delete()
+        # 테스트 중 생성된 모든 사용자 데이터 삭제 (탈퇴한 사용자 포함)
+        User.all_objects.all().delete()
 
 
 if __name__ == '__main__':

@@ -13,4 +13,7 @@ urlpatterns = [
 
     # 사용자 프로필
     path('profile/', views.UserProfileView.as_view(), name='user_profile'),
+
+    # 사용자 계정 탈퇴
+    path('delete/', views.UserDeletionView.as_view(), name='user_deletion'),
 ]
