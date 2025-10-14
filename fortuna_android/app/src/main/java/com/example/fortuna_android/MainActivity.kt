@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
     private val binding get() = _binding!!
     private lateinit var mGoogleSignInClient: GoogleSignInClient
     companion object {
-        private const val TAG = "ProfileActivity"
+        private const val TAG = "MainActivity"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"
         private const val REFRESH_TOKEN = "refresh_token"
@@ -68,6 +68,20 @@ class MainActivity : AppCompatActivity() {
 
         // Check permissions on startup
         requestPermissions()
+
+        // Request notification permission and generate FCM token
+        NotificationManager.requestNotificationPermission(this)
+        NotificationManager.generateFCMToken(this) { token ->
+            Log.d(TAG, "FCM Token: $token")
+        }
+
+//         Schedule daily notification by Android(not firebase)
+//        NotificationManager.fortuneGeneratedNotification(
+//            this,
+//            "Daily Fortune",
+//            "Your daily fortune is ready! ✨",
+//            1
+//        )
 
         // Login associated tasks
         setupGoogleSignIn()
