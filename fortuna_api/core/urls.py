@@ -140,29 +140,35 @@ def upload_chakra_image(request):
 
 
 @extend_schema(
-    summary="Get Tomorrow's Fortune",
-    description="Retrieve the pre-generated fortune for tomorrow. Fortune is automatically updated as you upload chakra images throughout the day.",
+    summary="Generate Tomorrow's Fortune",
+    description="Generate personalized Saju fortune for tomorrow based on today's collected chakras. Can retrieve pre-generated fortune if available.",
     parameters=[
         OpenApiParameter(
             name='date',
             type=OpenApiTypes.DATE,
             location=OpenApiParameter.QUERY,
-            description='Base date (YYYY-MM-DD). Returns fortune for the next day. Defaults to today.',
+            description='Date for which to generate fortune (YYYY-MM-DD). Defaults to today.',
             required=False
+        ),
+        OpenApiParameter(
+            name='include_photos',
+            type=OpenApiTypes.BOOL,
+            location=OpenApiParameter.QUERY,
+            description='Include photo analysis in fortune generation',
+            required=False,
+            default=True
         )
     ],
     responses={
         200: {
-            'description': 'Fortune retrieved successfully',
+            'description': 'Fortune generated successfully',
             'content': {
                 'application/json': {
                     'example': {
                         'status': 'success',
                         'data': {
-                            'fortune_id': 1,
                             'user_id': 1,
                             'for_date': '2024-01-02',
-                            'status': 'completed',
                             'tomorrow_gapja': {
                                 'code': 1,
                                 'name': '갑자',
@@ -176,27 +182,15 @@ def upload_chakra_image(request):
                                     'lucky_color': '청색',
                                     'key_advice': '새로운 시작에 좋은 날입니다.'
                                 }
-                            },
-                            'updated_at': '2024-01-01T18:30:00'
+                            }
                         }
-                    }
-                }
-            }
-        },
-        404: {
-            'description': 'Fortune not yet generated',
-            'content': {
-                'application/json': {
-                    'example': {
-                        'status': 'not_found',
-                        'message': 'Fortune not yet generated. Please upload chakra images first.'
                     }
                 }
             }
         }
     }
 )
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([DevelopmentOrAuthenticated])
 def get_tomorrow_fortune(request):
     """
@@ -217,8 +211,8 @@ def get_tomorrow_fortune(request):
 
     user_id = request.user.id
 
-    # Get date parameter
-    date_str = request.GET.get('date')
+    # Get date parameter from GET or POST data
+    date_str = request.GET.get('date') or request.data.get('date')
     if date_str:
         try:
             date = datetime.strptime(date_str, '%Y-%m-%d')
@@ -230,6 +224,13 @@ def get_tomorrow_fortune(request):
     else:
         date = datetime.now()
 
+    # Check if photos should be included (for backward compatibility)
+    include_photos_param = request.GET.get('include_photos') or request.data.get('include_photos')
+    if include_photos_param is not None:
+        include_photos = str(include_photos_param).lower() in ['true', '1', 'yes']
+    else:
+        include_photos = True  # Default to True
+
     tomorrow = date + timedelta(days=1)
 
     # Try to get existing fortune
@@ -239,36 +240,35 @@ def get_tomorrow_fortune(request):
             for_date=tomorrow.date()
         )
 
-        # Prepare response data
+        # Prepare response data in backward-compatible format
         response_data = {
             'status': 'success',
             'data': {
-                'fortune_id': fortune_result.id,
                 'user_id': user_id,
                 'for_date': fortune_result.for_date.isoformat(),
-                'fortune_status': fortune_result.status,
-                'fortune': fortune_result.fortune_data,
-                'created_at': fortune_result.created_at.isoformat(),
-                'updated_at': fortune_result.updated_at.isoformat()
+                'tomorrow_gapja': {
+                    'code': fortune_result.gapja_code,
+                    'name': fortune_result.gapja_name,
+                    'element': fortune_result.gapja_element
+                },
+                'fortune': fortune_result.fortune_data
             }
         }
-
-        # Add gapja info if available
-        if fortune_result.gapja_code > 0:
-            response_data['data']['tomorrow_gapja'] = {
-                'code': fortune_result.gapja_code,
-                'name': fortune_result.gapja_name,
-                'element': fortune_result.gapja_element
-            }
 
         return Response(response_data, status=status.HTTP_200_OK)
 
     except FortuneResult.DoesNotExist:
-        return Response({
-            'status': 'not_found',
-            'message': 'Fortune not yet generated. Please upload chakra images first.',
-            'for_date': tomorrow.date().isoformat()
-        }, status=status.HTTP_404_NOT_FOUND)
+        # Maintain backward compatibility: generate fortune on-the-fly if not exists
+        result = fortune_service.generate_tomorrow_fortune(
+            user_id=user_id,
+            date=date,
+            include_photos=include_photos
+        )
+
+        if result['status'] == 'success':
+            return Response(result, status=status.HTTP_200_OK)
+        else:
+            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @extend_schema(
