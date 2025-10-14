@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spacing Scale (BeReal uses generous spacing) -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    <dimen name="spacing_xxl">48dp</dimen>
+
+    <!-- Font Sizes (BeReal uses bold, clear typography) -->
+    <dimen name="text_xs">12sp</dimen>
+    <dimen name="text_sm">14sp</dimen>
+    <dimen name="text_base">16sp</dimen>
+    <dimen name="text_lg">18sp</dimen>
+    <dimen name="text_xl">22sp</dimen>
+    <dimen name="text_2xl">28sp</dimen>
+    <dimen name="text_3xl">36sp</dimen>
+
+    <!-- Border Radius (BeReal uses rounded corners) -->
+    <dimen name="radius_sm">4dp</dimen>
+    <dimen name="radius_md">8dp</dimen>
+    <dimen name="radius_lg">12dp</dimen>
+    <dimen name="radius_xl">16dp</dimen>
+    <dimen name="radius_full">999dp</dimen>
+
+    <!-- Button Sizes -->
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="button_height_lg">56dp</dimen>
+    <dimen name="button_padding_horizontal">24dp</dimen>
+
+    <!-- Border Width -->
+    <dimen name="border_width">1dp</dimen>
+    <dimen name="border_width_thick">2dp</dimen>
+
+    <!-- Icon Sizes -->
+    <dimen name="icon_sm">16dp</dimen>
+    <dimen name="icon_md">24dp</dimen>
+    <dimen name="icon_lg">32dp</dimen>
+    <dimen name="icon_xl">48dp</dimen>
+</resources>

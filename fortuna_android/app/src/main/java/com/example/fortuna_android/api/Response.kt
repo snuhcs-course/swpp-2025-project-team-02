@@ -165,8 +165,8 @@ data class UserProfile(
 // PATCH /api/user/profile/ 요청 시 Body에 담을 데이터
 data class UpdateProfileRequest(
     @SerializedName("nickname") val nickname: String,
-    @SerializedName("birth_date") val birthDate: String,
-    @SerializedName("solar_or_lunar") val solarOrLunar: String,
+    @SerializedName("input_birth_date") val inputBirthDate: String,
+    @SerializedName("input_calendar_type") val inputCalendarType: String,
     @SerializedName("birth_time_units") val birthTimeUnits: String,
     @SerializedName("gender") val gender: String
 )

@@ -1,207 +1,327 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
-    android:padding="16dp">
+    android:padding="24dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <!-- Step Indicator -->
+    <TextView
+        android:id="@+id/step_indicator"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:text="STEP 1 / 4"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
-        <!-- 제목 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            android:text="프로필 정보 입력"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+    <!-- Main Title -->
+    <TextView
+        android:id="@+id/main_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/step_indicator"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="48dp"
+        android:text="어떤 이름으로\n불러 드릴까요?"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:lineSpacingExtra="4dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="사주를 위해 추가 정보가 필요합니다"
-            android:textSize="16sp"
-            android:textColor="#FFFFFF"
-            android:gravity="center" />
-
-        <!-- 닉네임 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="닉네임"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/nickname_edit_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:hint="닉네임을 입력하세요"
-            android:inputType="text"
-            android:padding="12dp"
-            android:background="@android:drawable/edit_text" />
-
-        <!-- 생년월일 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="생년월일"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+    <!-- Content Container (ScrollView for all input fields) -->
+    <ScrollView
+        android:id="@+id/content_scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/main_title"
+        android:layout_above="@id/next_button"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="16dp"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <Spinner
-                android:id="@+id/birth_year_spinner"
-                android:layout_width="0dp"
+            <!-- Step 4: 성별 (최상단에 배치, 나중에 표시) -->
+            <LinearLayout
+                android:id="@+id/step4_container"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:padding="12dp" />
+                android:orientation="vertical"
+                android:visibility="gone">
 
-            <Spinner
-                android:id="@+id/birth_month_spinner"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:padding="12dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="성별"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-            <Spinner
-                android:id="@+id/birth_day_spinner"
-                android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/male_button"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/button_selectable_background"
+                        android:textColor="@color/button_selectable_text_color"
+                        app:backgroundTint="@null"
+                        android:text="남자"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/female_button"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/button_selectable_background"
+                        android:textColor="@color/button_selectable_text_color"
+                        app:backgroundTint="@null"
+                        android:text="여자"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#666666"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <!-- Step 3: 태어난 시간 -->
+            <LinearLayout
+                android:id="@+id/step3_container"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:padding="12dp" />
+                android:orientation="vertical"
+                android:layout_marginTop="32dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="태어난 시간"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/birth_time_spinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:entries="@array/birth_time_units"
+                    android:background="@android:drawable/edit_text"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#666666"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <!-- Step 2: 생년월일 -->
+            <LinearLayout
+                android:id="@+id/step2_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="32dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="생년월일"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <!-- Date Input Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <Spinner
+                        android:id="@+id/birth_year_spinner"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@android:drawable/edit_text"
+                        android:padding="12dp" />
+
+                    <Spinner
+                        android:id="@+id/birth_month_spinner"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@android:drawable/edit_text"
+                        android:padding="12dp" />
+
+                    <Spinner
+                        android:id="@+id/birth_day_spinner"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@android:drawable/edit_text"
+                        android:padding="12dp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#666666"
+                    android:textSize="14sp" />
+
+                <!-- 음력/양력 선택 -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="음력/양력"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/solar_button"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/button_selectable_background"
+                        android:textColor="@color/button_selectable_text_color"
+                        app:backgroundTint="@null"
+                        android:text="양력"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/lunar_button"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/button_selectable_background"
+                        android:textColor="@color/button_selectable_text_color"
+                        app:backgroundTint="@null"
+                        android:text="음력"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#666666"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <!-- Step 1: 이름 입력 (맨 마지막에 배치, 처음에 표시) -->
+            <LinearLayout
+                android:id="@+id/step1_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="이름"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/nickname_edit_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="닉네임을 입력해주세요."
+                    android:textColorHint="#666666"
+                    android:inputType="text"
+                    android:padding="16dp"
+                    android:textColor="#000000"
+                    android:textSize="16sp"
+                    android:background="@android:drawable/edit_text"
+                    android:maxLength="6" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
-        <!-- 음력/양력 선택 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="음력/양력"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+    </ScrollView>
 
-        <RadioGroup
-            android:id="@+id/solar_lunar_radio_group"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
+    <!-- Next/Submit Button -->
+    <Button
+        android:id="@+id/next_button"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/button_selector"
+        android:textColor="@color/button_text_color"
+        android:text="다음"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
-            <RadioButton
-                android:id="@+id/solar_radio_button"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="양력"
-                android:textColor="#FFFFFF" />
+    <!-- Hidden submit button for compatibility -->
+    <Button
+        android:id="@+id/submit_button"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
-            <RadioButton
-                android:id="@+id/lunar_radio_button"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="음력"
-                android:textColor="#FFFFFF" />
+    <!-- Hidden RadioGroup for compatibility -->
+    <RadioGroup
+        android:id="@+id/solar_lunar_radio_group"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone">
 
-        </RadioGroup>
+        <RadioButton
+            android:id="@+id/solar_radio_button"
+            android:layout_width="0dp"
+            android:layout_height="0dp" />
 
-        <!-- 태어난 시간 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="태어난 시간"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+        <RadioButton
+            android:id="@+id/lunar_radio_button"
+            android:layout_width="0dp"
+            android:layout_height="0dp" />
 
-        <Spinner
-            android:id="@+id/birth_time_spinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:entries="@array/birth_time_units"
-            android:padding="12dp" />
+    </RadioGroup>
 
-        <!-- 성별 -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="성별"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="32dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/male_button"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/button_default"
-                android:text="남성"
-                android:textColor="#FFFFFF" />
-
-            <Button
-                android:id="@+id/female_button"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/button_default"
-                android:text="여성"
-                android:textColor="#FFFFFF" />
-
-        </LinearLayout>
-
-        <!-- 저장 버튼 -->
-        <Button
-            android:id="@+id/submit_button"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:background="@drawable/button_selector"
-            android:textColor="@color/button_text_color"
-            android:text="프로필 저장"
-            android:textSize="16sp"
-            android:padding="16dp" />
-
-    </LinearLayout>
-
-</ScrollView>
+</RelativeLayout>
