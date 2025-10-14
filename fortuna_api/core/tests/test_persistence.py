@@ -5,6 +5,7 @@ Unit tests for database persistence (ChakraImage and FortuneResult models).
 from datetime import datetime, timedelta
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from core.models import ChakraImage, FortuneResult
 from core.services.fortune import FortuneService
 from unittest.mock import patch
@@ -24,7 +25,7 @@ class TestChakraImagePersistence(TestCase):
 
     def test_create_chakra_image(self):
         """Test creating a ChakraImage record."""
-        now = datetime.now()
+        now = timezone.now()
         chakra = ChakraImage.objects.create(
             user=self.user,
             image='test.jpg',
@@ -44,7 +45,7 @@ class TestChakraImagePersistence(TestCase):
 
     def test_chakra_image_without_location(self):
         """Test creating ChakraImage without GPS data."""
-        now = datetime.now()
+        now = timezone.now()
         chakra = ChakraImage.objects.create(
             user=self.user,
             image='test.jpg',
@@ -58,8 +59,8 @@ class TestChakraImagePersistence(TestCase):
 
     def test_query_images_by_date(self):
         """Test querying images by date."""
-        date1 = datetime(2024, 1, 1, 10, 0, 0)
-        date2 = datetime(2024, 1, 2, 10, 0, 0)
+        date1 = timezone.make_aware(datetime(2024, 1, 1, 10, 0, 0))
+        date2 = timezone.make_aware(datetime(2024, 1, 2, 10, 0, 0))
 
         ChakraImage.objects.create(
             user=self.user,

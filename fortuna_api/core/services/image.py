@@ -29,12 +29,22 @@ class ImageService:
         if not getattr(settings, 'USE_S3', False):
             return None
 
+        from botocore.config import Config
+
+        # Configure boto3 with timeouts to prevent hanging
+        config = Config(
+            connect_timeout=5,
+            read_timeout=5,
+            retries={'max_attempts': 1}
+        )
+
         return boto3.client(
             's3',
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+            endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL', None),
             region_name=settings.AWS_S3_REGION_NAME,
+            config=config
         )
 
     @staticmethod
@@ -347,8 +357,6 @@ class ImageService:
         Returns:
             List of image data for the specified date
         """
-        from django.db.models import Q
-
         # Query images from database
         images = ChakraImage.objects.filter(
             user_id=user_id,

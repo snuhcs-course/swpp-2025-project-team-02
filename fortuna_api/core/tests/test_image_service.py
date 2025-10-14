@@ -9,10 +9,11 @@ from datetime import datetime
 from unittest.mock import Mock, patch, MagicMock
 from PIL import Image
 import pytest
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile, InMemoryUploadedFile
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from ..services.image import ImageService
 from ..models import ChakraImage
 
@@ -30,7 +31,7 @@ class TestImageService(TestCase):
             password='testpass123'
         )
         self.user_id = self.user.id
-        self.test_date = datetime(2024, 1, 1, 12, 0, 0)
+        self.test_date = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))
 
     def create_test_image(self, with_exif=False):
         """Create a test image for testing."""
@@ -131,6 +132,7 @@ class TestImageService(TestCase):
         self.assertLess(location['latitude'], 0)  # Southern hemisphere
         self.assertLess(location['longitude'], 0)  # Western hemisphere
 
+    @override_settings(USE_S3=False)
     def test_save_image(self):
         """Test saving image to storage and database."""
         image_file = self.create_test_image()
@@ -190,6 +192,7 @@ class TestImageService(TestCase):
         self.assertEqual(result['status'], 'error')
         self.assertEqual(result['message'], 'Test error')
 
+    @override_settings(USE_S3=False)
     def test_get_user_images_for_date(self):
         """Test retrieving user images for a specific date."""
         # Create test images
@@ -241,12 +244,16 @@ class TestImageServiceIntegration(TestCase):
         )
         self.user_id = self.user.id
 
+    @override_settings(USE_S3=False)
     def test_full_image_processing_workflow(self):
         """Test complete image processing workflow."""
         # Create test image
         image = Image.new('RGB', (200, 200), color='blue')
         img_io = BytesIO()
         image.save(img_io, format='JPEG')
+
+        # Get size before seeking
+        size = img_io.tell()
         img_io.seek(0)
 
         image_file = InMemoryUploadedFile(
@@ -254,7 +261,7 @@ class TestImageServiceIntegration(TestCase):
             None,
             'test.jpg',
             'image/jpeg',
-            img_io.tell(),
+            size,
             None
         )
 

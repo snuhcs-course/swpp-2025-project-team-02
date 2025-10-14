@@ -4,9 +4,11 @@ Tests for presigned URL API endpoints.
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework import status
 from unittest.mock import patch, MagicMock
+from datetime import datetime
 from user.models import User
 
 
@@ -77,12 +79,11 @@ class TestPresignedURLEndpoints(APITestCase):
     def test_get_user_images_with_presigned_urls(self, mock_generate_view):
         """Test getting user images returns presigned URLs."""
         from core.models import ChakraImage
-        from datetime import datetime
 
         mock_generate_view.return_value = 'https://s3.example.com/view-url'
 
         # Create test image
-        test_date = datetime(2024, 1, 1, 12, 0, 0)
+        test_date = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))
         ChakraImage.objects.create(
             user_id=self.user.id,
             image='chakras/1/2024-01-01/test.jpg',
@@ -127,9 +128,8 @@ class TestPresignedURLEndpointsWithoutS3(APITestCase):
     def test_get_user_images_without_presigned(self):
         """Test getting user images without presigned URLs."""
         from core.models import ChakraImage
-        from datetime import datetime
 
-        test_date = datetime(2024, 1, 1, 12, 0, 0)
+        test_date = timezone.make_aware(datetime(2024, 1, 1, 12, 0, 0))
         ChakraImage.objects.create(
             user_id=self.user.id,
             image='chakras/test.jpg',

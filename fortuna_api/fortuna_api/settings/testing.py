@@ -76,3 +76,20 @@ CORS_ALLOW_ALL_ORIGINS = True
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+
+# Disable S3 by default in tests to prevent hanging on boto3 connections
+USE_S3 = False
+AWS_S3_ENDPOINT_URL = None
+
+# Override storage backend to use local filesystem
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'test_media'

@@ -6,7 +6,12 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fortuna_api.settings.development')
+    # Use testing settings for test commands, development otherwise
+    if 'test' in sys.argv:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fortuna_api.settings.testing')
+    else:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fortuna_api.settings.development')
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
