@@ -258,11 +258,13 @@ class ProfileInputFragment : Fragment() {
 
         val request = UpdateProfileRequest(
             nickname = nickname,
-            birthDate = birthDate,
-            solarOrLunar = solarOrLunar,
+            inputBirthDate = birthDate,
+            inputCalendarType = solarOrLunar,
             birthTimeUnits = birthTimeUnits,
             gender = gender
         )
+
+        Log.d(TAG, "Request 내용: $request")
 
         lifecycleScope.launch {
             try {

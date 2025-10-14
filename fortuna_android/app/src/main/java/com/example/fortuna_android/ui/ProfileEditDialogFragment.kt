@@ -367,8 +367,8 @@ class ProfileEditDialogFragment : DialogFragment() {
 
         val request = UpdateProfileRequest(
             nickname = nickname,
-            birthDate = birthDate,
-            solarOrLunar = solarOrLunar,
+            inputBirthDate = birthDate,
+            inputCalendarType = solarOrLunar,
             birthTimeUnits = birthTimeUnits,
             gender = gender
         )

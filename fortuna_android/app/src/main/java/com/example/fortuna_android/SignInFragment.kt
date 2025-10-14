@@ -311,9 +311,9 @@ class SignInFragment : Fragment() {
     }
 
     private fun isProfileComplete(profile: UserProfile): Boolean {
+        val hasBirthDate = !profile.birthDateLunar.isNullOrEmpty() || !profile.birthDateSolar.isNullOrEmpty()
         return !profile.nickname.isNullOrEmpty() &&
-                !profile.birthDateLunar.isNullOrEmpty() &&
-                !profile.birthDateSolar.isNullOrEmpty() &&
+                hasBirthDate &&
                 !profile.solarOrLunar.isNullOrEmpty() &&
                 !profile.birthTimeUnits.isNullOrEmpty() &&
                 !profile.gender.isNullOrEmpty()
