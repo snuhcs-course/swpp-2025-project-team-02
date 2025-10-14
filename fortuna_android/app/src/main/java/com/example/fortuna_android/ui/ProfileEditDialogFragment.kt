@@ -24,8 +24,10 @@ class ProfileEditDialogFragment : DialogFragment() {
     private val binding get() = _binding!!
 
     private var selectedGender = ""
+    private var selectedSolarLunar = ""
     private var currentProfile: UserProfile? = null
     private var onProfileUpdated: (() -> Unit)? = null
+    private var currentStep = 1
 
     companion object {
         private const val TAG = "ProfileEditDialog"
@@ -66,6 +68,7 @@ class ProfileEditDialogFragment : DialogFragment() {
         setupSpinners()
         setupClickListeners()
         prefillProfileData()
+        updateStepUI()
     }
 
     private fun setupSpinners() {
@@ -96,6 +99,13 @@ class ProfileEditDialogFragment : DialogFragment() {
     private fun setupClickListeners() {
         val binding = _binding ?: return
 
+        // Next button
+        binding.nextButton.setOnClickListener {
+            Log.d(TAG, "Next button clicked, currentStep=$currentStep")
+            handleNextButton()
+        }
+
+        // Gender buttons
         binding.maleButton.setOnClickListener {
             selectedGender = "M"
             updateGenderButtons()
@@ -106,7 +116,20 @@ class ProfileEditDialogFragment : DialogFragment() {
             updateGenderButtons()
         }
 
-        binding.submitButton.setOnClickListener { submitProfile() }
+        // Solar/Lunar buttons
+        binding.solarButton.setOnClickListener {
+            selectedSolarLunar = "solar"
+            updateSolarLunarButtons()
+            // Also update hidden radio group for compatibility
+            binding.solarRadioButton.isChecked = true
+        }
+
+        binding.lunarButton.setOnClickListener {
+            selectedSolarLunar = "lunar"
+            updateSolarLunarButtons()
+            // Also update hidden radio group for compatibility
+            binding.lunarRadioButton.isChecked = true
+        }
     }
 
     private fun prefillProfileData() {
@@ -142,9 +165,16 @@ class ProfileEditDialogFragment : DialogFragment() {
 
         // 음력/양력 선택
         when (profile.solarOrLunar) {
-            "solar" -> binding.solarRadioButton.isChecked = true
-            "lunar" -> binding.lunarRadioButton.isChecked = true
+            "solar" -> {
+                selectedSolarLunar = "solar"
+                binding.solarRadioButton.isChecked = true
+            }
+            "lunar" -> {
+                selectedSolarLunar = "lunar"
+                binding.lunarRadioButton.isChecked = true
+            }
         }
+        updateSolarLunarButtons()
 
         // 성별 선택 - 기존 성별을 기본값으로 설정
         selectedGender = when (profile.gender) {
@@ -180,6 +210,98 @@ class ProfileEditDialogFragment : DialogFragment() {
         }
     }
 
+    private fun updateSolarLunarButtons() {
+        val binding = _binding ?: return
+
+        if (selectedSolarLunar == "solar") {
+            binding.solarButton.setBackgroundResource(R.drawable.button_selected)
+            binding.solarButton.setTextColor(Color.BLACK)
+            binding.lunarButton.setBackgroundResource(R.drawable.button_default)
+            binding.lunarButton.setTextColor(Color.WHITE)
+        } else if (selectedSolarLunar == "lunar") {
+            binding.lunarButton.setBackgroundResource(R.drawable.button_selected)
+            binding.lunarButton.setTextColor(Color.BLACK)
+            binding.solarButton.setBackgroundResource(R.drawable.button_default)
+            binding.solarButton.setTextColor(Color.WHITE)
+        }
+    }
+
+    private fun updateStepUI() {
+        val binding = _binding ?: return
+
+        // Update step indicator
+        binding.stepIndicator.text = "STEP $currentStep / 4"
+
+        // Update main title based on step
+        val titleText = when (currentStep) {
+            1 -> "어떤 이름으로\n불러 드릴까요?"
+            2 -> "감장아님의\n사주정보를 알려주세요."
+            3 -> "태어난 시간\n정보가 필요해요."
+            4 -> "감장아님의\n성별을 알려주세요."
+            else -> "어떤 이름으로\n불러 드릴까요?"
+        }
+        binding.mainTitle.text = titleText
+
+        // Update button text
+        binding.nextButton.text = if (currentStep == 4) "프로필 저장" else "다음"
+
+        // Show/hide step containers
+        binding.step1Container.visibility = if (currentStep >= 1) View.VISIBLE else View.GONE
+        binding.step2Container.visibility = if (currentStep >= 2) View.VISIBLE else View.GONE
+        binding.step3Container.visibility = if (currentStep >= 3) View.VISIBLE else View.GONE
+        binding.step4Container.visibility = if (currentStep >= 4) View.VISIBLE else View.GONE
+    }
+
+    private fun handleNextButton() {
+        Log.d(TAG, "handleNextButton called, currentStep=$currentStep")
+        when (currentStep) {
+            1 -> {
+                // Validate nickname
+                val nickname = binding.nicknameEditText.text.toString().trim()
+                Log.d(TAG, "Step 1: nickname=$nickname")
+                if (nickname.isEmpty()) {
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                }
+                currentStep = 2
+                Log.d(TAG, "Moving to step 2")
+                updateStepUI()
+            }
+            2 -> {
+                // Validate birth date and solar/lunar
+                Log.d(TAG, "Step 2: selectedSolarLunar=$selectedSolarLunar")
+                if (selectedSolarLunar.isEmpty()) {
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "음력/양력을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                }
+                currentStep = 3
+                Log.d(TAG, "Moving to step 3")
+                updateStepUI()
+            }
+            3 -> {
+                // Birth time is selected from spinner, always valid
+                Log.d(TAG, "Step 3: moving to step 4")
+                currentStep = 4
+                updateStepUI()
+            }
+            4 -> {
+                // Validate gender and submit
+                Log.d(TAG, "Step 4: selectedGender=$selectedGender, submitting profile")
+                if (selectedGender.isEmpty()) {
+                    if (isAdded) {
+                        Toast.makeText(requireContext(), "성별을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                    }
+                    return
+                }
+                submitProfile()
+            }
+        }
+    }
+
     private fun submitProfile() {
         val binding = _binding ?: return
 
@@ -190,11 +312,7 @@ class ProfileEditDialogFragment : DialogFragment() {
         val day = binding.birthDaySpinner.selectedItem.toString().replace("일", "").padStart(2, '0')
         val birthDate = "$year-$month-$day"
 
-        val solarOrLunar = when (binding.solarLunarRadioGroup.checkedRadioButtonId) {
-            R.id.solar_radio_button -> "solar"
-            R.id.lunar_radio_button -> "lunar"
-            else -> ""
-        }
+        val solarOrLunar = selectedSolarLunar
         val birthTimeUnits = extractBirthTimeUnit(binding.birthTimeSpinner.selectedItem.toString())
         val gender = selectedGender
 
