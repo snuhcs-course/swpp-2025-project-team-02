@@ -120,12 +120,8 @@ class SearchFragment : Fragment() {
     }
 
     private fun loadImageWithGlide(imageView: ImageView, imageUrl: String) {
-        // Construct full URL since API returns relative path - match RetrofitClient base URL
-        val baseUrl = RetrofitClient.getBaseUrl()
-        val fullUrl = "${baseUrl.removeSuffix("/")}$imageUrl"
-
         Glide.with(this)
-            .load(fullUrl)
+            .load(imageUrl)
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .centerCrop()
             .placeholder(android.R.drawable.ic_menu_gallery)
