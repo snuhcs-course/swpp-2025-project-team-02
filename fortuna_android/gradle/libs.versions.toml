@@ -32,6 +32,12 @@ playServicesAuth = "21.4.0"
 arCore = "1.50.0"
 # Guava for ListenableFuture (required by CameraX)
 guava = "33.3.1-android"
+# Firebase BOM version
+firebaseBom = "34.3.0"
+# WorkManager version
+workManager = "2.9.0"
+# Google Services plugin version
+googleServices = "4.4.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,11 +66,18 @@ androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+# Firebase libraries
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+# WorkManager library
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 firebase-appdistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebaseAppdistributionGradle" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 
 [bundles]
 camerax = [

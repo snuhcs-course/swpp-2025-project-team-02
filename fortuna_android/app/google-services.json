@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "30527837999",
+    "project_id": "delta-repeater-472507-a5",
+    "storage_bucket": "delta-repeater-472507-a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30527837999:android:70fa37db8eb72bf0a0b3da",
+        "android_client_info": {
+          "package_name": "com.example.fortuna_android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "30527837999-1qqdk4jd4kmd7h789502dvrfd69g6cc5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fortuna_android",
+            "certificate_hash": "5de3ced7db945466ad46763ed9b59668733fdc41"
+          }
+        },
+        {
+          "client_id": "30527837999-vs55bhsnu1rf4qnrikgpko6p5gtj76jd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQTvPdT99o-86v7myZ_bEYJBj_fGwD54c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "30527837999-vs55bhsnu1rf4qnrikgpko6p5gtj76jd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

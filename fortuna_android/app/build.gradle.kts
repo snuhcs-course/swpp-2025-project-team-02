@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.firebase.appdistribution)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -93,4 +94,10 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     // Dependency for image processing with Glide
     implementation(libs.glide)
+    // Dependency for firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.messaging)
+    // Dependency for WorkManager (scheduled notifications)
+    implementation(libs.androidx.work.runtime.ktx)
 }
