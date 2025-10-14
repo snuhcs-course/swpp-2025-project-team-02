@@ -12,7 +12,14 @@ from datetime import datetime
 from user.models import User
 
 
-@override_settings(USE_S3=True)
+@override_settings(
+    USE_S3=True,
+    AWS_ACCESS_KEY_ID='testing',
+    AWS_SECRET_ACCESS_KEY='testing',
+    AWS_STORAGE_BUCKET_NAME='test-bucket',
+    AWS_S3_ENDPOINT_URL=None,
+    AWS_S3_REGION_NAME='us-east-1',
+)
 class TestPresignedURLEndpoints(APITestCase):
     """Test presigned URL API endpoints."""
 

@@ -79,7 +79,13 @@ CSRF_COOKIE_SECURE = False
 
 # Disable S3 by default in tests to prevent hanging on boto3 connections
 USE_S3 = False
+
+# Default AWS settings for tests (can be overridden in specific test cases)
+AWS_ACCESS_KEY_ID = 'testing'
+AWS_SECRET_ACCESS_KEY = 'testing'
+AWS_STORAGE_BUCKET_NAME = 'test-bucket'
 AWS_S3_ENDPOINT_URL = None
+AWS_S3_REGION_NAME = 'us-east-1'
 
 # Override storage backend to use local filesystem
 STORAGES = {
