@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- BeReal doesn't officially have dark mode, but here's a sensible dark variant -->
+
+    <!-- Base colors stay the same -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="yellow">#FFCC4D</color>
+
+    <!-- Primary colors (White for dark mode) -->
+    <color name="primary">#FFFFFF</color>
+    <color name="primary_variant">#E5E5E5</color>
+    <color name="on_primary">#000000</color>
+
+    <!-- Secondary/Accent (Yellow stays the same) -->
+    <color name="secondary">#FFCC4D</color>
+    <color name="secondary_variant">#FFB81C</color>
+    <color name="on_secondary">#000000</color>
+
+    <!-- Background & Surface (Dark) -->
+    <color name="background">#000000</color>
+    <color name="surface">#1A1A1A</color>
+    <color name="surface_variant">#2A2A2A</color>
+
+    <!-- Text colors (Inverted) -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#AAAAAA</color>
+    <color name="text_tertiary">#777777</color>
+
+    <!-- Status colors -->
+    <color name="error">#FF453A</color>
+    <color name="success">#32D74B</color>
+    <color name="warning">#FF9F0A</color>
+
+    <!-- Borders & Dividers (Dark) -->
+    <color name="border">#333333</color>
+    <color name="divider">#2A2A2A</color>
+</resources>

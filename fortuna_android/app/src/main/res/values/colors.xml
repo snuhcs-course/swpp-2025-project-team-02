@@ -1,5 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- BeReal Brand Colors -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="yellow">#FFCC4D</color>
+
+    <!-- Primary colors (BeReal uses black as primary) -->
+    <color name="primary">#000000</color>
+    <color name="primary_variant">#1A1A1A</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <!-- Secondary/Accent (BeReal yellow) -->
+    <color name="secondary">#FFCC4D</color>
+    <color name="secondary_variant">#FFB81C</color>
+    <color name="on_secondary">#000000</color>
+
+    <!-- Background & Surface -->
+    <color name="background">#FFFFFF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F5F5F5</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#000000</color>
+    <color name="text_secondary">#666666</color>
+    <color name="text_tertiary">#999999</color>
+
+    <!-- Status colors -->
+    <color name="error">#FF3B30</color>
+    <color name="success">#34C759</color>
+    <color name="warning">#FF9500</color>
+
+    <!-- Borders & Dividers -->
+    <color name="border">#E0E0E0</color>
+    <color name="divider">#F0F0F0</color>
 </resources>
