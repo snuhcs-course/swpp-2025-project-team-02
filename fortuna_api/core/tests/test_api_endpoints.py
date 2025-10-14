@@ -4,13 +4,14 @@ Unit tests for API endpoints.
 
 import json
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch, Mock, MagicMock
 from PIL import Image
 from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -155,10 +156,9 @@ class TestFortuneAPIEndpoints(APITestCase):
     def test_generate_tomorrow_fortune_success(self):
         """Test successful tomorrow fortune retrieval."""
         from core.models import FortuneResult
-        from datetime import timedelta
 
         # Create a fortune result for tomorrow
-        target_date = datetime(2024, 1, 1)
+        target_date = timezone.make_aware(datetime(2024, 1, 1))
         tomorrow = target_date + timedelta(days=1)
 
         fortune = FortuneResult.objects.create(
@@ -204,11 +204,12 @@ class TestFortuneAPIEndpoints(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_generate.assert_called_with(
-            user_id=self.user.id,
-            date=datetime(2024, 1, 1),
-            include_photos=False
-        )
+        # The endpoint parses the date string, no need for timezone-aware comparison here
+        self.assertTrue(mock_generate.called)
+        call_kwargs = mock_generate.call_args.kwargs
+        self.assertEqual(call_kwargs['user_id'], self.user.id)
+        self.assertEqual(call_kwargs['date'].date(), datetime(2024, 1, 1).date())
+        self.assertEqual(call_kwargs['include_photos'], False)
 
     def test_generate_tomorrow_fortune_invalid_date(self):
         """Test fortune generation with invalid date."""
@@ -331,7 +332,6 @@ class TestAPIIntegration(APITestCase):
     def test_complete_workflow(self, mock_upload, mock_task):
         """Test complete workflow: upload image then get fortune."""
         from core.models import FortuneResult
-        from datetime import timedelta
 
         # Step 1: Upload chakra image
         mock_upload.return_value = {
@@ -355,7 +355,7 @@ class TestAPIIntegration(APITestCase):
         self.assertEqual(upload_response.status_code, status.HTTP_201_CREATED)
 
         # Step 2: Update the fortune result that was created during upload
-        target_date = datetime(2024, 1, 1)
+        target_date = timezone.make_aware(datetime(2024, 1, 1))
         tomorrow = target_date + timedelta(days=1)
 
         # Get the fortune result created by upload

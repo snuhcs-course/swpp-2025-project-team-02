@@ -4,7 +4,9 @@ Handles photo uploads, metadata extraction, and storage.
 """
 
 import os
-from datetime import datetime
+import uuid
+import boto3
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
@@ -20,6 +22,111 @@ logger = logging.getLogger(__name__)
 
 class ImageService:
     """Service for handling image uploads and metadata extraction."""
+
+    @staticmethod
+    def _get_s3_client():
+        """Get configured S3 client for presigned URL generation."""
+        if not getattr(settings, 'USE_S3', False):
+            return None
+
+        from botocore.config import Config
+
+        # Configure boto3 with timeouts to prevent hanging
+        config = Config(
+            connect_timeout=5,
+            read_timeout=5,
+            retries={'max_attempts': 1}
+        )
+
+        return boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL', None),
+            region_name=settings.AWS_S3_REGION_NAME,
+            config=config
+        )
+
+    @staticmethod
+    def generate_upload_presigned_url(user_id: int, chakra_type: str = 'default') -> Dict[str, Any]:
+        """
+        Generate presigned URL for direct S3 upload.
+
+        Args:
+            user_id: ID of the user uploading
+            chakra_type: Type of chakra
+
+        Returns:
+            Dictionary with presigned URL and metadata
+        """
+        s3_client = ImageService._get_s3_client()
+        if not s3_client:
+            return {
+                "status": "error",
+                "message": "S3 not configured"
+            }
+
+        # Generate unique filename
+        file_id = str(uuid.uuid4())
+        date_path = datetime.now().strftime('%Y-%m-%d')
+        key = f'chakras/{user_id}/{date_path}/{file_id}.jpg'
+
+        try:
+            presigned_url = s3_client.generate_presigned_url(
+                'put_object',
+                Params={
+                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                    'Key': key,
+                    'ContentType': 'image/jpeg'
+                },
+                ExpiresIn=300  # 5 minutes
+            )
+
+            return {
+                "status": "success",
+                "data": {
+                    "upload_url": presigned_url,
+                    "key": key,
+                    "file_id": file_id,
+                    "expires_in": 300  # 5 minutes
+                }
+            }
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    @staticmethod
+    def generate_view_presigned_url(image_key: str, expires_in: int = 3600) -> Optional[str]:
+        """
+        Generate presigned URL for viewing an image.
+
+        Args:
+            image_key: S3 object key
+            expires_in: URL expiration time in seconds (default: 1 hour)
+
+        Returns:
+            Presigned URL string or None
+        """
+        s3_client = ImageService._get_s3_client()
+        if not s3_client:
+            return None
+
+        try:
+            presigned_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                    'Key': image_key
+                },
+                ExpiresIn=expires_in
+            )
+            return presigned_url
+        except Exception as e:
+            logger.error(f"Failed to generate view presigned URL: {e}")
+            return None
 
     @staticmethod
     def extract_exif_data(image_file: InMemoryUploadedFile) -> Dict[str, Any]:
@@ -238,32 +345,44 @@ class ImageService:
             }
 
     @staticmethod
-    def get_user_images_for_date(user_id: int, date: datetime) -> list:
+    def get_user_images_for_date(user_id: int, date: datetime, generate_presigned: bool = True) -> list:
         """
         Retrieve all images uploaded by a user on a specific date.
 
         Args:
             user_id: ID of the user
             date: The date to query
+            generate_presigned: Whether to generate presigned URLs for S3
 
         Returns:
             List of image data for the specified date
         """
-        from django.db.models import Q
-
         # Query images from database
         images = ChakraImage.objects.filter(
             user_id=user_id,
             date=date.date()
         ).order_by('-timestamp')
 
-        return [{
-            "id": img.id,
-            "url": img.image.url,
-            "chakra_type": img.chakra_type,
-            "timestamp": img.timestamp.isoformat(),
-            "location": {
-                "latitude": img.latitude,
-                "longitude": img.longitude
-            } if img.latitude and img.longitude else None
-        } for img in images]
+        result = []
+        for img in images:
+            # Extract S3 key from image field if using S3
+            image_url = img.image.url
+            if generate_presigned and getattr(settings, 'USE_S3', False):
+                # Extract key from image field name
+                image_key = img.image.name
+                presigned_url = ImageService.generate_view_presigned_url(image_key)
+                if presigned_url:
+                    image_url = presigned_url
+
+            result.append({
+                "id": img.id,
+                "url": image_url,
+                "chakra_type": img.chakra_type,
+                "timestamp": img.timestamp.isoformat(),
+                "location": {
+                    "latitude": img.latitude,
+                    "longitude": img.longitude
+                } if img.latitude and img.longitude else None
+            })
+
+        return result

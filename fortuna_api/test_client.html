@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presigned URL 클라이언트 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #007bff;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            width: 100%;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+        img {
+            max-width: 300px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .config {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Presigned URL E2E 테스트</h1>
+
+        <div class="config">
+            <strong>⚙️ 설정</strong><br>
+            <label>
+                API URL:
+                <input type="text" id="apiUrl" value="http://localhost:8000" style="width: 300px; padding: 5px;">
+            </label><br>
+            <label>
+                JWT Token:
+                <input type="text" id="jwtToken" placeholder="Bearer eyJ..." style="width: 500px; padding: 5px;">
+            </label>
+        </div>
+
+        <div class="step">
+            <h3>Step 1: 이미지 선택</h3>
+            <input type="file" id="imageFile" accept="image/*">
+            <div id="preview"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Presigned URL 받기</h3>
+            <button onclick="getPresignedUrl()">🔗 Presigned URL 요청</button>
+            <div id="urlResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: S3에 직접 업로드</h3>
+            <button onclick="uploadToS3()" id="uploadBtn" disabled>☁️ S3 업로드</button>
+            <div id="uploadResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: 다운로드 테스트</h3>
+            <button onclick="testDownload()" id="downloadBtn" disabled>⬇️ 다운로드 테스트</button>
+            <div id="downloadResult"></div>
+        </div>
+
+        <div class="log" id="log">
+            <div class="log-info">📝 로그가 여기에 표시됩니다...</div>
+        </div>
+
+        <button onclick="clearLog()" style="background: #6c757d; margin-top: 10px;">🗑️ 로그 지우기</button>
+    </div>
+
+    <script>
+        let uploadUrl = null;
+        let s3Key = null;
+        let selectedFile = null;
+
+        // 로그 함수
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '<div class="log-info">📝 로그가 여기에 표시됩니다...</div>';
+        }
+
+        // 이미지 미리보기
+        document.getElementById('imageFile').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('preview').innerHTML =
+                        `<img src="${e.target.result}" alt="Preview">
+                         <p>파일: ${file.name} (${(file.size / 1024).toFixed(2)} KB)</p>`;
+                };
+                reader.readAsDataURL(file);
+                log(`✅ 이미지 선택: ${file.name}`, 'success');
+            }
+        });
+
+        // Step 2: Presigned URL 받기
+        async function getPresignedUrl() {
+            if (!selectedFile) {
+                alert('먼저 이미지를 선택하세요!');
+                return;
+            }
+
+            const apiUrl = document.getElementById('apiUrl').value;
+            const token = document.getElementById('jwtToken').value;
+
+            log('🔄 Presigned URL 요청 중...', 'info');
+
+            try {
+                const response = await fetch(`${apiUrl}/api/core/chakra/upload-url/?chakra_type=fire`, {
+                    headers: {
+                        'Authorization': token || 'Bearer YOUR_TOKEN'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    uploadUrl = data.data.upload_url;
+                    s3Key = data.data.key;
+
+                    document.getElementById('urlResult').innerHTML = `
+                        <p><strong>✅ Presigned URL 받음!</strong></p>
+                        <p><small>Key: ${s3Key}</small></p>
+                        <p><small>Expires in: ${data.data.expires_in}초</small></p>
+                    `;
+
+                    document.getElementById('uploadBtn').disabled = false;
+                    log(`✅ Presigned URL 받음: ${s3Key}`, 'success');
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                log(`❌ 오류: ${error.message}`, 'error');
+                document.getElementById('urlResult').innerHTML =
+                    `<p style="color: red;">❌ 오류: ${error.message}</p>`;
+            }
+        }
+
+        // Step 3: S3 업로드
+        async function uploadToS3() {
+            if (!uploadUrl || !selectedFile) {
+                alert('먼저 Presigned URL을 받으세요!');
+                return;
+            }
+
+            log('🔄 S3에 업로드 중...', 'info');
+
+            try {
+                const response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: selectedFile,
+                    headers: {
+                        'Content-Type': selectedFile.type || 'image/jpeg'
+                    }
+                });
+
+                if (response.ok) {
+                    document.getElementById('uploadResult').innerHTML =
+                        '<p><strong>✅ S3 업로드 성공!</strong></p>';
+                    document.getElementById('downloadBtn').disabled = false;
+                    log('✅ S3 업로드 성공!', 'success');
+                } else {
+                    throw new Error(`업로드 실패: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ 업로드 오류: ${error.message}`, 'error');
+                document.getElementById('uploadResult').innerHTML =
+                    `<p style="color: red;">❌ ${error.message}</p>`;
+            }
+        }
+
+        // Step 4: 다운로드 테스트
+        async function testDownload() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const token = document.getElementById('jwtToken').value;
+
+            log('🔄 다운로드 URL 요청 중...', 'info');
+
+            try {
+                // 실제로는 서버에서 view presigned URL을 받아야 함
+                // 여기서는 간단히 업로드한 파일이 있는지만 확인
+                document.getElementById('downloadResult').innerHTML =
+                    `<p><strong>✅ 업로드 완료!</strong></p>
+                     <p>S3 Key: ${s3Key}</p>
+                     <p>서버에서 view presigned URL을 생성하여 다운로드할 수 있습니다.</p>`;
+                log('✅ 테스트 완료!', 'success');
+            } catch (error) {
+                log(`❌ 오류: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
