@@ -141,6 +141,11 @@ if USE_S3:
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = False
 
+    # CORS configuration for presigned URLs (client-side uploads)
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+
     # Django 4.2+ STORAGES setting
     STORAGES = {
         "default": {

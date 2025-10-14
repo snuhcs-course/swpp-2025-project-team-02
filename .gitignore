@@ -76,4 +76,7 @@ dmypy.json
 
 # Documentation files
 fortuna_api/CLAUDE.md
-**/test_media/**/*/
+
+# Test files
+test_media/
+**/test_media/
