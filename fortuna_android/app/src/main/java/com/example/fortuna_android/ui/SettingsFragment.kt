@@ -53,14 +53,9 @@ class SettingsFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // 프로필 카드 클릭 → 프로필 편집 Dialog
+        // 프로필 카드 클릭 → 프로필 편집 Fragment로 이동
         binding.profileCard.setOnClickListener {
-            val profile = currentProfile
-            if (profile != null) {
-                showEditProfileDialog(profile)
-            } else {
-                Toast.makeText(requireContext(), "프로필 정보를 불러오는 중입니다.", Toast.LENGTH_SHORT).show()
-            }
+            findNavController().navigate(R.id.action_settings_to_profile_edit)
         }
 
         // 알림 클릭
@@ -176,12 +171,10 @@ class SettingsFragment : Fragment() {
         binding.profileName.text = nickname
     }
 
-    private fun showEditProfileDialog(profile: UserProfile) {
-        val dialog = ProfileEditDialogFragment.newInstance(profile) {
-            // Callback when profile is updated
-            loadUserProfile()
-        }
-        dialog.show(childFragmentManager, "ProfileEditDialog")
+    override fun onResume() {
+        super.onResume()
+        // 프로필 편집 후 돌아왔을 때 프로필 다시 로드
+        loadUserProfile()
     }
 
     override fun onDestroyView() {
