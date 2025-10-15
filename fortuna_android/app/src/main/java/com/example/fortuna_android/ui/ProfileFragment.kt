@@ -61,12 +61,16 @@ class ProfileFragment : Fragment() {
     fun loadUserProfile() {
         if (!isAdded) return
 
+        // 로딩 시작
+        showLoading()
+
         // Get JWT token from SharedPreferences
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val accessToken = prefs.getString(KEY_TOKEN, null)
 
         if (accessToken.isNullOrEmpty()) {
             Log.e(TAG, "No access token found")
+            hideLoading()
             if (isAdded) {
                 Toast.makeText(requireContext(), "Authentication required. Please log in again.", Toast.LENGTH_SHORT).show()
             }
@@ -84,20 +88,35 @@ class ProfileFragment : Fragment() {
                     if (profile != null) {
                         currentProfile = profile
                         updateUI(profile)
+                        hideLoading()
                     }
                 } else {
                     Log.e(TAG, "프로필 로드 실패: ${response.code()}")
+                    hideLoading()
                     if (isAdded) {
                         Toast.makeText(requireContext(), "프로필을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "프로필 로드 중 오류", e)
+                hideLoading()
                 if (isAdded) {
                     Toast.makeText(requireContext(), "프로필 로드 오류: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+    }
+
+    private fun showLoading() {
+        val binding = _binding ?: return
+        binding.loadingContainer.visibility = View.VISIBLE
+        binding.contentContainer.visibility = View.GONE
+    }
+
+    private fun hideLoading() {
+        val binding = _binding ?: return
+        binding.loadingContainer.visibility = View.GONE
+        binding.contentContainer.visibility = View.VISIBLE
     }
 
     private fun updateUI(profile: UserProfile) {
