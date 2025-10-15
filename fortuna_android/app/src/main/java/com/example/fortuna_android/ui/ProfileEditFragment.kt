@@ -130,7 +130,7 @@ class ProfileEditFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getUserProfile("Bearer $accessToken")
+                val response = RetrofitClient.instance.getUserProfile()
 
                 if (response.isSuccessful) {
                     val profile = response.body()
@@ -305,7 +305,7 @@ class ProfileEditFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.updateUserProfile("Bearer $token", request)
+                val response = RetrofitClient.instance.updateUserProfile(request)
 
                 if (response.isSuccessful) {
                     val updatedProfile = response.body()
