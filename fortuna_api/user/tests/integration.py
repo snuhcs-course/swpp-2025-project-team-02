@@ -435,6 +435,175 @@ class FortunaAPIIntegrationTests(APITestCase):
         second_delete_response = self.client.delete(reverse('user:user_deletion'))
         self.assertEqual(second_delete_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_saju_calculation_solar_vs_lunar_same_date(self):
+        """
+        시나리오 8: 양력/음력 입력에 따른 사주 계산 검증
+
+        사용자 스토리:
+        "양력 2000년 3월 17일을 입력한 유저 A와
+         음력 2000년 2월 12일을 입력한 유저 B의
+         사주 계산 결과가 동일해야 합니다. (같은 날이므로)"
+
+        테스트 목적:
+        - 양력/음력 변환이 올바르게 작동하는지 확인
+        - 변환 후 DB에 저장되는 사주 값이 정확한지 검증
+        - 같은 날짜에 대해 입력 달력 타입과 상관없이 동일한 사주가 계산되는지 확인
+        """
+
+        # 유저 A: 양력 2000년 3월 17일로 가입
+        login_response_a = self._mock_google_login(id_token='user_a_token')
+        user_a_data = self._assert_login_successful(login_response_a, is_new_user=True)
+
+        self._set_auth_header(user_a_data['access_token'])
+
+        # 유저 A 프로필 업데이트 (양력 입력)
+        user_a_birth_data = {
+            'nickname': '유저A_양력',
+            'input_birth_date': '2000-03-17',  # 양력 2000년 3월 17일
+            'input_calendar_type': 'solar',
+            'birth_time_units': '미시',  # 미시 (13:00-15:00, 14시 포함)
+            'gender': 'M'
+        }
+
+        update_response_a = self._update_profile(user_a_birth_data)
+        self.assertEqual(update_response_a.status_code, status.HTTP_200_OK)
+
+        user_a_result = update_response_a.json()['user']
+
+        # 유저 A 검증: 양력과 음력이 모두 저장되었는지 확인
+        self.assertIsNotNone(user_a_result['birth_date_solar'])
+        self.assertIsNotNone(user_a_result['birth_date_lunar'])
+        self._assert_saju_calculated(user_a_result)
+
+        # 유저 A DB에서 재조회하여 음력 변환 확인
+        profile_a = self._get_profile()
+        self.assertEqual(profile_a.status_code, status.HTTP_200_OK)
+        user_a_profile = profile_a.json()
+
+        # 양력 2000-03-17 -> 음력 2000-02-12로 변환되었는지 확인
+        self.assertEqual(user_a_profile['birth_date_solar'], '2000-03-17')
+        self.assertEqual(user_a_profile['birth_date_lunar'], '2000-02-12')
+
+        # ========================================
+        # 유저 B: 음력 2000년 2월 12일로 가입
+        # ========================================
+
+        # 새 유저를 위해 인증 헤더 제거
+        self.client.credentials()
+
+        login_response_b = self._mock_google_login(id_token='user_b_token')
+
+        # 새로운 Google 사용자 데이터 (다른 이메일)
+        with patch('user.utils.GoogleOAuthUtils.verify_google_token') as mock_verify:
+            mock_verify.return_value = {
+                'google_id': 'test_google_id_67890',
+                'email': 'userb@gmail.com',
+                'name': '김민수',
+                'profile_image': 'https://example.com/userb.jpg',
+                'is_verified': True
+            }
+            login_response_b = self.client.post(
+                reverse('user:google_auth'),
+                data={'id_token': 'user_b_token'},
+                format='json'
+            )
+
+        user_b_data = self._assert_login_successful(login_response_b, is_new_user=True)
+        self._set_auth_header(user_b_data['access_token'])
+
+        # 유저 B 프로필 업데이트 (음력 입력)
+        user_b_birth_data = {
+            'nickname': '유저B_음력',
+            'input_birth_date': '2000-02-12',  # 음력 2000년 2월 12일
+            'input_calendar_type': 'lunar',
+            'birth_time_units': '미시',  # 미시 (13:00-15:00, 14시 포함)
+            'gender': 'M'
+        }
+
+        update_response_b = self._update_profile(user_b_birth_data)
+        self.assertEqual(update_response_b.status_code, status.HTTP_200_OK)
+
+        user_b_result = update_response_b.json()['user']
+
+        # 유저 B 검증: 양력과 음력이 모두 저장되었는지 확인
+        self.assertIsNotNone(user_b_result['birth_date_solar'])
+        self.assertIsNotNone(user_b_result['birth_date_lunar'])
+        self._assert_saju_calculated(user_b_result)
+
+        # 유저 B DB에서 재조회하여 양력 변환 확인
+        profile_b = self._get_profile()
+        self.assertEqual(profile_b.status_code, status.HTTP_200_OK)
+        user_b_profile = profile_b.json()
+
+        # 음력 2000-02-12 -> 양력 2000-03-17로 변환되었는지 확인
+        self.assertEqual(user_b_profile['birth_date_lunar'], '2000-02-12')
+        self.assertEqual(user_b_profile['birth_date_solar'], '2000-03-17')
+
+        # ========================================
+        # 두 유저의 사주 계산 결과 비교
+        # ========================================
+
+        # 같은 양력 날짜이므로 사주 계산 결과가 동일해야 함
+        self.assertEqual(
+            user_a_profile['yearly_ganji'],
+            user_b_profile['yearly_ganji'],
+            "년주가 동일해야 합니다"
+        )
+        self.assertEqual(
+            user_a_profile['monthly_ganji'],
+            user_b_profile['monthly_ganji'],
+            "월주가 동일해야 합니다"
+        )
+        self.assertEqual(
+            user_a_profile['daily_ganji'],
+            user_b_profile['daily_ganji'],
+            "일주가 동일해야 합니다"
+        )
+        self.assertEqual(
+            user_a_profile['hourly_ganji'],
+            user_b_profile['hourly_ganji'],
+            "시주가 동일해야 합니다 (같은 시진)"
+        )
+
+        # 입력한 달력 타입은 다르지만 결과는 동일
+        self.assertEqual(user_a_profile['solar_or_lunar'], 'solar')
+        self.assertEqual(user_b_profile['solar_or_lunar'], 'lunar')
+
+        # 최종 검증: 두 유저의 사주가 완전히 일치하는지 확인
+        self.assertEqual(user_a_profile['birth_date_solar'], user_b_profile['birth_date_solar'])
+        self.assertEqual(user_a_profile['birth_date_lunar'], user_b_profile['birth_date_lunar'])
+
+        # ========================================
+        # 예상되는 사주 값 검증
+        # ========================================
+        # 양력 2000-03-17 / 음력 2000-02-12, 미시(14시) 기준 사주
+        expected_saju = {
+            'yearly_ganji': '경진',
+            'monthly_ganji': '기묘',
+            'daily_ganji': '갑술',
+            'hourly_ganji': '신미'
+        }
+
+        # 유저 A (양력 입력) 사주 검증
+        self.assertEqual(user_a_profile['yearly_ganji'], expected_saju['yearly_ganji'],
+                        f"유저 A 년주가 {expected_saju['yearly_ganji']}여야 합니다")
+        self.assertEqual(user_a_profile['monthly_ganji'], expected_saju['monthly_ganji'],
+                        f"유저 A 월주가 {expected_saju['monthly_ganji']}여야 합니다")
+        self.assertEqual(user_a_profile['daily_ganji'], expected_saju['daily_ganji'],
+                        f"유저 A 일주가 {expected_saju['daily_ganji']}여야 합니다")
+        self.assertEqual(user_a_profile['hourly_ganji'], expected_saju['hourly_ganji'],
+                        f"유저 A 시주가 {expected_saju['hourly_ganji']}여야 합니다")
+
+        # 유저 B (음력 입력) 사주 검증
+        self.assertEqual(user_b_profile['yearly_ganji'], expected_saju['yearly_ganji'],
+                        f"유저 B 년주가 {expected_saju['yearly_ganji']}여야 합니다")
+        self.assertEqual(user_b_profile['monthly_ganji'], expected_saju['monthly_ganji'],
+                        f"유저 B 월주가 {expected_saju['monthly_ganji']}여야 합니다")
+        self.assertEqual(user_b_profile['daily_ganji'], expected_saju['daily_ganji'],
+                        f"유저 B 일주가 {expected_saju['daily_ganji']}여야 합니다")
+        self.assertEqual(user_b_profile['hourly_ganji'], expected_saju['hourly_ganji'],
+                        f"유저 B 시주가 {expected_saju['hourly_ganji']}여야 합니다")
+
     def tearDown(self):
         """테스트 후 정리"""
         # 테스트 중 생성된 모든 사용자 데이터 삭제 (탈퇴한 사용자 포함)
