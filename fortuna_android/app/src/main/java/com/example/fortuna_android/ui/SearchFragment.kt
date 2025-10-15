@@ -67,7 +67,7 @@ class SearchFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getImages("Bearer $accessToken", currentDate)
+                val response = RetrofitClient.instance.getImages(currentDate)
 
                 // Check binding before updating UI
                 val currentBinding = _binding ?: return@launch

@@ -12,14 +12,13 @@ interface ApiService {
     suspend fun loginWithGoogle(@Body request: LoginRequest): Response<LoginResponse>
 
     @GET("api/user/profile/")
-    suspend fun getProfile(@Header("Authorization") token: String): Response<User>
+    suspend fun getProfile(): Response<User>
 
     @GET("api/user/profile/")
-    suspend fun getUserProfile(@Header("Authorization") token: String): Response<UserProfile>
+    suspend fun getUserProfile(): Response<UserProfile>
 
     @PATCH("api/user/profile/")
     suspend fun updateUserProfile(
-        @Header("Authorization") token: String,
         @Body request: UpdateProfileRequest
     ): Response<UpdateProfileResponse>
 
@@ -28,7 +27,6 @@ interface ApiService {
 
     @GET("api/core/chakra/images/")
     suspend fun getImages(
-        @Header("Authorization") token: String,
         @Query("date") date: String
     ): Response<ImageResponse>
 
@@ -38,14 +36,12 @@ interface ApiService {
     @Multipart
     @POST("api/core/chakra/upload/") // Replace with your actual upload endpoint
     suspend fun uploadImage(
-        @Header("Authorization") token: String,
         @Part image: MultipartBody.Part,
         @Part("chakra_type") chakraType: RequestBody
     ): Response<UploadResponse>
 
     @GET("api/core/fortune/tomorrow/")
     suspend fun getFortune(
-        @Header("Authorization") token: String,
         @Query("date") date: String
     ): Response<FortuneResponse>
 
@@ -53,5 +49,5 @@ interface ApiService {
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
 
     @DELETE("api/user/delete/")
-    suspend fun deleteAccount(@Header("Authorization") token: String): Response<Unit>
+    suspend fun deleteAccount(): Response<Unit>
 }

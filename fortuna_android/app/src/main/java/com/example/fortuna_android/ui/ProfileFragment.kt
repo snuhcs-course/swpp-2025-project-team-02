@@ -81,7 +81,7 @@ class ProfileFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getUserProfile("Bearer $accessToken")
+                val response = RetrofitClient.instance.getUserProfile()
 
                 if (response.isSuccessful) {
                     val profile = response.body()

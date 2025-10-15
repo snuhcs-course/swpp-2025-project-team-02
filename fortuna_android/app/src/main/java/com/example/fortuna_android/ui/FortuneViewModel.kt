@@ -81,8 +81,8 @@ class FortuneViewModel : ViewModel() {
 
                 Log.d(TAG, "Fortune request parameters: date=$currentDate")
 
-                // Network call on IO thread
-                val response = RetrofitClient.instance.getFortune("Bearer $accessToken", currentDate)
+                // Network call on IO thread - AuthInterceptor will handle token automatically
+                val response = RetrofitClient.instance.getFortune(currentDate)
 
                 // Process result
                 if (response.isSuccessful && response.body() != null) {
