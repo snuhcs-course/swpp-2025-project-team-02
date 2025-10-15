@@ -506,7 +506,8 @@ class CameraFragment : Fragment() {
                 }
 
                 // Convert JPEG to WebP for smaller file size
-                val uploadFile = compressImageToWebP(photoFile) ?: photoFile
+                // val uploadFile = compressImageToWebP(photoFile) ?: photoFile
+                val uploadFile = photoFile
                 val mimeType = if (uploadFile.extension == "webp") "image/webp" else "image/jpeg"
 
                 // Prepare multipart request
@@ -517,7 +518,7 @@ class CameraFragment : Fragment() {
                 val chakraTypePart = "water".toRequestBody("text/plain".toMediaType()) // Example chakra type
 
                 // Upload to backend
-                val response = RetrofitClient.instance.uploadImage("Bearer $accessToken", imagePart, chakraTypePart)
+                val response = RetrofitClient.instance.uploadImage(imagePart, chakraTypePart)
 
                 if (response.isSuccessful && response.body() != null) {
                     val uploadResponse = response.body()!!
