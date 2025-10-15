@@ -3,6 +3,9 @@ package com.example.fortuna_android.ui
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -119,6 +122,25 @@ class ProfileFragment : Fragment() {
         val birthTime = profile.birthTimeUnits ?: "미설정"
         binding.profileBirthInfo.text = "$birthDate, $birthTime"
 
+        // 오행 태그 설정 (일주의 천간 기준)
+        val dailyGanji = profile.dailyGanji
+        if (dailyGanji != null && dailyGanji.isNotEmpty()) {
+            val cheongan = dailyGanji[0].toString()
+            val element = getElementFromCheongan(cheongan)
+            val fullText = "당신의 오행은 $element"
+            val spannable = SpannableString(fullText)
+            val elementStart = fullText.indexOf(element)
+            if (elementStart >= 0) {
+                spannable.setSpan(
+                    StyleSpan(android.graphics.Typeface.BOLD),
+                    elementStart,
+                    elementStart + element.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            binding.profileElementTag.text = spannable
+        }
+
         // 사주팔자 타이틀
         binding.sajuViewText.text = "당신의 사주팔자"
 
@@ -128,6 +150,17 @@ class ProfileFragment : Fragment() {
             profile.dailyGanji,
             profile.hourlyGanji
         )
+    }
+
+    private fun getElementFromCheongan(cheongan: String): String {
+        return when (cheongan) {
+            "갑", "을" -> "나무"
+            "병", "정" -> "불"
+            "무", "기" -> "흙"
+            "경", "신" -> "쇠"
+            "임", "계" -> "물"
+            else -> "미정"
+        }
     }
 
     private fun displaySaju(yearly: String?, monthly: String?, daily: String?, hourly: String?) {
