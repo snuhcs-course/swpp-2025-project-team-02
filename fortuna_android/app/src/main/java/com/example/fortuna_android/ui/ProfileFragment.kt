@@ -3,6 +3,9 @@ package com.example.fortuna_android.ui
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -58,12 +61,16 @@ class ProfileFragment : Fragment() {
     fun loadUserProfile() {
         if (!isAdded) return
 
+        // 로딩 시작
+        showLoading()
+
         // Get JWT token from SharedPreferences
         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val accessToken = prefs.getString(KEY_TOKEN, null)
 
         if (accessToken.isNullOrEmpty()) {
             Log.e(TAG, "No access token found")
+            hideLoading()
             if (isAdded) {
                 Toast.makeText(requireContext(), "Authentication required. Please log in again.", Toast.LENGTH_SHORT).show()
             }
@@ -81,15 +88,18 @@ class ProfileFragment : Fragment() {
                     if (profile != null) {
                         currentProfile = profile
                         updateUI(profile)
+                        hideLoading()
                     }
                 } else {
                     Log.e(TAG, "프로필 로드 실패: ${response.code()}")
+                    hideLoading()
                     if (isAdded) {
                         Toast.makeText(requireContext(), "프로필을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "프로필 로드 중 오류", e)
+                hideLoading()
                 if (isAdded) {
                     Toast.makeText(requireContext(), "프로필 로드 오류: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
@@ -97,12 +107,69 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    private fun showLoading() {
+        val binding = _binding ?: return
+        binding.loadingContainer.visibility = View.VISIBLE
+        binding.contentContainer.visibility = View.GONE
+    }
+
+    private fun hideLoading() {
+        val binding = _binding ?: return
+        binding.loadingContainer.visibility = View.GONE
+        binding.contentContainer.visibility = View.VISIBLE
+    }
+
     private fun updateUI(profile: UserProfile) {
         val binding = _binding ?: return
 
-        val nickname = profile.nickname ?: profile.name
-        binding.welcomeTextView.text = "환영합니다, ${nickname}님!"
-        binding.sajuViewText.text = "${nickname}님의 사주팔자"
+        // 닉네임 표시
+        val nickname = profile.nickname ?: profile.name ?: "사용자"
+        binding.profileName.text = nickname
+
+        // 양력/음력 태그 설정
+        val solarOrLunar = profile.solarOrLunar
+        if (solarOrLunar == "solar") {
+            binding.profileCalendarTag.text = "양력"
+            binding.profileCalendarTag.setBackgroundResource(R.drawable.tag_solar)
+        } else if (solarOrLunar == "lunar") {
+            binding.profileCalendarTag.text = "음력"
+            binding.profileCalendarTag.setBackgroundResource(R.drawable.tag_lunar)
+        }
+
+        // 생년월일과 시간 통합 표시
+        val birthDate = profile.birthDateSolar ?: profile.birthDateLunar ?: "미설정"
+        val birthTime = profile.birthTimeUnits ?: "미설정"
+        binding.profileBirthInfo.text = "$birthDate, $birthTime"
+
+        // 오행 태그 설정 (일주의 천간 기준)
+        val dailyGanji = profile.dailyGanji
+        if (dailyGanji != null && dailyGanji.isNotEmpty()) {
+            val cheongan = dailyGanji[0].toString()
+            val element = getElementFromCheongan(cheongan)
+            val elementCharacter = getElementCharacter(cheongan)
+            val elementColor = getElementColor(cheongan)
+
+            // 한자 표시 (색상 적용)
+            binding.profileElementCharacter.text = elementCharacter
+            binding.profileElementCharacter.setTextColor(elementColor)
+
+            // 오행 태그 표시
+            val fullText = "당신의 오행은 $element"
+            val spannable = SpannableString(fullText)
+            val elementStart = fullText.indexOf(element)
+            if (elementStart >= 0) {
+                spannable.setSpan(
+                    StyleSpan(android.graphics.Typeface.BOLD),
+                    elementStart,
+                    elementStart + element.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            binding.profileElementTag.text = spannable
+        }
+
+        // 사주팔자 타이틀
+        binding.sajuViewText.text = "당신의 사주팔자"
 
         displaySaju(
             profile.yearlyGanji,
@@ -110,6 +177,39 @@ class ProfileFragment : Fragment() {
             profile.dailyGanji,
             profile.hourlyGanji
         )
+    }
+
+    private fun getElementFromCheongan(cheongan: String): String {
+        return when (cheongan) {
+            "갑", "을" -> "나무"
+            "병", "정" -> "불"
+            "무", "기" -> "흙"
+            "경", "신" -> "쇠"
+            "임", "계" -> "물"
+            else -> "미정"
+        }
+    }
+
+    private fun getElementCharacter(cheongan: String): String {
+        return when (cheongan) {
+            "갑", "을" -> "木"
+            "병", "정" -> "火"
+            "무", "기" -> "土"
+            "경", "신" -> "金"
+            "임", "계" -> "水"
+            else -> "?"
+        }
+    }
+
+    private fun getElementColor(cheongan: String): Int {
+        return when (cheongan) {
+            "갑", "을" -> Color.parseColor("#0BEFA0")  // 나무 - 초록
+            "병", "정" -> Color.parseColor("#F93E3E")  // 불 - 빨강
+            "무", "기" -> Color.parseColor("#8B4513")  // 흙 - 갈색
+            "경", "신" -> Color.parseColor("#C0C0C0")  // 쇠 - 은색
+            "임", "계" -> Color.parseColor("#2BB3FC")  // 물 - 파랑
+            else -> Color.WHITE
+        }
     }
 
     private fun displaySaju(yearly: String?, monthly: String?, daily: String?, hourly: String?) {

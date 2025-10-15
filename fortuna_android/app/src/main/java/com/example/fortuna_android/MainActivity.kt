@@ -53,6 +53,16 @@ class MainActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+
+            // Apply bottom padding to navigation bar to account for system navigation bar
+            val bottomNavView = binding.bottomNavigationView
+            bottomNavView.setPadding(
+                bottomNavView.paddingLeft,
+                bottomNavView.paddingTop,
+                bottomNavView.paddingRight,
+                systemBars.bottom + 8 // 8dp extra padding
+            )
+
             insets
         }
 
@@ -87,50 +97,8 @@ class MainActivity : AppCompatActivity() {
         setupGoogleSignIn()
         checkLoginStatus()
 
-        // Set the correct selected item to match the start destination
-        binding.bottomNavigationView.selectedItemId = R.id.homeFragment
-
-        // Connect the BottomNavigationView to the NavController with custom animations
-        binding.bottomNavigationView.setOnItemSelectedListener { item ->
-            if (_binding == null) return@setOnItemSelectedListener false
-            val options = when (item.itemId) {
-                R.id.profileFragment -> {
-                    // ProfileFragment: slide in from right
-                    NavOptions.Builder()
-                        .setEnterAnim(R.anim.slide_in_right)
-                        .setExitAnim(R.anim.slide_out_left)
-                        .setPopEnterAnim(R.anim.slide_in_left)
-                        .setPopExitAnim(R.anim.slide_out_right)
-                        .build()
-                }
-                R.id.searchFragment -> {
-                    // SearchFragment: slide in from left
-                    NavOptions.Builder()
-                        .setEnterAnim(R.anim.slide_in_left)
-                        .setExitAnim(R.anim.slide_out_right)
-                        .setPopEnterAnim(R.anim.slide_in_right)
-                        .setPopExitAnim(R.anim.slide_out_left)
-                        .build()
-                }
-                else -> {
-                    // Default animations for other fragments (Home)
-                    NavOptions.Builder()
-                        .setEnterAnim(android.R.anim.fade_in)
-                        .setExitAnim(android.R.anim.fade_out)
-                        .setPopEnterAnim(android.R.anim.fade_in)
-                        .setPopExitAnim(android.R.anim.fade_out)
-                        .build()
-                }
-            }
-
-            try {
-                navController.navigate(item.itemId, null, options)
-            } catch (e: IllegalStateException) {
-                Log.w(TAG, "Navigation failed - activity may be finishing", e)
-                return@setOnItemSelectedListener false
-            }
-            true
-        }
+        // Setup custom bottom navigation
+        setupCustomBottomNavigation(navController)
     }
 
     override fun onResume() {
@@ -147,6 +115,106 @@ class MainActivity : AppCompatActivity() {
             // 토큰이 있으면 유효성 검증 및 갱신
             lifecycleScope.launch {
                 validateAndRefreshToken(accessToken, refreshToken)
+            }
+        }
+    }
+
+    private fun setupCustomBottomNavigation(navController: androidx.navigation.NavController) {
+        // Set initial selected state (Home)
+        updateNavigationSelection(R.id.homeFragment)
+
+        // Home button
+        binding.navHome.setOnClickListener {
+            navigateToFragment(navController, R.id.homeFragment)
+        }
+
+        // Search button
+        binding.navSearch.setOnClickListener {
+            navigateToFragment(navController, R.id.searchFragment)
+        }
+
+        // Camera button (placeholder - no action for now)
+        binding.navCamera.setOnClickListener {
+            Toast.makeText(this, "카메라 기능 (추후 구현 예정)", Toast.LENGTH_SHORT).show()
+        }
+
+        // Profile button
+        binding.navProfile.setOnClickListener {
+            navigateToFragment(navController, R.id.profileFragment)
+        }
+
+        // Listen to navigation changes to update selection state
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateNavigationSelection(destination.id)
+        }
+    }
+
+    private fun navigateToFragment(navController: androidx.navigation.NavController, fragmentId: Int) {
+        if (_binding == null) return
+
+        val options = when (fragmentId) {
+            R.id.profileFragment -> {
+                // ProfileFragment: slide in from right
+                NavOptions.Builder()
+                    .setEnterAnim(R.anim.slide_in_right)
+                    .setExitAnim(R.anim.slide_out_left)
+                    .setPopEnterAnim(R.anim.slide_in_left)
+                    .setPopExitAnim(R.anim.slide_out_right)
+                    .build()
+            }
+            R.id.searchFragment -> {
+                // SearchFragment: slide in from left
+                NavOptions.Builder()
+                    .setEnterAnim(R.anim.slide_in_left)
+                    .setExitAnim(R.anim.slide_out_right)
+                    .setPopEnterAnim(R.anim.slide_in_right)
+                    .setPopExitAnim(R.anim.slide_out_left)
+                    .build()
+            }
+            else -> {
+                // Default animations for Home
+                NavOptions.Builder()
+                    .setEnterAnim(android.R.anim.fade_in)
+                    .setExitAnim(android.R.anim.fade_out)
+                    .setPopEnterAnim(android.R.anim.fade_in)
+                    .setPopExitAnim(android.R.anim.fade_out)
+                    .build()
+            }
+        }
+
+        try {
+            navController.navigate(fragmentId, null, options)
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Navigation failed - activity may be finishing", e)
+        }
+    }
+
+    private fun updateNavigationSelection(fragmentId: Int) {
+        val binding = _binding ?: return
+
+        // Reset all to unselected state (gray)
+        binding.navHomeIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
+        binding.navHomeLabel.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+
+        binding.navSearchIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
+        binding.navSearchLabel.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+
+        binding.navProfileIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
+        binding.navProfileLabel.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+
+        // Set selected item to white
+        when (fragmentId) {
+            R.id.homeFragment -> {
+                binding.navHomeIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.white))
+                binding.navHomeLabel.setTextColor(ContextCompat.getColor(this, android.R.color.white))
+            }
+            R.id.searchFragment -> {
+                binding.navSearchIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.white))
+                binding.navSearchLabel.setTextColor(ContextCompat.getColor(this, android.R.color.white))
+            }
+            R.id.profileFragment -> {
+                binding.navProfileIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.white))
+                binding.navProfileLabel.setTextColor(ContextCompat.getColor(this, android.R.color.white))
             }
         }
     }
