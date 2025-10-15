@@ -105,7 +105,7 @@ class SettingsFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.deleteAccount("Bearer $token")
+                val response = RetrofitClient.instance.deleteAccount()
 
                 if (response.isSuccessful) {
                     if (isAdded) {
@@ -147,7 +147,7 @@ class SettingsFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getUserProfile("Bearer $token")
+                val response = RetrofitClient.instance.getUserProfile()
 
                 if (response.isSuccessful) {
                     val profile = response.body()

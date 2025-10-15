@@ -83,6 +83,9 @@ class MainActivity : AppCompatActivity() {
 //            1
 //        )
 
+        // Initialize RetrofitClient with context for auth interceptor
+        RetrofitClient.initialize(this)
+
         // Login associated tasks
         setupGoogleSignIn()
         checkLoginStatus()
@@ -179,7 +182,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun validateAndRefreshToken(accessToken: String, refreshToken: String) {
         try {
             // Try to validate token by getting profile
-            val profileResponse = RetrofitClient.instance.getUserProfile("Bearer $accessToken")
+            val profileResponse = RetrofitClient.instance.getUserProfile()
 
             if (profileResponse.isSuccessful) {
                 Log.d(TAG, "Token is valid, user is logged in")

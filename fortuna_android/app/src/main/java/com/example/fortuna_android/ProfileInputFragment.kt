@@ -268,7 +268,7 @@ class ProfileInputFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.updateUserProfile("Bearer $token", request)
+                val response = RetrofitClient.instance.updateUserProfile(request)
 
                 if (response.isSuccessful) {
                     val updatedProfile = response.body()

@@ -238,7 +238,7 @@ class SignInFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getProfile("Bearer $token")
+                val response = RetrofitClient.instance.getProfile()
 
                 if (response.isSuccessful) {
                     val userProfile = response.body()
@@ -276,7 +276,7 @@ class SignInFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getUserProfile("Bearer $token")
+                val response = RetrofitClient.instance.getUserProfile()
 
                 if (response.isSuccessful) {
                     val userProfile = response.body()
