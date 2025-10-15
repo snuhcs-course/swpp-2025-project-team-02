@@ -100,9 +100,27 @@ class ProfileFragment : Fragment() {
     private fun updateUI(profile: UserProfile) {
         val binding = _binding ?: return
 
-        val nickname = profile.nickname ?: profile.name
-        binding.welcomeTextView.text = "환영합니다, ${nickname}님!"
-        binding.sajuViewText.text = "${nickname}님의 사주팔자"
+        // 닉네임 표시
+        val nickname = profile.nickname ?: profile.name ?: "사용자"
+        binding.profileName.text = nickname
+
+        // 양력/음력 태그 설정
+        val solarOrLunar = profile.solarOrLunar
+        if (solarOrLunar == "solar") {
+            binding.profileCalendarTag.text = "양력"
+            binding.profileCalendarTag.setBackgroundResource(R.drawable.tag_solar)
+        } else if (solarOrLunar == "lunar") {
+            binding.profileCalendarTag.text = "음력"
+            binding.profileCalendarTag.setBackgroundResource(R.drawable.tag_lunar)
+        }
+
+        // 생년월일과 시간 통합 표시
+        val birthDate = profile.birthDateSolar ?: profile.birthDateLunar ?: "미설정"
+        val birthTime = profile.birthTimeUnits ?: "미설정"
+        binding.profileBirthInfo.text = "$birthDate, $birthTime"
+
+        // 사주팔자 타이틀
+        binding.sajuViewText.text = "당신의 사주팔자"
 
         displaySaju(
             profile.yearlyGanji,
