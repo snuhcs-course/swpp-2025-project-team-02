@@ -125,9 +125,10 @@ class SajuCalendarConversionTestCase(TestCase):
         self.assertIsNotNone(user.hourly_ganji)
 
         # 실제 양력 날짜로 직접 계산한 값과 비교
+        # 미시(13:30~15:30)의 대표 시간은 14:30
         expected_saju = SajuCalculator.calculate_saju(
             user.birth_date_solar,
-            time(12, 0)  # 기본 시간
+            time(14, 30)  # 미시 대표 시간
         )
 
         self.assertEqual(user.yearly_ganji, expected_saju['yearly_ganji'])
@@ -163,9 +164,10 @@ class SajuCalendarConversionTestCase(TestCase):
         self.assertIsNotNone(user.hourly_ganji)
 
         # 양력 날짜로 직접 계산한 값과 비교
+        # 미시(13:30~15:30)의 대표 시간은 14:30
         expected_saju = SajuCalculator.calculate_saju(
             user.birth_date_solar,
-            time(12, 0)
+            time(14, 30)  # 미시 대표 시간
         )
 
         self.assertEqual(user.yearly_ganji, expected_saju['yearly_ganji'])
