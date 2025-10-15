@@ -54,12 +54,28 @@
                 android:gravity="center"
                 android:orientation="vertical">
 
-                <!-- 원형 프레임 (비워둠) -->
-                <View
-                    android:id="@+id/profile_circle"
+                <!-- 원형 프레임 with 한자 -->
+                <FrameLayout
                     android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:background="@android:color/darker_gray" />
+                    android:layout_height="120dp">
+
+                    <View
+                        android:id="@+id/profile_circle"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/darker_gray" />
+
+                    <TextView
+                        android:id="@+id/profile_element_character"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="木"
+                        android:textColor="#FFFFFF"
+                        android:textSize="60sp"
+                        android:textStyle="bold" />
+
+                </FrameLayout>
 
                 <!-- 오행 태그 (원형 프레임 아래 가운데) -->
                 <TextView

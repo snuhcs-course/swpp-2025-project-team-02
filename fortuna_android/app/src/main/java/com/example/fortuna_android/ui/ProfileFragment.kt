@@ -127,6 +127,12 @@ class ProfileFragment : Fragment() {
         if (dailyGanji != null && dailyGanji.isNotEmpty()) {
             val cheongan = dailyGanji[0].toString()
             val element = getElementFromCheongan(cheongan)
+            val elementCharacter = getElementCharacter(cheongan)
+
+            // 한자 표시
+            binding.profileElementCharacter.text = elementCharacter
+
+            // 오행 태그 표시
             val fullText = "당신의 오행은 $element"
             val spannable = SpannableString(fullText)
             val elementStart = fullText.indexOf(element)
@@ -160,6 +166,17 @@ class ProfileFragment : Fragment() {
             "경", "신" -> "쇠"
             "임", "계" -> "물"
             else -> "미정"
+        }
+    }
+
+    private fun getElementCharacter(cheongan: String): String {
+        return when (cheongan) {
+            "갑", "을" -> "木"
+            "병", "정" -> "火"
+            "무", "기" -> "土"
+            "경", "신" -> "金"
+            "임", "계" -> "水"
+            else -> "?"
         }
     }
 
