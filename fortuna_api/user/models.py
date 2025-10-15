@@ -205,10 +205,10 @@ class User(AbstractUser):
         """
         사주팔자(년주/월주/일주/시주) 계산 및 저장
 
-        음력 생년월일을 기준으로 사주팔자를 계산
+        양력 생년월일을 기준으로 사주팔자를 계산
         계산 실패 시 모든 간지 필드를 None으로 설정
         """
-        if not self.birth_date_lunar:
+        if not self.birth_date_solar:
             return
 
         try:
@@ -217,7 +217,7 @@ class User(AbstractUser):
 
             # 사주팔자 계산 (년주, 월주, 일주, 시주)
             saju_pillars_data = SajuCalculator.calculate_saju(
-                self.birth_date_lunar,
+                self.birth_date_solar,
                 default_birth_time
             )
 
