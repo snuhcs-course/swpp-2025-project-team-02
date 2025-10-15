@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UpdateProfileRequest
@@ -44,6 +45,9 @@ class ProfileEditFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // 하단 네비게이션 바 숨기기
+        (activity as? MainActivity)?.hideBottomNavigation()
 
         setupSpinners()
         setupClickListeners()
