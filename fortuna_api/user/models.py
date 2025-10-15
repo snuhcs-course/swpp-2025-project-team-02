@@ -201,24 +201,62 @@ class User(AbstractUser):
         self.solar_or_lunar = calendar_type
         self.birth_time_units = time_units
 
+    def _convert_time_units_to_time(self, time_units_str: str) -> time:
+        """
+        십이시(時辰) 문자열을 대표 시간으로 변환
+
+        각 시진의 중간 시간을 대표값으로 사용
+        예: 미시(13:30~15:30) -> 14:30
+
+        Args:
+            time_units_str: 시진 문자열 (예: "미시", "오시")
+
+        Returns:
+            해당 시진의 대표 시간 (time 객체)
+        """
+        # 시진별 대표 시간 매핑 (각 시진의 중간 시간)
+        time_units_mapping = {
+            '자시': time(1, 0),   # 00:30~01:30 중간
+            '축시': time(2, 30),  # 01:30~03:30 중간
+            '인시': time(4, 30),  # 03:30~05:30 중간
+            '묘시': time(6, 30),  # 05:30~07:30 중간
+            '진시': time(8, 30),  # 07:30~09:30 중간
+            '사시': time(10, 30), # 09:30~11:30 중간
+            '오시': time(12, 30), # 11:30~13:30 중간
+            '미시': time(14, 30), # 13:30~15:30 중간
+            '신시': time(16, 30), # 15:30~17:30 중간
+            '유시': time(18, 30), # 17:30~19:30 중간
+            '술시': time(20, 30), # 19:30~21:30 중간
+            '해시': time(22, 30), # 21:30~23:30 중간
+            '야자시': time(0, 0), # 23:30~00:30 중간 (자정)
+        }
+
+        # 매핑에서 찾거나 기본값(오정 12:30) 반환
+        return time_units_mapping.get(time_units_str, time(12, 30))
+
     def _calculate_and_store_saju_pillars(self):
         """
         사주팔자(년주/월주/일주/시주) 계산 및 저장
 
-        음력 생년월일을 기준으로 사주팔자를 계산
+        양력 생년월일을 기준으로 사주팔자를 계산
+        사용자가 입력한 birth_time_units를 반영
         계산 실패 시 모든 간지 필드를 None으로 설정
         """
-        if not self.birth_date_lunar:
+        if not self.birth_date_solar:
             return
 
         try:
-            # 기본 시간 설정 (오정 12시 = 12:00) - 정확한 시간을 모를 때 사용
-            default_birth_time = time(12, 0)
+            # 사용자가 입력한 시진을 시간으로 변환
+            if self.birth_time_units:
+                birth_time = self._convert_time_units_to_time(self.birth_time_units)
+            else:
+                # 기본값: 오정 12:30 - 정확한 시간을 모를 때 사용
+                birth_time = time(12, 30)
 
             # 사주팔자 계산 (년주, 월주, 일주, 시주)
             saju_pillars_data = SajuCalculator.calculate_saju(
-                self.birth_date_lunar,
-                default_birth_time
+                self.birth_date_solar,
+                birth_time
             )
 
             # 계산된 간지 저장
