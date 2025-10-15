@@ -128,9 +128,11 @@ class ProfileFragment : Fragment() {
             val cheongan = dailyGanji[0].toString()
             val element = getElementFromCheongan(cheongan)
             val elementCharacter = getElementCharacter(cheongan)
+            val elementColor = getElementColor(cheongan)
 
-            // 한자 표시
+            // 한자 표시 (색상 적용)
             binding.profileElementCharacter.text = elementCharacter
+            binding.profileElementCharacter.setTextColor(elementColor)
 
             // 오행 태그 표시
             val fullText = "당신의 오행은 $element"
@@ -177,6 +179,17 @@ class ProfileFragment : Fragment() {
             "경", "신" -> "金"
             "임", "계" -> "水"
             else -> "?"
+        }
+    }
+
+    private fun getElementColor(cheongan: String): Int {
+        return when (cheongan) {
+            "갑", "을" -> Color.parseColor("#0BEFA0")  // 나무 - 초록
+            "병", "정" -> Color.parseColor("#F93E3E")  // 불 - 빨강
+            "무", "기" -> Color.parseColor("#8B4513")  // 흙 - 갈색
+            "경", "신" -> Color.parseColor("#C0C0C0")  // 쇠 - 은색
+            "임", "계" -> Color.parseColor("#2BB3FC")  // 물 - 파랑
+            else -> Color.WHITE
         }
     }
 
