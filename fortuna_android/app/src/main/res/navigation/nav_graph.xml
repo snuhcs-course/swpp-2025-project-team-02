@@ -28,7 +28,19 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_home_to_fortune"
+            app:destination="@id/fortuneFragment"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out"
+            app:popEnterAnim="@android:anim/fade_in"
+            app:popExitAnim="@android:anim/fade_out" />
     </fragment>
+    <fragment
+        android:id="@+id/fortuneFragment"
+        android:name="com.example.fortuna_android.ui.FortuneFragment"
+        android:label="Fortune"
+        tools:layout="@layout/fragment_fortune" />
     <fragment
         android:id="@+id/searchFragment"
         android:name="com.example.fortuna_android.ui.SearchFragment"

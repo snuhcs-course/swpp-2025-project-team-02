@@ -5,17 +5,20 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
+import com.example.fortuna_android.MainActivity
+import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentHomeBinding
+import java.text.SimpleDateFormat
+import java.util.*
 
 class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var fortuneViewModel: FortuneViewModel
-    private var lastFortuneResult: String? = null
+    // Mock data: 업로드된 이미지 개수 (나중에 ViewModel로 관리)
+    private var uploadedPhotoCount = 0
 
     companion object {
         private const val TAG = "HomeFragment"
@@ -34,89 +37,77 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated: Setting up HomeFragment")
 
-        // Initialize ViewModel (activity-scoped to persist across fragments)
-        fortuneViewModel = ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
-        Log.d(TAG, "ViewModel initialized")
-
-        // Initialize lastFortuneResult with current ViewModel state to prevent duplicate toasts
-        lastFortuneResult = fortuneViewModel.fortuneResult.value
-
-        // Set up button click listeners
-        binding.btnFortune.setOnClickListener {
-            getFortune()
-        }
-
-        // Observe ViewModel data
-        setupObservers()
+        setupUI()
+        setupClickListeners()
     }
 
-    private fun setupObservers() {
-        // Observe fortune result
-        fortuneViewModel.fortuneResult.observe(viewLifecycleOwner) { fortune ->
-            Log.d(TAG, "Fortune result received: ${if (fortune != null) "Success" else "Null"}")
-            updateFortuneText(fortune)
+    private fun setupUI() {
+        // 날짜 및 시간 표시
+        updateDateTime()
 
-            // Show success toast only for new fortune results, not when returning to fragment
-            if (fortune != null && fortune != lastFortuneResult && isAdded) {
-                Toast.makeText(requireContext(), "Fortune generated successfully!", Toast.LENGTH_SHORT).show()
-                lastFortuneResult = fortune
-            }
-        }
-
-        // Observe loading state
-        fortuneViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            updateLoadingState(isLoading)
-        }
-
-        // Observe error messages
-        fortuneViewModel.errorMessage.observe(viewLifecycleOwner) { errorMessage ->
-            errorMessage?.let {
-                val binding = _binding ?: return@let
-                binding.tvFortuneResult.text = it
-                binding.btnFortune.isEnabled = true
-                binding.btnFortune.text = "Fortune Button"
-
-                if (isAdded) {
-                    Toast.makeText(requireContext(), "Network error - check logs", Toast.LENGTH_LONG).show()
-                }
-
-                // Clear the error after showing it
-                fortuneViewModel.clearError()
-            }
-        }
+        // Progress 업데이트
+        updateProgress()
     }
 
-    private fun updateFortuneText(fortune: String?) {
+    private fun updateDateTime() {
         val binding = _binding ?: return
-        // Only update text if we have a fortune result
-        if (fortune != null) {
-            binding.tvFortuneResult.text = fortune
-            binding.tvFortuneResult.visibility = View.VISIBLE
+
+        val calendar = Calendar.getInstance()
+
+        // 날짜 포맷: "오늘은 2025년 09월 19일 정유일(🔥)"
+        val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREAN)
+        val dateString = dateFormat.format(calendar.time)
+
+        // TODO: 간지 정보는 나중에 API 연동 시 추가
+        binding.tvDate.text = "오늘은 $dateString"
+
+        // 시간 포맷: "지금은 14시 30분(미시☁️)"
+        val timeFormat = SimpleDateFormat("HH시 mm분", Locale.KOREAN)
+        val timeString = timeFormat.format(calendar.time)
+
+        // TODO: 시진(時辰) 정보는 나중에 API 연동 시 추가
+        binding.tvTime.text = "지금은 $timeString"
+    }
+
+    private fun updateProgress() {
+        val binding = _binding ?: return
+        binding.tvProgress.text = "$uploadedPhotoCount / 4"
+    }
+
+    private fun setupClickListeners() {
+        val binding = _binding ?: return
+
+        // 카메라 카드 클릭 - 하단 네비게이션의 카메라 버튼과 동일한 동작
+        binding.cardCamera.setOnClickListener {
+            navigateToCamera()
+        }
+
+        // [개발용] Fortune View로 이동하는 임시 버튼
+        binding.btnGoToFortune.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_fortune)
+        }
+
+        // 첫 번째 이미지 카드 클릭 (나중에 확대 보기 등 기능 추가 가능)
+        binding.cardImage1.setOnClickListener {
+            Log.d(TAG, "Image card 1 clicked")
+            // TODO: 이미지 확대 보기 또는 다른 동작
         }
     }
 
-    private fun updateLoadingState(isLoading: Boolean) {
-        val binding = _binding ?: return
-        if (isLoading) {
-            binding.tvFortuneResult.text = "Generating your fortune... This may take up to 30 seconds."
-            binding.tvFortuneResult.visibility = View.VISIBLE
-            binding.btnFortune.isEnabled = false
-            binding.btnFortune.text = "Generating..."
-        } else {
-            binding.btnFortune.isEnabled = true
-            binding.btnFortune.text = "Fortune Button"
-            Log.d(TAG, "Loading UI state cleared - button enabled")
-            // Don't change the text when loading stops - let fortune result handle it
+    private fun navigateToCamera() {
+        // MainActivity의 카메라 네비게이션 로직 재사용
+        if (activity is MainActivity) {
+            val mainActivity = activity as MainActivity
+            // MainActivity의 카메라 버튼 클릭과 동일하게 권한 체크 후 이동
+            findNavController().navigate(R.id.cameraFragment)
         }
     }
 
-    private fun getFortune() {
-        val binding = _binding ?: return
-        // Get the include photos setting
-        val isTomorrow = binding.switchIncludePhotos.isChecked
-
-        // Use ViewModel to generate fortune
-        fortuneViewModel.getFortune(requireContext(), isTomorrow)
+    override fun onResume() {
+        super.onResume()
+        // Fragment가 다시 보일 때 날짜/시간 업데이트
+        updateDateTime()
+        // TODO: 나중에 서버에서 오늘 업로드한 사진 개수 가져오기
     }
 
     override fun onDestroyView() {
