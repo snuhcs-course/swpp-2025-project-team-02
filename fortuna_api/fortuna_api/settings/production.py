@@ -132,8 +132,8 @@ ADMIN_URL = config('ADMIN_URL', default='admin/')
 from datetime import timedelta
 
 SIMPLE_JWT.update({
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=180),
 })
 
 # Rate limiting
