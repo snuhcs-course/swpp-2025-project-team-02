@@ -132,9 +132,9 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- 2번 카드: 카메라 버튼 -->
+            <!-- 2번 카드: 이미지 또는 카메라 버튼 -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/cardCamera"
+                android:id="@+id/cardImage2"
                 android:layout_width="140dp"
                 android:layout_height="160dp"
                 android:layout_margin="6dp"
@@ -146,65 +146,173 @@
                 app:strokeColor="#FFFFFF"
                 app:strokeWidth="2dp">
 
-                <LinearLayout
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center">
+                    android:layout_height="match_parent">
 
+                    <!-- 이미지뷰 -->
                     <ImageView
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        android:src="@android:drawable/ic_menu_camera"
-                        app:tint="#FFFFFF" />
+                        android:id="@+id/ivPhoto2"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
 
-                </LinearLayout>
+                    <!-- 카메라 버튼 -->
+                    <LinearLayout
+                        android:id="@+id/layoutCamera"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:visibility="visible">
+
+                        <ImageView
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:src="@android:drawable/ic_menu_camera"
+                            app:tint="#FFFFFF" />
+
+                    </LinearLayout>
+
+                    <!-- 오행 원소 태그 -->
+                    <TextView
+                        android:id="@+id/tvElement2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|start"
+                        android:layout_margin="6dp"
+                        android:background="@drawable/button_default"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:text="모은 원소(🔵)"
+                        android:textColor="#FFFFFF"
+                        android:textSize="9sp"
+                        android:visibility="gone" />
+
+                </FrameLayout>
 
             </androidx.cardview.widget.CardView>
 
-            <!-- 3번 카드: 잠금 상태 -->
+            <!-- 3번 카드: 이미지 또는 잠금 -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/cardLocked3"
+                android:id="@+id/cardImage3"
                 android:layout_width="140dp"
                 android:layout_height="160dp"
                 android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
                 app:cardCornerRadius="12dp"
                 app:cardBackgroundColor="#1A1A1A"
                 app:strokeColor="#666666"
                 app:strokeWidth="2dp"
                 app:cardElevation="0dp">
 
-                <TextView
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="?"
-                    android:textColor="#666666"
-                    android:textSize="42sp"
-                    android:textStyle="bold" />
+                    android:layout_height="match_parent">
+
+                    <!-- 이미지뷰 -->
+                    <ImageView
+                        android:id="@+id/ivPhoto3"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+
+                    <!-- 잠금 상태 -->
+                    <TextView
+                        android:id="@+id/tvLocked3"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="?"
+                        android:textColor="#666666"
+                        android:textSize="42sp"
+                        android:textStyle="bold"
+                        android:visibility="visible" />
+
+                    <!-- 오행 원소 태그 -->
+                    <TextView
+                        android:id="@+id/tvElement3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|start"
+                        android:layout_margin="6dp"
+                        android:background="@drawable/button_default"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:text="모은 원소(🔵)"
+                        android:textColor="#FFFFFF"
+                        android:textSize="9sp"
+                        android:visibility="gone" />
+
+                </FrameLayout>
 
             </androidx.cardview.widget.CardView>
 
-            <!-- 4번 카드: 잠금 상태 -->
+            <!-- 4번 카드: 이미지 또는 잠금 -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/cardLocked4"
+                android:id="@+id/cardImage4"
                 android:layout_width="140dp"
                 android:layout_height="160dp"
                 android:layout_margin="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
                 app:cardCornerRadius="12dp"
                 app:cardBackgroundColor="#1A1A1A"
                 app:strokeColor="#666666"
                 app:strokeWidth="2dp"
                 app:cardElevation="0dp">
 
-                <TextView
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="?"
-                    android:textColor="#666666"
-                    android:textSize="42sp"
-                    android:textStyle="bold" />
+                    android:layout_height="match_parent">
+
+                    <!-- 이미지뷰 -->
+                    <ImageView
+                        android:id="@+id/ivPhoto4"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+
+                    <!-- 잠금 상태 -->
+                    <TextView
+                        android:id="@+id/tvLocked4"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="?"
+                        android:textColor="#666666"
+                        android:textSize="42sp"
+                        android:textStyle="bold"
+                        android:visibility="visible" />
+
+                    <!-- 오행 원소 태그 -->
+                    <TextView
+                        android:id="@+id/tvElement4"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|start"
+                        android:layout_margin="6dp"
+                        android:background="@drawable/button_default"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:text="모은 원소(🔵)"
+                        android:textColor="#FFFFFF"
+                        android:textSize="9sp"
+                        android:visibility="gone" />
+
+                </FrameLayout>
 
             </androidx.cardview.widget.CardView>
 
