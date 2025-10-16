@@ -8,32 +8,9 @@
     android:padding="16dp">
 
     <!-- 상단 앱바 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingBottom="16dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Fortuna"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/settings_button"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="설정"
-            android:src="@android:drawable/ic_menu_manage"
-            android:tint="#FFFFFF" />
-
-    </LinearLayout>
+    <include
+        android:id="@+id/header_fortuna"
+        layout="@layout/header_fortuna" />
 
     <!-- 로딩 인디케이터 -->
     <FrameLayout
