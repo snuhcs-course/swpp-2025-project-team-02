@@ -24,6 +24,9 @@ class FortuneCardView @JvmOverloads constructor(
     private var isDetailVisible = false
 
     init {
+        // Set CardView background to black to prevent white corners
+        setCardBackgroundColor(Color.parseColor("#000000"))
+
         binding = CardFortuneBinding.inflate(LayoutInflater.from(context), this, true)
         setupToggleButton()
     }
@@ -123,7 +126,7 @@ class FortuneCardView @JvmOverloads constructor(
                 setMargins(0, 0, 0, 20)
             }
             setPadding(20, 16, 20, 16)
-            setBackgroundColor(Color.parseColor("#3A3668"))
+            setBackgroundColor(Color.parseColor("#2A2A2A"))
         }
 
         // 차크라 타입 및 강도

@@ -6,9 +6,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
+import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentFortuneBinding
+import com.google.gson.Gson
 
 class FortuneFragment : Fragment() {
     private var _binding: FragmentFortuneBinding? = null
@@ -51,7 +55,7 @@ class FortuneFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // Observe fortune result
+        // Observe fortune result and navigate to detail
         fortuneViewModel.fortuneResult.observe(viewLifecycleOwner) { fortune ->
             Log.d(TAG, "Fortune result received: ${if (fortune != null) "Success" else "Null"}")
             updateFortuneText(fortune)
@@ -60,6 +64,19 @@ class FortuneFragment : Fragment() {
             if (fortune != null && fortune != lastFortuneResult && isAdded) {
                 Toast.makeText(requireContext(), "Fortune generated successfully!", Toast.LENGTH_SHORT).show()
                 lastFortuneResult = fortune
+            }
+        }
+
+        // Observe FortuneData and navigate to detail page
+        fortuneViewModel.fortuneData.observe(viewLifecycleOwner) { fortuneData ->
+            if (fortuneData != null && isAdded) {
+                Log.d(TAG, "FortuneData received, navigating to detail page")
+                val fortuneDataJson = Gson().toJson(fortuneData)
+                val bundle = bundleOf("fortuneData" to fortuneDataJson)
+                findNavController().navigate(R.id.action_fortune_to_fortune_detail, bundle)
+
+                // Clear the fortune data after navigation to prevent re-navigation on back
+                fortuneViewModel.clearFortuneData()
             }
         }
 
