@@ -12,6 +12,8 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
@@ -48,6 +50,19 @@ class ProfileEditFragment : Fragment() {
 
         // 하단 네비게이션 바 숨기기
         (activity as? MainActivity)?.hideBottomNavigation()
+
+        // Handle window insets to avoid overlap with system navigation bar
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Apply bottom padding to ensure save button is not hidden by system navigation bar
+            v.setPadding(
+                v.paddingLeft,
+                v.paddingTop,
+                v.paddingRight,
+                systemBars.bottom
+            )
+            insets
+        }
 
         setupSpinners()
         setupClickListeners()
