@@ -47,12 +47,5 @@
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btnHome"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Camera Button"
-            android:layout_marginBottom="16dp" />
-
 
 </LinearLayout>

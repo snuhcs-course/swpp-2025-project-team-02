@@ -136,9 +136,9 @@ class MainActivity : AppCompatActivity() {
             navigateToFragment(navController, R.id.searchFragment)
         }
 
-        // Camera button (placeholder - no action for now)
+        // Camera button - check permissions and navigate to camera
         binding.navCamera.setOnClickListener {
-            Toast.makeText(this, "카메라 기능 (추후 구현 예정)", Toast.LENGTH_SHORT).show()
+            checkAndNavigateToCamera(navController)
         }
 
         // Profile button
@@ -313,6 +313,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return true
+    }
+
+    private fun checkAndNavigateToCamera(navController: androidx.navigation.NavController) {
+        val missingPermissions = REQUIRED_PERMISSIONS.filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isEmpty()) {
+            // All permissions granted - navigate to camera
+            Log.d(TAG, "All permissions granted - navigating to camera")
+            Toast.makeText(this, "All permissions granted! Ready to proceed.", Toast.LENGTH_SHORT).show()
+            try {
+                navController.navigate(R.id.cameraFragment)
+            } catch (e: IllegalStateException) {
+                Log.w(TAG, "Navigation to camera failed - activity may be finishing", e)
+            }
+        } else {
+            // Some permissions missing - request them
+            Log.d(TAG, "Missing permissions: ${missingPermissions.joinToString()}")
+            Toast.makeText(this, "Some permissions missing. Requesting permissions...", Toast.LENGTH_SHORT).show()
+            requestPermissions()
+        }
     }
 
     fun requestPermissions() {

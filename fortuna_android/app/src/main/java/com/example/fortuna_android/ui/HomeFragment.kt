@@ -1,19 +1,13 @@
 package com.example.fortuna_android.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.fragment.findNavController
-import com.example.fortuna_android.MainActivity
-import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -48,10 +42,6 @@ class HomeFragment : Fragment() {
         lastFortuneResult = fortuneViewModel.fortuneResult.value
 
         // Set up button click listeners
-        binding.btnHome.setOnClickListener {
-            checkPermissions()
-        }
-
         binding.btnFortune.setOnClickListener {
             getFortune()
         }
@@ -127,40 +117,6 @@ class HomeFragment : Fragment() {
 
         // Use ViewModel to generate fortune
         fortuneViewModel.getFortune(requireContext(), isTomorrow)
-    }
-
-    private fun checkPermissions() {
-        // Check if fragment is still attached
-        if (!isAdded) {
-            return
-        }
-
-        val requiredPermissions = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-
-        val missingPermissions = requiredPermissions.filter { permission ->
-            ContextCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missingPermissions.isEmpty()) {
-            // All permissions granted - navigate to camera
-            Log.d(TAG, "All permissions granted - navigating to camera")
-            if (isAdded) {
-                Toast.makeText(requireContext(), "All permissions granted! Ready to proceed.", Toast.LENGTH_SHORT).show()
-                findNavController().navigate(R.id.cameraFragment)
-            }
-        } else {
-            // Some permissions missing - request them via MainActivity
-            Log.d(TAG, "Missing permissions: ${missingPermissions.joinToString()}")
-            if (isAdded) {
-                Toast.makeText(requireContext(), "Some permissions missing. Requesting permissions...", Toast.LENGTH_SHORT).show()
-            }
-            if (activity is MainActivity) {
-                (activity as? MainActivity)?.requestPermissions()
-            }
-        }
     }
 
     override fun onDestroyView() {
