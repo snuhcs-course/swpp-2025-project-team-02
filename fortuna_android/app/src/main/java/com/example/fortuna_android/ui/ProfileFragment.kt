@@ -46,14 +46,24 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupHeader()
         setupClickListeners()
         loadUserProfile()
+    }
+
+    private fun setupHeader() {
+        val binding = _binding ?: return
+        // Show settings button in header (it's hidden by default in header_fortuna.xml)
+        val settingsButton = binding.root.findViewById<View>(R.id.settings_button)
+        settingsButton?.visibility = View.VISIBLE
     }
 
     private fun setupClickListeners() {
         val binding = _binding ?: return
 
-        binding.settingsButton.setOnClickListener {
+        // Settings button is inside the included header
+        val settingsButton = binding.root.findViewById<View>(R.id.settings_button)
+        settingsButton?.setOnClickListener {
             findNavController().navigate(R.id.action_profile_to_settings)
         }
     }

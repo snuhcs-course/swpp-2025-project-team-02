@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
+import com.example.fortuna_android.api.FortuneData
 import com.example.fortuna_android.api.RetrofitClient
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -26,6 +27,10 @@ class FortuneViewModel : ViewModel() {
     // LiveData for fortune result
     private val _fortuneResult = MutableLiveData<String?>()
     val fortuneResult: LiveData<String?> = _fortuneResult
+
+    // LiveData for FortuneData object (for navigation to detail page)
+    private val _fortuneData = MutableLiveData<FortuneData?>()
+    val fortuneData: LiveData<FortuneData?> = _fortuneData
 
     // LiveData for loading state
     private val _isLoading = MutableLiveData<Boolean>(false)
@@ -95,12 +100,17 @@ class FortuneViewModel : ViewModel() {
                         // Update success state
                         val fortuneText = "${fortuneResponse.data.forDate}\n${fortune.fortuneSummary}\nOverall Fortune: ${fortune.overallFortune}\n${fortune.specialMessage}"
                         _fortuneResult.postValue(fortuneText)
+
+                        // Post FortuneData for navigation to detail page
+                        _fortuneData.postValue(fortuneResponse.data)
+
                         _isLoading.postValue(false)
                         _errorMessage.postValue(null)
                     } else {
                         // Fortune is pending or incomplete
                         Log.w(TAG, "Fortune data is incomplete or pending")
                         _fortuneResult.postValue(null)
+                        _fortuneData.postValue(null)
                         _isLoading.postValue(false)
                         _errorMessage.postValue("Your fortune is still being generated. Please wait until it's ready.")
                     }
@@ -149,6 +159,10 @@ class FortuneViewModel : ViewModel() {
     fun clearFortune() {
         _fortuneResult.value = null
         _errorMessage.value = null
+    }
+
+    fun clearFortuneData() {
+        _fortuneData.value = null
     }
 
     override fun onCleared() {
