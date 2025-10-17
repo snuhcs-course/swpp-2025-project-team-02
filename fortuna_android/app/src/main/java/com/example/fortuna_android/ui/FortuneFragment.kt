@@ -5,7 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import com.example.fortuna_android.util.CustomToast
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -62,7 +62,7 @@ class FortuneFragment : Fragment() {
 
             // Show success toast only for new fortune results, not when returning to fragment
             if (fortune != null && fortune != lastFortuneResult && isAdded) {
-                Toast.makeText(requireContext(), "Fortune generated successfully!", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "Fortune generated successfully!")
                 lastFortuneResult = fortune
             }
         }
@@ -94,7 +94,7 @@ class FortuneFragment : Fragment() {
                 binding.btnFortune.text = "Fortune Button"
 
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "Network error - check logs", Toast.LENGTH_LONG).show()
+                    CustomToast.show(requireContext(), "Network error - check logs")
                 }
 
                 // Clear the error after showing it

@@ -23,7 +23,7 @@ import com.example.fortuna_android.databinding.ActivityMainBinding
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import android.widget.Toast
+import com.example.fortuna_android.util.CustomToast
 import com.example.fortuna_android.api.RefreshTokenRequest
 import kotlinx.coroutines.launch
 
@@ -323,7 +323,7 @@ class MainActivity : AppCompatActivity() {
         if (missingPermissions.isEmpty()) {
             // All permissions granted - navigate to camera
             Log.d(TAG, "All permissions granted - navigating to camera")
-            Toast.makeText(this, "All permissions granted! Ready to proceed.", Toast.LENGTH_SHORT).show()
+            CustomToast.show(this, "All permissions granted! Ready to proceed.")
             try {
                 navController.navigate(R.id.cameraFragment)
             } catch (e: IllegalStateException) {
@@ -332,7 +332,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             // Some permissions missing - request them
             Log.d(TAG, "Missing permissions: ${missingPermissions.joinToString()}")
-            Toast.makeText(this, "Some permissions missing. Requesting permissions...", Toast.LENGTH_SHORT).show()
+            CustomToast.show(this, "Some permissions missing. Requesting permissions...")
             requestPermissions()
         }
     }
@@ -449,13 +449,13 @@ class MainActivity : AppCompatActivity() {
                     val logoutResponse = response.body()
                     Log.d(TAG, "서버 로그아웃 성공: ${logoutResponse?.message}")
                     if (!isFinishing && !isDestroyed) {
-                        Toast.makeText(this@MainActivity, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(this@MainActivity, "로그아웃 되었습니다.")
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "서버 로그아웃 실패: ${response.code()}, $errorBody")
                     if (!isFinishing && !isDestroyed) {
-                        Toast.makeText(this@MainActivity, "서버 로그아웃 실패, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(this@MainActivity, "서버 로그아웃 실패, 로컬에서 로그아웃합니다.")
                     }
                 }
 
@@ -465,7 +465,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "로그아웃 요청 중 오류", e)
                 if (!isFinishing && !isDestroyed) {
-                    Toast.makeText(this@MainActivity, "네트워크 오류, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(this@MainActivity, "네트워크 오류, 로컬에서 로그아웃합니다.")
                 }
                 performLocalLogout()
             }

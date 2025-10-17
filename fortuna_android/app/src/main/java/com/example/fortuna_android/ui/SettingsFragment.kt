@@ -6,7 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import com.example.fortuna_android.util.CustomToast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -63,7 +63,7 @@ class SettingsFragment : Fragment() {
 
         // 알림 클릭
         binding.notificationItem.setOnClickListener {
-            Toast.makeText(requireContext(), "알림 설정 (추후 구현 예정)", Toast.LENGTH_SHORT).show()
+            CustomToast.show(requireContext(), "알림 설정 (추후 구현 예정)")
         }
 
         // 로그아웃 클릭
@@ -97,7 +97,7 @@ class SettingsFragment : Fragment() {
 
         if (token.isNullOrEmpty()) {
             Log.e(TAG, "No token available for account deletion")
-            Toast.makeText(requireContext(), "인증 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+            CustomToast.show(requireContext(), "인증 정보를 찾을 수 없습니다.")
             return
         }
 
@@ -111,7 +111,7 @@ class SettingsFragment : Fragment() {
                         prefs.edit().clear().apply()
 
                         // Show toast and logout after a short delay to avoid system UI error
-                        Toast.makeText(requireContext(), "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "회원 탈퇴가 완료되었습니다.")
 
                         // Delay logout to ensure toast is displayed
                         view?.postDelayed({
@@ -121,13 +121,13 @@ class SettingsFragment : Fragment() {
                 } else {
                     Log.e(TAG, "Account deletion failed: ${response.code()}")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "회원 탈퇴에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "회원 탈퇴에 실패했습니다.")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting account", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "오류가 발생했습니다: ${e.message}")
                 }
             }
         }
@@ -156,13 +156,13 @@ class SettingsFragment : Fragment() {
                 } else {
                     Log.e(TAG, "프로필 로드 실패: ${response.code()}")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "프로필을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "프로필을 불러올 수 없습니다.")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "프로필 로드 중 오류", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "프로필 로드 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "프로필 로드 오류: ${e.message}")
                 }
             }
         }
