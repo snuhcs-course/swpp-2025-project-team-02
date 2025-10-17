@@ -17,6 +17,7 @@ import com.example.fortuna_android.api.LoginRequest
 import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
+import com.example.fortuna_android.util.CustomToast
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -39,7 +40,7 @@ class SignInFragment : Fragment() {
             handleSignInResult(task)
         } else {
             if (isAdded) {
-                Toast.makeText(requireContext(), "로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "로그인이 취소되었습니다.")
             }
         }
     }
