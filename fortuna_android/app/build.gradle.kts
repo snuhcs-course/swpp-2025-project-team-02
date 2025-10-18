@@ -100,4 +100,6 @@ dependencies {
     implementation(libs.firebase.messaging)
     // Dependency for WorkManager (scheduled notifications)
     implementation(libs.androidx.work.runtime.ktx)
+    // Dependency for custom toast
+    implementation("androidx.cardview:cardview:1.0.0")
 }

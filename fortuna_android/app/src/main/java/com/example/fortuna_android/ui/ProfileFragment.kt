@@ -11,7 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
+import com.example.fortuna_android.util.CustomToast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -82,7 +82,7 @@ class ProfileFragment : Fragment() {
             Log.e(TAG, "No access token found")
             hideLoading()
             if (isAdded) {
-                Toast.makeText(requireContext(), "Authentication required. Please log in again.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "Authentication required. Please log in again.")
             }
             return
         }
@@ -104,14 +104,14 @@ class ProfileFragment : Fragment() {
                     Log.e(TAG, "프로필 로드 실패: ${response.code()}")
                     hideLoading()
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "프로필을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "프로필을 불러올 수 없습니다.")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "프로필 로드 중 오류", e)
                 hideLoading()
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "프로필 로드 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "프로필 로드 오류: ${e.message}")
                 }
             }
         }

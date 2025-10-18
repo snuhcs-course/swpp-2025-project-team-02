@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import com.example.fortuna_android.databinding.FragmentSigninBinding
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -17,6 +16,7 @@ import com.example.fortuna_android.api.LoginRequest
 import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
+import com.example.fortuna_android.util.CustomToast
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -39,7 +39,7 @@ class SignInFragment : Fragment() {
             handleSignInResult(task)
         } else {
             if (isAdded) {
-                Toast.makeText(requireContext(), "로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "로그인이 취소되었습니다.")
             }
         }
     }
@@ -88,7 +88,7 @@ class SignInFragment : Fragment() {
         val client = mGoogleSignInClient
         if (client == null) {
             if (isAdded) {
-                Toast.makeText(requireContext(), "Google Sign-In이 초기화되지 않았습니다.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "Google Sign-In이 초기화되지 않았습니다.")
             }
             return
         }
@@ -118,13 +118,13 @@ class SignInFragment : Fragment() {
                     val logoutResponse = response.body()
                     Log.d(TAG, "서버 로그아웃 성공: ${logoutResponse?.message}")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "로그아웃 되었습니다.")
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "서버 로그아웃 실패: ${response.code()}, $errorBody")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "서버 로그아웃 실패, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "서버 로그아웃 실패, 로컬에서 로그아웃합니다.")
                     }
                 }
 
@@ -133,7 +133,7 @@ class SignInFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e(TAG, "로그아웃 요청 중 오류", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "네트워크 오류, 로컬에서 로그아웃합니다.", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "네트워크 오류, 로컬에서 로그아웃합니다.")
                 }
                 performLocalSignOut()
             }
@@ -155,7 +155,7 @@ class SignInFragment : Fragment() {
         try {
             val account = completedTask.getResult(ApiException::class.java)
             if (isAdded) {
-                Toast.makeText(requireContext(), "Google 로그인 성공!", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "Google 로그인 성공!")
             }
 
             val idToken = account.idToken
@@ -170,14 +170,14 @@ class SignInFragment : Fragment() {
             } else {
                 Log.w(TAG, "ID Token is null")
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "ID 토큰을 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "ID 토큰을 가져올 수 없습니다.")
                 }
             }
             updateUI(account)
         } catch (e: ApiException) {
             Log.w(TAG, "signInResult:failed code=" + e.statusCode)
             if (isAdded) {
-                Toast.makeText(requireContext(), "로그인에 실패했습니다. (코드: ${e.statusCode})", Toast.LENGTH_LONG).show()
+                CustomToast.show(requireContext(), "로그인에 실패했습니다. (코드: ${e.statusCode})")
             }
             updateUI(null)
         }
@@ -199,7 +199,7 @@ class SignInFragment : Fragment() {
                         prefs.edit().putString(KEY_TOKEN, backendToken).apply()
                         prefs.edit().putString(REFRESH_TOKEN, refreshToken).apply()
                         if (isAdded) {
-                            Toast.makeText(requireContext(), "'$username'님, 서버 로그인 성공!", Toast.LENGTH_SHORT).show()
+                            CustomToast.show(requireContext(), "'$username'님, 서버 로그인 성공!")
                         }
                         Log.d(TAG, "토큰이 SharedPreferences에 저장되었습니다: $backendToken")
 
@@ -209,13 +209,13 @@ class SignInFragment : Fragment() {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "서버 로그인 실패: ${response.code()}, $errorBody")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "서버 로그인 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                        CustomToast.show(requireContext(), "서버 로그인 실패 (코드: ${response.code()})")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error sending token to server", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                    CustomToast.show(requireContext(), "서버 통신 중 오류 발생: ${e.message}")
                 }
             }
         }
@@ -228,7 +228,7 @@ class SignInFragment : Fragment() {
         Log.d(TAG, "token: ${token}")
         if (token.isNullOrEmpty()) {
             if (isAdded) {
-                Toast.makeText(requireContext(), "저장된 토큰이 없습니다. 먼저 로그인해주세요.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "저장된 토큰이 없습니다. 먼저 로그인해주세요.")
             }
             return
         }
@@ -250,13 +250,13 @@ class SignInFragment : Fragment() {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "프로필 정보 받기 실패: ${response.code()}, $errorBody")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "토큰 검증 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                        CustomToast.show(requireContext(), "토큰 검증 실패 (코드: ${response.code()})")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error during profile verification", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                    CustomToast.show(requireContext(), "프로필 요청 중 오류 발생: ${e.message}")
                 }
             }
         }
@@ -298,13 +298,13 @@ class SignInFragment : Fragment() {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "사용자 프로필 가져오기 실패: ${response.code()}, $errorBody")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "프로필 정보를 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "프로필 정보를 가져올 수 없습니다.")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching user profile", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "프로필 요청 중 오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "프로필 요청 중 오류 발생: ${e.message}")
                 }
             }
         }

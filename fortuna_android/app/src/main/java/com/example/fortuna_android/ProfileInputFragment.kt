@@ -9,7 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.Toast
+import com.example.fortuna_android.util.CustomToast
 import com.example.fortuna_android.databinding.FragmentProfileInputBinding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -152,7 +152,7 @@ class ProfileInputFragment : Fragment() {
                 Log.d(TAG, "Step 1: nickname=$nickname")
                 if (nickname.isEmpty()) {
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "이름을 입력해주세요.")
                     }
                     return
                 }
@@ -165,7 +165,7 @@ class ProfileInputFragment : Fragment() {
                 Log.d(TAG, "Step 2: selectedSolarLunar=$selectedSolarLunar")
                 if (selectedSolarLunar.isEmpty()) {
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "음력/양력을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "음력/양력을 선택해주세요.")
                     }
                     return
                 }
@@ -184,7 +184,7 @@ class ProfileInputFragment : Fragment() {
                 Log.d(TAG, "Step 4: selectedGender=$selectedGender, submitting profile")
                 if (selectedGender.isEmpty()) {
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "성별을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "성별을 선택해주세요.")
                     }
                     return
                 }
@@ -209,19 +209,19 @@ class ProfileInputFragment : Fragment() {
 
         if (nickname.isEmpty()) {
             if (isAdded) {
-                Toast.makeText(requireContext(), "닉네임을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "닉네임을 입력해주세요.")
             }
             return
         }
         if (solarOrLunar.isEmpty()) {
             if (isAdded) {
-                Toast.makeText(requireContext(), "음력/양력을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "음력/양력을 선택해주세요.")
             }
             return
         }
         if (gender.isEmpty()) {
             if (isAdded) {
-                Toast.makeText(requireContext(), "성별을 선택해주세요.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "성별을 선택해주세요.")
             }
             return
         }
@@ -250,7 +250,7 @@ class ProfileInputFragment : Fragment() {
 
         if (token.isNullOrEmpty()) {
             if (isAdded) {
-                Toast.makeText(requireContext(), "인증 토큰이 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+                CustomToast.show(requireContext(), "인증 토큰이 없습니다. 다시 로그인해주세요.")
             }
             navigateToSignIn()
             return
@@ -274,7 +274,7 @@ class ProfileInputFragment : Fragment() {
                     val updatedProfile = response.body()
                     Log.d(TAG, "프로필 업데이트 성공: $updatedProfile")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "프로필이 성공적으로 업데이트되었습니다!", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "프로필이 성공적으로 업데이트되었습니다!")
                     }
 
                     navigateToMain()
@@ -282,13 +282,13 @@ class ProfileInputFragment : Fragment() {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "프로필 업데이트 실패: ${response.code()}, $errorBody")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "프로필 업데이트 실패 (코드: ${response.code()})", Toast.LENGTH_LONG).show()
+                        CustomToast.show(requireContext(), "프로필 업데이트 실패 (코드: ${response.code()})")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "프로필 업데이트 중 오류", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "서버 통신 중 오류 발생: ${e.message}", Toast.LENGTH_LONG).show()
+                    CustomToast.show(requireContext(), "서버 통신 중 오류 발생: ${e.message}")
                 }
             }
         }

@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutionException
 import androidx.camera.core.ImageCaptureException
 import java.io.File
 import java.util.Locale
-import android.widget.Toast
+import com.example.fortuna_android.util.CustomToast
 import android.content.ContentValues
 import android.provider.MediaStore
 import android.os.Build
@@ -352,7 +352,7 @@ class CameraFragment : Fragment() {
                 override fun onError(exception: ImageCaptureException) {
                     Log.e(TAG, "Photo capture failed: ${exception.message}", exception)
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "Photo capture failed", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "Photo capture failed")
                     }
                 }
 
@@ -498,7 +498,7 @@ class CameraFragment : Fragment() {
                 if (accessToken.isNullOrEmpty()) {
                     Log.e(TAG, "No access token found")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "Authentication required. Please log in again.", Toast.LENGTH_LONG).show()
+                        CustomToast.show(requireContext(), "Authentication required. Please log in again.")
                     }
                     hidePhotoPreview()
                     findNavController().popBackStack()
@@ -524,13 +524,13 @@ class CameraFragment : Fragment() {
                     val uploadResponse = response.body()!!
                     Log.d(TAG, "Upload successful: ${uploadResponse.status}")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "Image uploaded successfully!", Toast.LENGTH_SHORT).show()
+                        CustomToast.show(requireContext(), "Image uploaded successfully!")
                     }
                     savePhotoToGallery(photoFile)
                 } else {
                     Log.e(TAG, "Upload failed: ${response.code()} - ${response.message()}")
                     if (isAdded) {
-                        Toast.makeText(requireContext(), "Upload failed: ${response.code()}", Toast.LENGTH_LONG).show()
+                        CustomToast.show(requireContext(), "Upload failed: ${response.code()}")
                     }
                     savePhotoToGallery(photoFile)
                 }
@@ -542,7 +542,7 @@ class CameraFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e(TAG, "Upload error: ${e.message}", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "Upload error: ${e.message}", Toast.LENGTH_LONG).show()
+                    CustomToast.show(requireContext(), "Upload error: ${e.message}")
                 }
                 savePhotoToGallery(photoFile)
             } finally {
@@ -670,7 +670,7 @@ class CameraFragment : Fragment() {
                     }
                 }
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "Photo saved to gallery!", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "Photo saved to gallery!")
                 }
                 Log.d(TAG, "Photo saved to gallery: $imageUri")
 
@@ -679,7 +679,7 @@ class CameraFragment : Fragment() {
             } catch (e: IOException) {
                 Log.e(TAG, "Failed to save photo to gallery", e)
                 if (isAdded) {
-                    Toast.makeText(requireContext(), "Failed to save photo", Toast.LENGTH_SHORT).show()
+                    CustomToast.show(requireContext(), "Failed to save photo")
                 }
             }
         }
@@ -691,7 +691,7 @@ class CameraFragment : Fragment() {
             photoFile.delete()
         }
         if (isAdded) {
-            Toast.makeText(requireContext(), "Photo discarded", Toast.LENGTH_SHORT).show()
+            CustomToast.show(requireContext(), "Photo discarded")
         }
         hidePhotoPreview()
     }
