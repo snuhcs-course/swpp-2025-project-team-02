@@ -330,3 +330,6 @@ LOGGING = {
         },
     },
 }
+
+# OpenAI API Key
+OPENAI_API_KEY = config('OPENAI_API_KEY', default=None)
