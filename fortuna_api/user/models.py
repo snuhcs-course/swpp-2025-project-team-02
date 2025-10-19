@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from .managers import UserManager
-from core.utils.saju_concepts import TimeUnits, SajuCalculator
+from core.utils.saju_concepts import GanJi, Saju, TimeUnits, SajuCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,14 @@ class User(AbstractUser):
     
     def __str__(self):
         return f"{self.email} ({self.nickname or 'No nickname'})"
+    
+    def saju(self):
+        return Saju(
+            yearly=GanJi.find_by_name(self.yearly_ganji),
+            monthly=GanJi.find_by_name(self.monthly_ganji),
+            daily=GanJi.find_by_name(self.daily_ganji),
+            hourly=GanJi.find_by_name(self.hourly_ganji),
+        )
     
     def update_last_login(self):
         """마지막 로그인 시간 업데이트 - 부모 메서드에서 save() 호출 필요"""

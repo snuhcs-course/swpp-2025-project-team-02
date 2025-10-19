@@ -10,12 +10,12 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 import openai
 from django.conf import settings
-from ..utils.concept import (
-    GAPJA_SYSTEM,
-    get_gapja_by_code,
-    calculate_compatibility_score,
-    get_element_compatibility,
-    FIVE_ELEMENTS
+from ..utils.saju_concepts import (
+    Saju,
+    GanJi,
+    FiveElements,
+    TenStems,
+    TwelveBranches
 )
 from .image import ImageService
 from core.models import FortuneResult
@@ -65,23 +65,23 @@ class FortuneService:
         # logger.info(f"FortuneService initialized with OpenAI client: {api_key}")
         self.image_service = image_service if image_service else ImageService()
 
-    def calculate_gapja_code(self, date: datetime) -> int:
+    def calculate_day_ganji(self, date_value: datetime) -> GanJi:
         """
-        Calculate 60 Gapja code for a given date.
+        Calculate day pillar (일주) for a given date using proper Saju calculation.
 
         Args:
-            date: The date to calculate Gapja for
+            date_value: The date to calculate day pillar for
 
         Returns:
-            Gapja code (1-60)
+            GanJi object representing the day pillar
         """
-        # Simplified calculation - in production, use proper lunar calendar conversion
-        # This is a placeholder calculation based on days since a reference date
-        reference_date = datetime(1984, 2, 2)  # 갑자년 갑자월 갑자일
-        days_diff = (date - reference_date).days
-        return (days_diff % 60) + 1
+        # Convert datetime to date if necessary
+        if isinstance(date_value, datetime):
+            date_value = date_value.date()
 
-    def get_user_saju_info(self, user_id: int) -> Dict[str, Any]:
+        return Saju._calculate_day_pillar(date_value)
+
+    def get_user_saju_info(self, user_id: int) -> Saju:
         """
         Get user's Saju information from database.
 
@@ -89,51 +89,91 @@ class FortuneService:
             user_id: User ID
 
         Returns:
-            User's Saju information including birth date and pillars
+            Saju object containing user's four pillars
+
+        Raises:
+            ValueError: If user not found or saju data incomplete
         """
-        # In production, this would query from User model
-        # For now, return mock data
-        return {
-            "user_id": user_id,
-            "birth_date": "1995-03-15",
-            "birth_time": "14:30",
-            "lunar_birth_date": "1995-02-14",
-            "four_pillars": {
-                "year": {"code": 12, "name": "을해", "element": "목"},  # Example
-                "month": {"code": 28, "name": "기묘", "element": "토"},
-                "day": {"code": 45, "name": "무신", "element": "토"},    # Day pillar is most important
-                "hour": {"code": 7, "name": "경오", "element": "금"}
-            }
-        }
+        from user.models import User
+
+        try:
+            user = User.objects.get(id=user_id)
+
+            # Validate that user has complete saju data
+            if not all([user.yearly_ganji, user.monthly_ganji, user.daily_ganji, user.hourly_ganji]):
+                raise ValueError(f"User {user_id} has incomplete saju data")
+
+            # Build Saju object from user's ganji data using user.saju() method
+            return user.saju()
+
+        except User.DoesNotExist:
+            raise ValueError(f"User {user_id} not found")
 
     def analyze_saju_compatibility(
         self,
-        user_day_pillar: Dict[str, Any],
-        tomorrow_gapja: Dict[str, Any]
+        user_day_ganji: GanJi,
+        tomorrow_day_ganji: GanJi
     ) -> Dict[str, Any]:
         """
-        Analyze compatibility between user's day pillar and tomorrow's energy.
+        Analyze compatibility between user's day pillar and tomorrow's day pillar.
+
+        Uses Five Elements (오행) theory to determine compatibility:
+        - 상생 (empowers): One element empowers another (score bonus)
+        - 상극 (weakens): One element weakens another (score penalty)
+        - Same element: Neutral compatibility
 
         Args:
-            user_day_pillar: User's day pillar information
-            tomorrow_gapja: Tomorrow's Gapja information
+            user_day_ganji: User's day pillar (GanJi)
+            tomorrow_day_ganji: Tomorrow's day pillar (GanJi)
 
         Returns:
-            Compatibility analysis
+            Compatibility analysis with score, level, message, and element details
         """
-        # Get compatibility score
-        compatibility_score = calculate_compatibility_score(
-            user_day_pillar["code"],
-            tomorrow_gapja["code"]
-        )
+        # Get elements from stems (천간의 오행이 주요 에너지)
+        user_element = user_day_ganji.stem.element
+        tomorrow_element = tomorrow_day_ganji.stem.element
 
-        # Get element relationship
-        element_relation = get_element_compatibility(
-            user_day_pillar["element"],
-            tomorrow_gapja["stem_element"]
-        )
+        # Calculate base compatibility score (50 = neutral)
+        compatibility_score = 50
 
-        # Determine compatibility message
+        # Analyze element relationship
+        element_relation = "중립"
+        relation_detail = ""
+
+        if user_element.empowers(tomorrow_element):
+            # 상생: User's element empowers tomorrow's element
+            compatibility_score += 25
+            element_relation = "상생 (相生)"
+            relation_detail = f"{user_element.chinese}이(가) {tomorrow_element.chinese}을(를) 도와줍니다"
+        elif user_element.weakens(tomorrow_element):
+            # 상극: User's element weakens tomorrow's element
+            compatibility_score -= 15
+            element_relation = "상극 (相剋)"
+            relation_detail = f"{user_element.chinese}이(가) {tomorrow_element.chinese}을(를) 극합니다"
+        elif tomorrow_element.empowers(user_element):
+            # 역상생: Tomorrow's element empowers user's element
+            compatibility_score += 20
+            element_relation = "수혜 (受惠)"
+            relation_detail = f"{tomorrow_element.chinese}이(가) {user_element.chinese}을(를) 도와줍니다"
+        elif tomorrow_element.weakens(user_element):
+            # 역상극: Tomorrow's element weakens user's element
+            compatibility_score -= 20
+            element_relation = "피극 (被剋)"
+            relation_detail = f"{tomorrow_element.chinese}이(가) {user_element.chinese}을(를) 극합니다"
+        elif user_element == tomorrow_element:
+            # Same element: Neutral but stable
+            compatibility_score += 5
+            element_relation = "동행 (同行)"
+            relation_detail = f"같은 {user_element.chinese}행의 안정된 기운"
+
+        # Branch compatibility bonus (지지 조합)
+        if self._check_beneficial_branch_combination(user_day_ganji.branch, tomorrow_day_ganji.branch):
+            compatibility_score += 10
+
+        # Ensure score is within 0-100
+        compatibility_score = max(0, min(100, compatibility_score))
+
+        # Determine compatibility level and message
         if compatibility_score >= 80:
             compatibility_level = "매우 좋음"
             message = "당신의 사주와 내일의 기운이 완벽한 조화를 이룹니다."
@@ -152,9 +192,46 @@ class FortuneService:
             "level": compatibility_level,
             "message": message,
             "element_relation": element_relation,
-            "user_element": user_day_pillar["element"],
-            "tomorrow_element": tomorrow_gapja["stem_element"]
+            "relation_detail": relation_detail,
+            "user_element": user_element.chinese,
+            "user_element_color": user_element.color,
+            "tomorrow_element": tomorrow_element.chinese,
+            "tomorrow_element_color": tomorrow_element.color,
+            "user_ganji": user_day_ganji.two_letters,
+            "tomorrow_ganji": tomorrow_day_ganji.two_letters
         }
+
+    def _check_beneficial_branch_combination(
+        self,
+        user_branch: TwelveBranches,
+        tomorrow_branch: TwelveBranches
+    ) -> bool:
+        """
+        Check if branch combination is beneficial (삼합, 육합 등).
+
+        Args:
+            user_branch: User's branch
+            tomorrow_branch: Tomorrow's branch
+
+        Returns:
+            True if combination is beneficial
+        """
+        # 육합 (Six Harmonies): 지지끼리의 조화
+        liu_he_pairs = [
+            (TwelveBranches.JA, TwelveBranches.CHUK),   # 자축합
+            (TwelveBranches.IN, TwelveBranches.HAE),    # 인해합
+            (TwelveBranches.MYO, TwelveBranches.SUL),   # 묘술합
+            (TwelveBranches.JIN, TwelveBranches.YU),    # 진유합
+            (TwelveBranches.SA, TwelveBranches.SIN),    # 사신합
+            (TwelveBranches.O, TwelveBranches.MI),      # 오미합
+        ]
+
+        for branch_a, branch_b in liu_he_pairs:
+            if (user_branch == branch_a and tomorrow_branch == branch_b) or \
+               (user_branch == branch_b and tomorrow_branch == branch_a):
+                return True
+
+        return False
 
     def prepare_photo_context(
         self,
@@ -205,9 +282,9 @@ class FortuneService:
 
     def generate_fortune_with_ai(
         self,
-        user_saju: Dict[str, Any],
+        user_saju: Saju,
         tomorrow_date: datetime,
-        tomorrow_gapja: Dict[str, Any],
+        tomorrow_day_ganji: GanJi,
         compatibility: Dict[str, Any],
         photo_contexts: List[Dict[str, Any]]
     ) -> FortuneResponse:
@@ -215,31 +292,38 @@ class FortuneService:
         Generate fortune using OpenAI API with structured output.
 
         Args:
-            user_saju: User's Saju information
+            user_saju: User's Saju object (four pillars)
             tomorrow_date: Tomorrow's date
-            tomorrow_gapja: Tomorrow's Gapja
+            tomorrow_day_ganji: Tomorrow's day pillar (GanJi)
             compatibility: Compatibility analysis
             photo_contexts: Photo and location contexts
 
         Returns:
             Structured fortune response
         """
+        # Extract element information for context
+        user_day_element = user_saju.daily.stem.element
+        tomorrow_day_element = tomorrow_day_ganji.stem.element
+
         # Prepare context for AI
         context = f"""
         당신은 한국 전통 사주 전문가입니다. 사용자의 사주 정보와 오늘 수집한 차크라(사진) 정보를 바탕으로 내일의 운세를 풀어주세요.
 
         사용자 사주 정보:
-        - 일간 (Day Pillar): {user_saju['four_pillars']['day']['name']} ({user_saju['four_pillars']['day']['element']}행)
-        - 생년월일: {user_saju['birth_date']}
+        - 년주: {user_saju.yearly.two_letters} ({user_saju.yearly.stem.element.chinese}행)
+        - 월주: {user_saju.monthly.two_letters} ({user_saju.monthly.stem.element.chinese}행)
+        - 일주: {user_saju.daily.two_letters} ({user_day_element.chinese}행)
+        - 시주: {user_saju.hourly.two_letters} ({user_saju.hourly.stem.element.chinese}행)
 
         내일 날짜: {tomorrow_date.strftime('%Y년 %m월 %d일')}
-        내일의 일진: {tomorrow_gapja['korean_name']} ({tomorrow_gapja['stem_element']}행)
+        내일의 일진: {tomorrow_day_ganji.two_letters} ({tomorrow_day_element.chinese}행)
 
         사주 궁합:
         - 점수: {compatibility['score']}/100
         - 관계: {compatibility['element_relation']}
-        - 사용자 오행: {compatibility['user_element']}
-        - 내일 오행: {compatibility['tomorrow_element']}
+        - 상세: {compatibility['relation_detail']}
+        - 사용자 오행: {compatibility['user_element']}행 ({compatibility['user_element_color']})
+        - 내일 오행: {compatibility['tomorrow_element']}행 ({compatibility['tomorrow_element_color']})
 
         오늘 수집된 차크라 정보:
         """
@@ -363,17 +447,16 @@ class FortuneService:
             # Get tomorrow's date
             tomorrow_date = date + timedelta(days=1)
 
-            # Get user's Saju information
+            # Get user's Saju information (returns Saju object)
             user_saju = self.get_user_saju_info(user_id)
 
-            # Calculate tomorrow's Gapja
-            tomorrow_code = self.calculate_gapja_code(tomorrow_date)
-            tomorrow_gapja = get_gapja_by_code(tomorrow_code)
+            # Calculate tomorrow's day pillar (일주)
+            tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
 
-            # Analyze compatibility
+            # Analyze compatibility between user's day pillar and tomorrow's day pillar
             compatibility = self.analyze_saju_compatibility(
-                user_saju['four_pillars']['day'],
-                tomorrow_gapja
+                user_saju.daily,  # User's day pillar
+                tomorrow_day_ganji  # Tomorrow's day pillar
             )
 
             # Get photo contexts if requested
@@ -385,19 +468,23 @@ class FortuneService:
             fortune = self.generate_fortune_with_ai(
                 user_saju,
                 tomorrow_date,
-                tomorrow_gapja,
+                tomorrow_day_ganji,
                 compatibility,
                 photo_contexts
             )
+
+            # Get index of tomorrow's ganji in 60-ganji cycle for storage
+            cached_ganji_list = GanJi._get_cached()
+            tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
             # Save to database
             fortune_result, created = FortuneResult.objects.update_or_create(
                 user_id=user_id,
                 for_date=tomorrow_date.date(),
                 defaults={
-                    'gapja_code': tomorrow_code,
-                    'gapja_name': tomorrow_gapja['korean_name'],
-                    'gapja_element': tomorrow_gapja['stem_element'],
+                    'gapja_code': tomorrow_ganji_index,
+                    'gapja_name': tomorrow_day_ganji.two_letters,
+                    'gapja_element': tomorrow_day_ganji.stem.element.chinese,
                     'fortune_data': fortune.model_dump() if fortune else {}
                 }
             )
@@ -411,11 +498,13 @@ class FortuneService:
                     "generated_at": fortune_result.created_at.isoformat(),
                     "for_date": tomorrow_date.strftime('%Y-%m-%d'),
                     "tomorrow_gapja": {
-                        "code": tomorrow_code,
-                        "name": tomorrow_gapja['korean_name'],
-                        "chinese": tomorrow_gapja['chinese_characters'],
-                        "element": tomorrow_gapja['stem_element'],
-                        "animal": tomorrow_gapja['animal']
+                        "code": tomorrow_ganji_index,
+                        "name": tomorrow_day_ganji.two_letters,
+                        "stem": tomorrow_day_ganji.stem.korean_name,
+                        "branch": tomorrow_day_ganji.branch.korean_name,
+                        "element": tomorrow_day_ganji.stem.element.chinese,
+                        "element_color": tomorrow_day_ganji.stem.element.color,
+                        "animal": tomorrow_day_ganji.branch.animal
                     },
                     "fortune": fortune.model_dump() if fortune else None
                 }

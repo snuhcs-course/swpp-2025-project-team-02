@@ -250,52 +250,6 @@ class TestFortuneAPIEndpoints(APITestCase):
         )
         self.assertEqual(response.data['status'], 'error')
 
-    @patch('core.services.fortune.FortuneService.get_hourly_fortune')
-    def test_get_hourly_fortune_success(self, mock_hourly):
-        """Test successful hourly fortune retrieval."""
-        mock_hourly.return_value = {
-            'status': 'success',
-            'data': {
-                'current_time': '2024-01-01T14:30:00',
-                'time_unit': '미시',
-                'time_element': '토',
-                'compatibility': 'neutral',
-                'advice': '평온한 시간입니다.'
-            }
-        }
-
-        url = reverse('core:hourly_fortune')
-        response = self.client.get(
-            url,
-            {'datetime': '2024-01-01T14:30:00'}
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['data']['time_unit'], '미시')
-        self.assertEqual(response.data['data']['time_element'], '토')
-
-    def test_get_hourly_fortune_invalid_datetime(self):
-        """Test hourly fortune with invalid datetime."""
-        url = reverse('core:hourly_fortune')
-        response = self.client.get(url, {'datetime': 'invalid'})
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('Invalid datetime format', response.data['message'])
-
-    @patch('core.services.fortune.FortuneService.get_hourly_fortune')
-    def test_get_hourly_fortune_default_time(self, mock_hourly):
-        """Test hourly fortune without datetime (uses current time)."""
-        mock_hourly.return_value = {
-            'status': 'success',
-            'data': {'time_unit': '오시'}
-        }
-
-        url = reverse('core:hourly_fortune')
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(mock_hourly.called)
-
     @override_settings(DEVELOPMENT_MODE=False)
     def test_fortune_endpoints_unauthenticated(self):
         """Test fortune endpoints without authentication."""
@@ -305,12 +259,6 @@ class TestFortuneAPIEndpoints(APITestCase):
         url1 = reverse('core:tomorrow_fortune')
         response1 = self.client.get(url1)
         self.assertEqual(response1.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        # Test hourly fortune
-        url2 = reverse('core:hourly_fortune')
-        response2 = self.client.get(url2)
-        self.assertEqual(response2.status_code, status.HTTP_401_UNAUTHORIZED)
-
 
 class TestAPIIntegration(APITestCase):
     """Integration tests for API workflow."""

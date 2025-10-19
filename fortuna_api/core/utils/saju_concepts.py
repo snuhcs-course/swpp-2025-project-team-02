@@ -3,12 +3,11 @@ Korean Saju (四柱) concepts and calculations.
 Direct port from Kotlin SajuConcepts.kt
 """
 from enum import Enum
-from datetime import date, time, datetime
-from typing import Optional
+from datetime import date, time, datetime, timedelta
+from typing import Optional, Union
 from astronomy import Time, SunPosition
 from lunarcalendar import Converter, Solar, Lunar
 from loguru import logger
-
 
 class YinYang(Enum):
     """음양 (Yin-Yang)"""
@@ -262,6 +261,104 @@ class SolarTerms(Enum):
         ecliptic_longitude = sun_position.elon
         return ecliptic_longitude
 
+    @staticmethod
+    def _forward_delta_deg(target_deg: float, current_deg: float) -> float:
+        """Return the forward (0..360) angular distance from current_deg to target_deg."""
+        return (target_deg - current_deg) % 360.0
+
+    @classmethod
+    def _next_major_longitude_after(cls, current_longitude: float) -> tuple['SolarTerms', float]:
+        """
+        Given a current ecliptic longitude in degrees, find the next 'major' solar term longitude
+        (the 12 입절 only) and return (term, target_longitude).
+        """
+        major_terms = cls._get_major_solar_terms()  # list of (SolarTerms, longitude)
+        # Compute the smallest positive forward delta to each major term and pick the minimum.
+        best = None
+        best_delta = 1e9
+        for term, lon in major_terms:
+            delta = cls._forward_delta_deg(lon, current_longitude)
+            if 0.0 < delta < best_delta:
+                best = (term, float(lon))
+                best_delta = delta
+        # If current_longitude is exactly on a major term (rare), advance to the next one cyclically.
+        if best is None:
+            # Find the exact match index and pick the next list item (cyclic)
+            for i, (term, lon) in enumerate(major_terms):
+                if abs(((current_longitude - lon + 180) % 360) - 180) < 1e-9:
+                    nxt = (i + 1) % len(major_terms)
+                    return major_terms[nxt][0], float(major_terms[nxt][1])
+            # Fallback: pick 입춘
+            return cls.IPCHUN, 315.0
+        return best[0], best[1]
+
+    @classmethod
+    def _refine_time_to_longitude(cls, start_dt: datetime, target_longitude: float, max_iter: int = 8) -> datetime:
+        """
+        Iteratively refine the time at which the Sun's ecliptic longitude reaches target_longitude.
+        Uses a simple secant-like iteration with mean daily motion (~0.9856 deg/day) as the initial slope.
+        """
+        dt = start_dt
+        for _ in range(max_iter):
+            # Current longitude
+            t = Time.Make(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+            sun = SunPosition(t)
+            cur_lon = sun.elon % 360.0
+            # Forward delta from current to target (0..360)
+            delta = (target_longitude - cur_lon) % 360.0
+            if delta < 1e-6:
+                break
+            # Mean solar motion ~ 0.9856 deg/day; jump most of the remaining arc.
+            jump_days = max(0.02, delta / 0.985647)  # clamp to avoid zero/negative or too small jumps
+            dt = dt + timedelta(days=jump_days)
+        return dt
+
+    @classmethod
+    def next_major_term_datetime(cls, dt: datetime) -> tuple['SolarTerms', datetime]:
+        """
+        Compute the next 'major' solar term (입절: 12 terms that switch the 월지) after the given datetime.
+        Returns a tuple of (SolarTerms, datetime in UTC as naive datetime).
+        """
+        # 1) Current ecliptic longitude at the given datetime (approx with noon if time missing).
+        t0 = Time.Make(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        cur_lon = SunPosition(t0).elon % 360.0
+
+        # 2) Determine the next major term angle and which SolarTerms it maps to.
+        next_term, target_lon = cls._next_major_longitude_after(cur_lon)
+
+        # 3) Rough initial guess: advance by delta / 0.9856 days, then refine.
+        delta = (target_lon - cur_lon) % 360.0
+        rough_dt = dt + timedelta(days=(delta / 0.985647))
+        refined_dt = cls._refine_time_to_longitude(rough_dt, target_lon)
+
+        # astronomy-engine's Time stores UTC; we keep naive UTC datetime for consistency with the rest of the file.
+        return next_term, refined_dt
+
+    @classmethod
+    def previous_major_term_datetime(cls, dt: datetime) -> tuple['SolarTerms', datetime]:
+        """
+        Compute the previous 'major' solar term (입절) before the given datetime.
+        """
+        t0 = Time.Make(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        cur_lon = SunPosition(t0).elon % 360.0
+
+        # Build all forward deltas and pick the *largest* (i.e., go backwards to previous)
+        major_terms = cls._get_major_solar_terms()
+        best_term = None
+        best_delta_back = -1.0
+        for term, lon in major_terms:
+            # Backward delta in (0..360): how far we would need to go back
+            back = (cur_lon - lon) % 360.0
+            if back > best_delta_back:
+                best_delta_back = back
+                best_term = (term, float(lon))
+
+        # Initial guess: go back by back/0.9856 days, then refine from that earlier time.
+        target_lon = best_term[1]
+        rough_dt = dt - timedelta(days=(best_delta_back / 0.985647))
+        refined_dt = cls._refine_time_to_longitude(rough_dt, target_lon)
+        return best_term[0], refined_dt
+
     @classmethod
     def find_by_date(cls, date_value: date) -> 'SolarTerms':
         """
@@ -360,9 +457,13 @@ class GanJi:
         """인덱스로 간지 찾기 (Kotlin: GanJi.idxAt)"""
         cached_ganji_list = cls._get_cached()
         return cached_ganji_list[index % len(cached_ganji_list)]
+    
+    @classmethod
+    def get_index(cls, ganji: 'GanJi') -> int:
+        return cls._get_cached().index(ganji)
 
     @classmethod
-    def find_by_name(cls, *args) -> 'GanJi':
+    def find_by_name(cls, *args: Union[str, TenStems, TwelveBranches]) -> 'GanJi':
         """간지 찾기 (Kotlin의 find 오버로딩)"""
         if len(args) == 1:
             # find_by_name(text: String)
@@ -538,8 +639,6 @@ class Saju:
             'hourly_ganji': self.hourly.two_letters
         }
 
-
-# 하위 호환성을 위한 SajuCalculator (기존 API 유지)
 class SajuCalculator:
     """사주 계산기 (Backward compatibility)"""
 

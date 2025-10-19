@@ -498,5 +498,4 @@ urlpatterns = [
 
     # Fortune endpoints
     path('fortune/tomorrow/', get_tomorrow_fortune, name='tomorrow_fortune'),
-    path('fortune/hourly/', get_hourly_fortune, name='hourly_fortune'),
 ]

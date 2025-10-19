@@ -180,23 +180,18 @@ class TestFortuneServicePersistence(TestCase):
         """Set up test fixtures."""
         self.user = User.objects.create_user(
             email='service@example.com',
-            password='testpass123'
+            password='testpass123',
+            yearly_ganji='갑자',
+            monthly_ganji='병인',
+            daily_ganji='무신',
+            hourly_ganji='임오'
         )
         with patch('core.services.fortune.openai'):
             self.service = FortuneService()
 
     @patch.object(FortuneService, 'generate_fortune_with_ai')
-    @patch.object(FortuneService, 'get_user_saju_info')
-    def test_fortune_generation_saves_to_db(self, mock_saju, mock_ai):
+    def test_fortune_generation_saves_to_db(self, mock_ai):
         """Test that fortune generation saves to database."""
-        mock_saju.return_value = {
-            'user_id': self.user.id,
-            'birth_date': '1995-03-15',
-            'four_pillars': {
-                'day': {'code': 45, 'name': '무신', 'element': '토'}
-            }
-        }
-
         from core.services.fortune import FortuneResponse, ChakraReading, DailyGuidance
         mock_ai.return_value = FortuneResponse(
             tomorrow_date='2024-01-02',
@@ -232,17 +227,8 @@ class TestFortuneServicePersistence(TestCase):
         self.assertIsNotNone(fortune.fortune_data)
 
     @patch.object(FortuneService, 'generate_fortune_with_ai')
-    @patch.object(FortuneService, 'get_user_saju_info')
-    def test_fortune_regeneration_updates_existing(self, mock_saju, mock_ai):
+    def test_fortune_regeneration_updates_existing(self, mock_ai):
         """Test that regenerating fortune updates existing record."""
-        mock_saju.return_value = {
-            'user_id': self.user.id,
-            'birth_date': '1995-03-15',
-            'four_pillars': {
-                'day': {'code': 45, 'name': '무신', 'element': '토'}
-            }
-        }
-
         from core.services.fortune import FortuneResponse, DailyGuidance
         mock_ai.return_value = FortuneResponse(
             tomorrow_date='2024-01-02',
