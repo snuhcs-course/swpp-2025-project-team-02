@@ -1,6 +1,7 @@
 package com.example.fortuna_android.ui
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.example.fortuna_android.IntroActivity
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
@@ -92,6 +94,12 @@ class HomeFragment : Fragment() {
         // [개발용] Fortune View로 이동하는 임시 버튼
         binding.btnGoToFortune.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_fortune)
+        }
+
+        // 사주 설명 버튼
+        binding.btnSajuExplanation.setOnClickListener {
+            val intent = Intent(requireContext(), IntroActivity::class.java)
+            startActivity(intent)
         }
 
         // 모든 카드에 클릭 리스너 (카메라 또는 이미지 확대)

@@ -14,6 +14,7 @@ import java.io.IOException
 class AuthInterceptor(private val context: Context) : Interceptor {
 
     companion object {
+
         private const val TAG = "AuthInterceptor"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"

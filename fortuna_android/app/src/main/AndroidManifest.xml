@@ -32,6 +32,9 @@
         <activity
             android:name=".AuthContainerActivity"
             android:exported="false" />
+        <activity
+            android:name=".IntroActivity"
+            android:exported="false" />
 
         <service
             android:name=".FortunaFirebaseMessagingService"
