@@ -222,35 +222,7 @@
 
             </LinearLayout>
 
-            <!-- 통계 카드 2: 지금까지 본 내일의 수 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/card_background"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="16dp">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🔮 지금까지 본 내일의 수"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="8"
-                    android:textColor="#BB86FC"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
 
             <!-- 사주팔자 카드 (커스텀 View) -->
             <com.example.fortuna_android.ui.SajuPaljaView
