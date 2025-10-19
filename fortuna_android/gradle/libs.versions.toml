@@ -30,6 +30,8 @@ lifecycle = "2.9.4"
 playServicesAuth = "21.4.0"
 # AR Core version
 arCore = "1.50.0"
+# Sceneform version (AndroidX compatible fork for 3D model rendering)
+sceneformAndroidX = "0.10.0"
 # Guava for ListenableFuture (required by CameraX)
 guava = "33.3.1-android"
 # Firebase BOM version
@@ -55,6 +57,7 @@ retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 google-ar-core = { group = "com.google.ar", name = "core", version.ref = "arCore" }
+sceneform-androidx = { group = "io.github.sceneview", name = "arsceneview", version.ref = "sceneformAndroidX" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
