@@ -8,42 +8,38 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.IntroActivity
-import com.example.fortuna_android.R
-import com.example.fortuna_android.databinding.FragmentHomeBinding
+import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
 
-class HomeFragment : Fragment() {
-    private var _binding: FragmentHomeBinding? = null
+class TodayFortuneFragment : Fragment() {
+    private var _binding: FragmentTodayFortuneBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var fortuneViewModel: FortuneViewModel
 
     companion object {
-        private const val TAG = "HomeFragment"
+        private const val TAG = "TodayFortuneFragment"
+
+        fun newInstance() = TodayFortuneFragment()
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        Log.d(TAG, "onCreateView: HomeFragment view created")
-        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        _binding = FragmentTodayFortuneBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Log.d(TAG, "onViewCreated: Setting up HomeFragment")
 
-        // Initialize ViewModel
+        // Get shared ViewModel from parent activity
         fortuneViewModel = ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
 
         setupClickListeners()
         setupObservers()
-
-        // Load today's fortune automatically
-        loadTodayFortune()
     }
 
     private fun setupClickListeners() {
@@ -53,16 +49,6 @@ class HomeFragment : Fragment() {
         binding.btnSajuExplanation.setOnClickListener {
             val intent = Intent(requireContext(), IntroActivity::class.java)
             startActivity(intent)
-        }
-
-        // 프로필 버튼 (헤더에 포함된 버튼)
-        binding.root.findViewById<View>(R.id.profile_button)?.setOnClickListener {
-            findNavController().navigate(R.id.action_home_to_profile)
-        }
-
-        // 개운하기 버튼 (FloatingActionButton) - 카메라로 이동
-        binding.fabRefreshFortune.setOnClickListener {
-            findNavController().navigate(R.id.cameraFragment)
         }
     }
 
@@ -111,17 +97,6 @@ class HomeFragment : Fragment() {
                 fortuneViewModel.clearError()
             }
         }
-    }
-
-    private fun loadTodayFortune() {
-        Log.d(TAG, "Loading today's fortune...")
-        fortuneViewModel.getTodayFortune(requireContext())
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Reload fortune (ViewModel will cache if already loaded)
-        loadTodayFortune()
     }
 
     override fun onDestroyView() {
