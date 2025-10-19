@@ -124,11 +124,11 @@ class CameraFragment : Fragment() {
         getCurrentLocation()
 
         // AR 초기화를 지연시켜 CameraX가 먼저 로드되도록 함
-        view.postDelayed({
-            if (isAdded && _binding != null) {
-                setupArOverlay()
-            }
-        }, 300) // 300ms 지연
+//        view.postDelayed({
+//            if (isAdded && _binding != null) {
+//                setupArOverlay()
+//            }
+//        }, 300) // 300ms 지연
     }
 
     /**
