@@ -223,7 +223,27 @@
                         android:text="화(火)의 기운이 강합니다."
                         android:textColor="#CCCCCC"
                         android:textSize="14sp"
-                        android:lineSpacingExtra="4dp" />
+                        android:lineSpacingExtra="4dp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- 오행 분포 -->
+                    <LinearLayout
+                        android:id="@+id/llElementDistribution"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 해석 -->
+                    <TextView
+                        android:id="@+id/tvInterpretation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="매우 균형잡힌 오행 배치입니다."
+                        android:textColor="#AAAAAA"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="4dp"
+                        android:textStyle="italic" />
 
                 </LinearLayout>
 
@@ -301,33 +321,6 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
-
-                </LinearLayout>
-
-                <!-- 사주 궁합 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="24dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="♾️ 사주 궁합"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:id="@+id/tvSajuCompatibility"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="오늘은 목(木) 기운과 잘 맞습니다."
-                        android:textColor="#CCCCCC"
-                        android:textSize="14sp"
-                        android:lineSpacingExtra="4dp" />
 
                 </LinearLayout>
 

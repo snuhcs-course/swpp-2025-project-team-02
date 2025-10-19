@@ -53,12 +53,12 @@ class TodayFortuneFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // Observe FortuneData
+        // Observe TodayFortuneData
         fortuneViewModel.fortuneData.observe(viewLifecycleOwner) { fortuneData ->
             val binding = _binding ?: return@observe
 
             if (fortuneData != null) {
-                Log.d(TAG, "FortuneData received, displaying on card")
+                Log.d(TAG, "TodayFortuneData received, displaying on card")
                 // Show fortune card and hide loading/error
                 binding.fortuneCardView.visibility = View.VISIBLE
                 binding.loadingContainer.visibility = View.GONE

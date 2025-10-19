@@ -10,11 +10,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
-import com.example.fortuna_android.api.FortuneData
+import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class FortuneViewModel : ViewModel() {
 
@@ -28,9 +25,9 @@ class FortuneViewModel : ViewModel() {
     private val _fortuneResult = MutableLiveData<String?>()
     val fortuneResult: LiveData<String?> = _fortuneResult
 
-    // LiveData for FortuneData object (for navigation to detail page)
-    private val _fortuneData = MutableLiveData<FortuneData?>()
-    val fortuneData: LiveData<FortuneData?> = _fortuneData
+    // LiveData for TodayFortuneData object (for navigation to detail page)
+    private val _fortuneData = MutableLiveData<TodayFortuneData?>()
+    val fortuneData: LiveData<TodayFortuneData?> = _fortuneData
 
     // LiveData for loading state
     private val _isLoading = MutableLiveData<Boolean>(false)
@@ -73,17 +70,21 @@ class FortuneViewModel : ViewModel() {
                     return@launch
                 }
 
-                // Prepare request parameters - always get today's date
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val currentDate = dateFormat.format(Date())
-
                 // Network call on IO thread - AuthInterceptor will handle token automatically
-                val response = RetrofitClient.instance.getFortune(currentDate)
+                val response = RetrofitClient.instance.getTodayFortune()
 
                 // Process result
                 if (response.isSuccessful && response.body() != null) {
                     val fortuneResponse = response.body()!!
                     Log.d(TAG, "Fortune received: ${fortuneResponse.status}")
+                    Log.d(TAG, "Fortune Response Data: ${fortuneResponse.data}")
+                    Log.d(TAG, "Fortune Score: ${fortuneResponse.data.fortuneScore}")
+                    Log.d(TAG, "Elements: ${fortuneResponse.data.fortuneScore.elements}")
+
+                    // Check each pillar
+                    fortuneResponse.data.fortuneScore.elements.forEach { (key, pillar) ->
+                        Log.d(TAG, "Pillar[$key]: ${pillar.twoLetters}, Stem: ${pillar.stem.koreanName}(${pillar.stem.element}), Branch: ${pillar.branch.koreanName}(${pillar.branch.element})")
+                    }
 
                     // Check if fortune data is complete
                     val fortune = fortuneResponse.data.fortune
@@ -92,7 +93,7 @@ class FortuneViewModel : ViewModel() {
                         val fortuneText = "${fortuneResponse.data.forDate}\n${fortune.fortuneSummary}\nOverall Fortune: ${fortune.overallFortune}\n${fortune.specialMessage}"
                         _fortuneResult.postValue(fortuneText)
 
-                        // Post FortuneData for navigation to detail page
+                        // Post TodayFortuneData for navigation to detail page
                         _fortuneData.postValue(fortuneResponse.data)
 
                         _isLoading.postValue(false)

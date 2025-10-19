@@ -225,9 +225,9 @@ data class TodayFortuneData(
     @SerializedName("user_id")
     val userId: Int,
     @SerializedName("generated_at")
-    val generatedAt: String,
+    val generatedAt: String?,
     @SerializedName("for_date")
-    val forDate: String,
+    val forDate: String?,
     val fortune: TodayFortune,
     @SerializedName("fortune_score")
     val fortuneScore: FortuneScore
