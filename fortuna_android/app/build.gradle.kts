@@ -81,6 +81,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     // Dependency for Google ARCore
     implementation(libs.google.ar.core)
+    // Dependency for Sceneform (3D model rendering)
+    implementation(libs.sceneform.core)
     // Dependency for CameraX API
     implementation(libs.bundles.camerax)
     // Dependency for fragment navigation
