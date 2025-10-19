@@ -37,7 +37,7 @@ class TestFortuneBalance(TestCase):
 
         # Check structure
         self.assertIn("entropy_score", balance)
-        self.assertIn("total_elements", balance)
+        self.assertIn("elements", balance)
         self.assertIn("element_distribution", balance)
         self.assertIn("interpretation", balance)
 
@@ -45,6 +45,17 @@ class TestFortuneBalance(TestCase):
         self.assertIsInstance(balance["entropy_score"], float)
         self.assertGreaterEqual(balance["entropy_score"], 0)
         self.assertLessEqual(balance["entropy_score"], 100)
+
+        # Check elements structure (should have 8 keys for 8 pillars)
+        elements = balance["elements"]
+        self.assertIn("대운", elements)
+        self.assertIn("세운", elements)
+        self.assertIn("월운", elements)
+        self.assertIn("일운", elements)
+        self.assertIn("년주", elements)
+        self.assertIn("월주", elements)
+        self.assertIn("일주", elements)
+        self.assertIn("시주", elements)
 
     def test_calculate_fortune_balance_element_distribution(self):
         """Test that element distribution sums to total elements."""
@@ -58,9 +69,9 @@ class TestFortuneBalance(TestCase):
         # Should have all 5 elements
         self.assertEqual(len(distribution), 5)
 
-        # Check that counts sum to total
+        # Check that counts exist
         total_count = sum(elem["count"] for elem in distribution.values())
-        self.assertEqual(total_count, balance["total_elements"])
+        self.assertGreater(total_count, 0)
 
         # Check percentages sum to ~100
         total_percentage = sum(elem["percentage"] for elem in distribution.values())
@@ -85,9 +96,18 @@ class TestFortuneBalance(TestCase):
         test_date = datetime(2024, 12, 25, 12, 0)
         balance = self.service.calculate_fortune_balance(older_user, test_date)
 
-        # Should have 16 elements (8 pillars * 2)
-        # 4 user pillars + 3 date pillars + 1 daewoon pillar = 8 pillars
-        self.assertEqual(balance["total_elements"], 16)
+        # Should have elements field with all 8 pillars
+        elements = balance["elements"]
+
+        # Check that daewoon exists (not None) for older user
+        self.assertIsNotNone(elements["대운"])
+
+        # Count total elements from distribution
+        distribution = balance["element_distribution"]
+        total_count = sum(elem["count"] for elem in distribution.values())
+
+        # Should have 16 elements (8 pillars * 2) when daewoon exists
+        self.assertEqual(total_count, 16)
 
     def test_five_element_entropy_score_perfect_balance(self):
         """Test entropy score with perfectly balanced distribution."""

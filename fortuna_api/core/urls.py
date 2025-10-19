@@ -254,7 +254,6 @@ def upload_chakra_image(request):
         return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
 
-@deprecated
 @extend_schema(
     summary="Generate Tomorrow's Fortune",
     description="Generate personalized Saju fortune for tomorrow based on today's collected chakras. Can retrieve pre-generated fortune if available.",
@@ -306,7 +305,7 @@ def upload_chakra_image(request):
         }
     }
 )
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 @permission_classes([DevelopmentOrAuthenticated])
 def get_tomorrow_fortune(request):
     """
@@ -391,7 +390,7 @@ def get_tomorrow_fortune(request):
     summary="Get Fortune for the day (YYYY-MM-DD)",
     description="Get personalized Saju fortune for the day (YYYY-MM-DD). Can retrieve pre-generated fortune if available.",
 )
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 @permission_classes([DevelopmentOrAuthenticated])
 def get_today_fortune(request):
     """

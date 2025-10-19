@@ -651,9 +651,29 @@ class FortuneService:
             for element in all_five_elements
         }
 
+        # Helper function to serialize GanJi to dict
+        def ganji_to_dict(ganji: Optional[GanJi]) -> Optional[Dict[str, str]]:
+            if ganji is None:
+                return None
+            return {
+                "name": ganji.two_letters,
+                "stem": ganji.stem.korean_name,
+                "branch": ganji.branch.korean_name,
+                "element": ganji.stem.element.chinese
+            }
+
         return {
             "entropy_score": entropy_score,
-            "total_elements": sum(counts),
+            "elements": {
+                "대운": ganji_to_dict(ganji_from_daewoon),
+                "세운": ganji_to_dict(ganji_from_date.yearly),
+                "월운": ganji_to_dict(ganji_from_date.monthly),
+                "일운": ganji_to_dict(ganji_from_date.daily),
+                "년주": ganji_to_dict(ganji_from_user.yearly),
+                "월주": ganji_to_dict(ganji_from_user.monthly),
+                "일주": ganji_to_dict(ganji_from_user.daily),
+                "시주": ganji_to_dict(ganji_from_user.hourly),
+            },
             "element_distribution": element_distribution,
             "interpretation": self._interpret_balance_score(entropy_score)
         }
