@@ -41,9 +41,6 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 하단 네비게이션 바 숨기기
-        (activity as? MainActivity)?.hideBottomNavigation()
-
         setupClickListeners()
         loadUserProfile()
     }
@@ -178,16 +175,8 @@ class SettingsFragment : Fragment() {
         super.onResume()
         // 프로필 편집 후 돌아왔을 때 프로필 다시 로드
         loadUserProfile()
-        // 하단 네비게이션 바 숨기기
-        (activity as? MainActivity)?.hideBottomNavigation()
     }
 
-    override fun onPause() {
-        super.onPause()
-        // 다른 Fragment로 이동할 때는 네비게이션 바 다시 보이기
-        // (ProfileEditFragment에서 다시 숨길 것임)
-        (activity as? MainActivity)?.showBottomNavigation()
-    }
 
     override fun onDestroyView() {
         super.onDestroyView()

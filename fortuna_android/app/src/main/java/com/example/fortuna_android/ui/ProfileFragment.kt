@@ -53,16 +53,25 @@ class ProfileFragment : Fragment() {
 
     private fun setupHeader() {
         val binding = _binding ?: return
-        // Show settings button in header (it's hidden by default in header_fortuna.xml)
-        val settingsButton = binding.root.findViewById<View>(R.id.settings_button)
-        settingsButton?.visibility = View.VISIBLE
+        // Hide profile button and show settings button instead
+        val profileButton = binding.root.findViewById<View>(R.id.profile_button)
+        profileButton?.visibility = View.GONE
+
+        // Create or show settings button
+        // Since header_fortuna only has profile_button, we'll replace its icon and functionality
+        val headerButton = binding.root.findViewById<android.widget.ImageButton>(R.id.profile_button)
+        headerButton?.apply {
+            visibility = View.VISIBLE
+            setImageResource(android.R.drawable.ic_menu_manage)
+            contentDescription = "설정"
+        }
     }
 
     private fun setupClickListeners() {
         val binding = _binding ?: return
 
-        // Settings button is inside the included header
-        val settingsButton = binding.root.findViewById<View>(R.id.settings_button)
+        // Settings button (profile_button repurposed as settings in this fragment)
+        val settingsButton = binding.root.findViewById<View>(R.id.profile_button)
         settingsButton?.setOnClickListener {
             findNavController().navigate(R.id.action_profile_to_settings)
         }

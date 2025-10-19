@@ -15,13 +15,6 @@
         android:label="Home"
         tools:layout="@layout/fragment_home">
         <action
-            android:id="@+id/action_home_to_search"
-            app:destination="@id/searchFragment"
-            app:enterAnim="@anim/slide_in_left"
-            app:exitAnim="@anim/slide_out_right"
-            app:popEnterAnim="@anim/slide_in_right"
-            app:popExitAnim="@anim/slide_out_left" />
-        <action
             android:id="@+id/action_home_to_profile"
             app:destination="@id/profileFragment"
             app:enterAnim="@anim/slide_in_right"
@@ -29,11 +22,6 @@
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
     </fragment>
-    <fragment
-        android:id="@+id/searchFragment"
-        android:name="com.example.fortuna_android.ui.SearchFragment"
-        android:label="Search"
-        tools:layout="@layout/fragment_search" />
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.fortuna_android.ui.ProfileFragment"

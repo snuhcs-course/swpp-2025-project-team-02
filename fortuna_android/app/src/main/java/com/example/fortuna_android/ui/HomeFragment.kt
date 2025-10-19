@@ -8,7 +8,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.IntroActivity
+import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -52,6 +54,11 @@ class HomeFragment : Fragment() {
         binding.btnSajuExplanation.setOnClickListener {
             val intent = Intent(requireContext(), IntroActivity::class.java)
             startActivity(intent)
+        }
+
+        // 프로필 버튼 (헤더에 포함된 버튼)
+        binding.root.findViewById<View>(R.id.profile_button)?.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_profile)
         }
     }
 
