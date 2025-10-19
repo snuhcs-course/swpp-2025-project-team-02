@@ -25,12 +25,16 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.example.fortuna_android.util.CustomToast
 import com.example.fortuna_android.api.RefreshTokenRequest
+import com.example.fortuna_android.ui.ARCoreSessionLifecycleHelper
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
     private lateinit var mGoogleSignInClient: GoogleSignInClient
+
+    // ARCore session lifecycle helper
+    val arCoreSessionHelper = ARCoreSessionLifecycleHelper(this)
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "fortuna_prefs"
@@ -48,6 +52,9 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Add ARCore session lifecycle observer
+        lifecycle.addObserver(arCoreSessionHelper)
 
         // edge-to-edge handling
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -369,6 +376,9 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
+        // Forward to ARCore session helper for camera permission handling
+        arCoreSessionHelper.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
         if (requestCode == PERMISSION_REQUEST_CODE) {
             // Check if grantResults is empty (UI was interrupted)
             if (grantResults.isEmpty()) {
@@ -426,6 +436,22 @@ class MainActivity : AppCompatActivity() {
     fun showBottomNavigation() {
         val binding = _binding ?: return
         binding.bottomNavigationView.visibility = View.VISIBLE
+    }
+
+    /**
+     * Release any active camera resources to prepare for ARCore usage
+     */
+    fun releaseCameraResources() {
+        Log.d(TAG, "Attempting to release camera resources for ARCore")
+
+        try {
+            // Use the public method to release camera resources
+            arCoreSessionHelper.releaseCameraResources()
+            Log.d(TAG, "Camera resources released successfully")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing camera resources", e)
+        }
     }
 
     fun logout() {

@@ -329,6 +329,17 @@
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
 
+        <!-- AR 버튼 -->
+        <Button
+            android:id="@+id/btnARDetection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍 AR 원소 찾기"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/rounded_button_background"
+            android:layout_marginBottom="8dp" />
+
         <!-- 사주 설명 버튼 -->
         <Button
             android:id="@+id/btnSajuExplanation"
