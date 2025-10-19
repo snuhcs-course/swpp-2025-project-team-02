@@ -2,7 +2,6 @@
 URL configuration for Fortuna core API endpoints.
 """
 
-from warnings import deprecated
 from django.urls import path
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
