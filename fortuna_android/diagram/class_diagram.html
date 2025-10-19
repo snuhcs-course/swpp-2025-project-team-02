@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fortuna Android - Class Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 2.5em;
+        }
+
+        .diagram-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .class-box {
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin: 20px;
+            display: inline-block;
+            vertical-align: top;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .class-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .class-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 6px 6px 0 0;
+            font-size: 16px;
+        }
+
+        .class-type {
+            background: #495057;
+            color: #ffc107;
+            padding: 6px;
+            text-align: center;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .class-properties,
+        .class-methods {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            min-height: 50px;
+        }
+
+        .class-properties {
+            background-color: #fff;
+        }
+
+        .class-methods {
+            background-color: #f8f9fa;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-decoration: underline;
+        }
+
+        .property,
+        .method {
+            margin: 5px 0;
+            padding: 4px 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 4px;
+        }
+
+        .property {
+            color: #0056b3;
+        }
+
+        .method {
+            color: #28a745;
+        }
+
+        .layer {
+            margin-bottom: 40px;
+            border: 3px dashed #dee2e6;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.5);
+        }
+
+        .layer-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 20px;
+            text-align: center;
+            background: white;
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .legend-item {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .legend-item strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fortuna Android - Class Diagram</h1>
+
+    <div class="diagram-container">
+        <!-- Activities Layer -->
+        <div class="layer">
+            <div class="layer-title">Activities</div>
+
+            <div class="class-box">
+                <div class="class-header">MainActivity</div>
+                <div class="class-type">&lt;&lt;Activity&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: ActivityMainBinding</div>
+                    <div class="property">- mGoogleSignInClient: GoogleSignInClient</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreate()</div>
+                    <div class="method">+ checkLoginStatus()</div>
+                    <div class="method">+ validateAndRefreshToken()</div>
+                    <div class="method">+ refreshAccessToken()</div>
+                    <div class="method">+ requestPermissions()</div>
+                    <div class="method">+ hideBottomNavigation()</div>
+                    <div class="method">+ showBottomNavigation()</div>
+                    <div class="method">+ logout()</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">AuthContainerActivity</div>
+                <div class="class-type">&lt;&lt;Activity&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: ActivityAuthContainerBinding</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreate()</div>
+                    <div class="method">+ showSignInFragment()</div>
+                    <div class="method">+ showProfileInputFragment()</div>
+                    <div class="method">- replaceFragment()</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fragments Layer -->
+        <div class="layer">
+            <div class="layer-title">Fragments</div>
+
+            <div class="class-box">
+                <div class="class-header">HomeFragment</div>
+                <div class="class-type">&lt;&lt;Fragment&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: FragmentHomeBinding</div>
+                    <div class="property">- fortuneViewModel: FortuneViewModel</div>
+                    <div class="property">- lastFortuneResult: String</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreateView()</div>
+                    <div class="method">+ onViewCreated()</div>
+                    <div class="method">- setupObservers()</div>
+                    <div class="method">- getFortune()</div>
+                    <div class="method">- checkPermissions()</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">CameraFragment</div>
+                <div class="class-type">&lt;&lt;Fragment&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: FragmentCameraBinding</div>
+                    <div class="property">- imageCapture: ImageCapture</div>
+                    <div class="property">- camera: Camera</div>
+                    <div class="property">- currentCameraSelector: CameraSelector</div>
+                    <div class="property">- cameraExecutor: ExecutorService</div>
+                    <div class="property">- currentLocation: Location</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreateView()</div>
+                    <div class="method">- startCamera()</div>
+                    <div class="method">- switchCamera()</div>
+                    <div class="method">- takePhoto()</div>
+                    <div class="method">- showPhotoPreview()</div>
+                    <div class="method">- approvePhoto()</div>
+                    <div class="method">- uploadImageToBackend()</div>
+                    <div class="method">- getCurrentLocation()</div>
+                    <div class="method">- addMetadataToPhoto()</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">SearchFragment</div>
+                <div class="class-type">&lt;&lt;Fragment&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: FragmentSearchBinding</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreateView()</div>
+                    <div class="method">- loadImagesFromApi()</div>
+                    <div class="method">- loadImagesIntoViews()</div>
+                    <div class="method">- loadImageWithGlide()</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">ProfileFragment</div>
+                <div class="class-type">&lt;&lt;Fragment&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: FragmentProfileBinding</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreateView()</div>
+                    <div class="method">+ loadUserProfile()</div>
+                    <div class="method">- updateUI()</div>
+                    <div class="method">- displaySaju()</div>
+                    <div class="method">- getGanjiColor()</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">SignInFragment</div>
+                <div class="class-type">&lt;&lt;Fragment&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: FragmentSigninBinding</div>
+                    <div class="property">- mGoogleSignInClient: GoogleSignInClient</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreateView()</div>
+                    <div class="method">- setupGoogleSignIn()</div>
+                    <div class="method">- signIn()</div>
+                    <div class="method">- signOut()</div>
+                    <div class="method">- handleSignInResult()</div>
+                    <div class="method">- sendTokenToServer()</div>
+                    <div class="method">- verifyTokenWithServer()</div>
+                    <div class="method">- fetchUserProfile()</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">ProfileInputFragment</div>
+                <div class="class-type">&lt;&lt;Fragment&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- binding: FragmentProfileInputBinding</div>
+                    <div class="property">- selectedGender: String</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ onCreateView()</div>
+                    <div class="method">- setupSpinners()</div>
+                    <div class="method">- setupClickListeners()</div>
+                    <div class="method">- submitProfile()</div>
+                    <div class="method">- updateProfile()</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ViewModel Layer -->
+        <div class="layer">
+            <div class="layer-title">ViewModels</div>
+
+            <div class="class-box">
+                <div class="class-header">FortuneViewModel</div>
+                <div class="class-type">&lt;&lt;ViewModel&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- _fortuneResult: MutableLiveData&lt;String&gt;</div>
+                    <div class="property">+ fortuneResult: LiveData&lt;String&gt;</div>
+                    <div class="property">- _isLoading: MutableLiveData&lt;Boolean&gt;</div>
+                    <div class="property">+ isLoading: LiveData&lt;Boolean&gt;</div>
+                    <div class="property">- _errorMessage: MutableLiveData&lt;String&gt;</div>
+                    <div class="property">+ errorMessage: LiveData&lt;String&gt;</div>
+                    <div class="property">- fortuneJob: Job</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ getFortune(includePhotos: Boolean)</div>
+                    <div class="method">+ clearError()</div>
+                    <div class="method">+ clearFortune()</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Layer -->
+        <div class="layer">
+            <div class="layer-title">API / Network</div>
+
+            <div class="class-box">
+                <div class="class-header">RetrofitClient</div>
+                <div class="class-type">&lt;&lt;Object&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">- BASE_URL: String</div>
+                    <div class="property">- loggingInterceptor: HttpLoggingInterceptor</div>
+                    <div class="property">- okHttpClient: OkHttpClient</div>
+                    <div class="property">+ instance: ApiService</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ getBaseUrl(): String</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">ApiService</div>
+                <div class="class-type">&lt;&lt;Interface&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">None</div>
+                </div>
+                <div class="class-methods">
+                    <div class="section-title">Methods</div>
+                    <div class="method">+ loginWithGoogle(request): Response</div>
+                    <div class="method">+ getProfile(token): Response</div>
+                    <div class="method">+ getUserProfile(token): Response</div>
+                    <div class="method">+ updateUserProfile(token, request): Response</div>
+                    <div class="method">+ logout(request): Response</div>
+                    <div class="method">+ getImages(date): Response</div>
+                    <div class="method">+ uploadImage(image, chakraType): Response</div>
+                    <div class="method">+ getFortune(date, includePhotos): Response</div>
+                    <div class="method">+ refreshToken(request): Response</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Models Layer -->
+        <div class="layer">
+            <div class="layer-title">Data Models</div>
+
+            <div class="class-box">
+                <div class="class-header">LoginRequest</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ idToken: String</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">LoginResponse</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ accessToken: String</div>
+                    <div class="property">+ refreshToken: String</div>
+                    <div class="property">+ userId: String</div>
+                    <div class="property">+ email: String</div>
+                    <div class="property">+ name: String</div>
+                    <div class="property">+ isNewUser: Boolean</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">UserProfile</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ userId: Int</div>
+                    <div class="property">+ email: String</div>
+                    <div class="property">+ name: String</div>
+                    <div class="property">+ nickname: String</div>
+                    <div class="property">+ birthDateSolar: String</div>
+                    <div class="property">+ birthDateLunar: String</div>
+                    <div class="property">+ gender: String</div>
+                    <div class="property">+ yearlyGanji: String</div>
+                    <div class="property">+ monthlyGanji: String</div>
+                    <div class="property">+ dailyGanji: String</div>
+                    <div class="property">+ hourlyGanji: String</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">UpdateProfileRequest</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ nickname: String</div>
+                    <div class="property">+ birthDate: String</div>
+                    <div class="property">+ solarOrLunar: String</div>
+                    <div class="property">+ birthTimeUnits: String</div>
+                    <div class="property">+ gender: String</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">ImageResponse</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ status: String</div>
+                    <div class="property">+ data: ImageData</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">ImageData</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ date: String</div>
+                    <div class="property">+ images: List&lt;ImageItem&gt;</div>
+                    <div class="property">+ count: Int</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">FortuneResponse</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ status: String</div>
+                    <div class="property">+ data: FortuneData</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">FortuneData</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ userId: Int</div>
+                    <div class="property">+ generatedAt: String</div>
+                    <div class="property">+ forDate: String</div>
+                    <div class="property">+ tomorrowGapja: TomorrowGapja</div>
+                    <div class="property">+ fortune: Fortune</div>
+                </div>
+            </div>
+
+            <div class="class-box">
+                <div class="class-header">UploadResponse</div>
+                <div class="class-type">&lt;&lt;Data Class&gt;&gt;</div>
+                <div class="class-properties">
+                    <div class="section-title">Properties</div>
+                    <div class="property">+ status: String</div>
+                    <div class="property">+ data: UploadData</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title">Class Diagram Legend</div>
+            <div class="legend-item"><strong>Activities:</strong> Main app entry points (MainActivity, AuthContainerActivity)</div>
+            <div class="legend-item"><strong>Fragments:</strong> UI components for different screens (Home, Camera, Search, Profile, etc.)</div>
+            <div class="legend-item"><strong>ViewModels:</strong> Manage UI-related data in lifecycle-conscious way (FortuneViewModel)</div>
+            <div class="legend-item"><strong>API/Network:</strong> Handle network communication (RetrofitClient, ApiService)</div>
+            <div class="legend-item"><strong>Data Models:</strong> Represent request/response data structures</div>
+            <div class="legend-item"><strong>Key Relationships:</strong>
+                <ul style="margin-top: 8px; margin-left: 20px;">
+                    <li>MainActivity manages navigation between fragments</li>
+                    <li>Fragments use ViewModels for data management</li>
+                    <li>ViewModels and Fragments communicate with backend via RetrofitClient</li>
+                    <li>ApiService defines all API endpoints</li>
+                    <li>Data classes represent API request/response models</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
