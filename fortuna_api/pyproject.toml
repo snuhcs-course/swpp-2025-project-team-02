@@ -38,6 +38,7 @@ drf-spectacular = ">=0.27.0,<1.0.0"
 # AI Integration
 ai-sdk-python = ">=0.1.0"
 openai = ">=1.0.0,<2.0.0"
+numpy = ">=1.26.0,<3.0.0"
 
 # Korean Lunar Calendar
 lunarcalendar = ">=0.0.9,<1.0.0"
@@ -291,3 +292,24 @@ section-order = ["future", "standard-library", "django", "third-party", "first-p
 
 # __init__.py files can have unused imports
 "**/__init__.py" = ["F401"]
+
+# ====================
+# Pytest Configuration
+# ====================
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "fortuna_api.settings.testing"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["core/tests", "user/tests"]
+addopts = [
+    "--reuse-db",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]

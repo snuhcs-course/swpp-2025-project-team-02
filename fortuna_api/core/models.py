@@ -45,6 +45,9 @@ class FortuneResult(models.Model):
     # Fortune data (JSON)
     fortune_data = models.JSONField(default=dict)
 
+    # Fortune score with entropy-based balance (JSON)
+    fortune_score = models.JSONField(default=dict, null=True, blank=True)
+
     # Status tracking for incremental updates
     status = models.CharField(
         max_length=20,
