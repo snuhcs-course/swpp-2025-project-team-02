@@ -11,6 +11,10 @@ import androidx.cardview.widget.CardView
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.databinding.CardFortuneBinding
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -80,12 +84,12 @@ class FortuneCardView @JvmOverloads constructor(
         binding.tvOverallFortune.text = fortuneData.fortune.overallFortune.toString()
 
         // 특별 메시지 & 운세 요약
-        binding.tvSpecialMessage.text = fortuneData.fortune.specialMessage
-        binding.tvFortuneSummary.text = fortuneData.fortune.fortuneSummary
+//        binding.tvSpecialMessage.text = fortuneData.fortune.specialMessage
+//        binding.tvFortuneSummary.text = fortuneData.fortune.fortuneSummary
 
         // 행운의 키워드 (keyAdvice 기반)
         val guidance = fortuneData.fortune.dailyGuidance
-        binding.tvKeywords.text = generateKeywords(guidance.keyAdvice)
+//        binding.tvKeywords.text = generateKeywords(guidance.keyAdvice)
 
         // 오행 균형
         binding.tvElementBalance.text = fortuneData.fortune.elementBalance
@@ -116,78 +120,58 @@ class FortuneCardView @JvmOverloads constructor(
     }
 
     /**
-     * 오행 분포 동적 표시
+     * 오행 분포 파이 차트 표시
      */
     private fun displayElementDistribution(elementDistribution: Map<String, com.example.fortuna_android.api.ElementDistribution>) {
-        binding.llElementDistribution.removeAllViews()
+        val pieChart = binding.pieChartElementDistribution
 
         // 오행 순서: 목, 화, 토, 금, 수
         val elementOrder = listOf("목", "화", "토", "금", "수")
+        val entries = ArrayList<PieEntry>()
+        val colors = ArrayList<Int>()
 
         elementOrder.forEach { element ->
             elementDistribution[element]?.let { distribution ->
-                val itemView = createElementDistributionView(element, distribution)
-                binding.llElementDistribution.addView(itemView)
-            }
-        }
-    }
-
-    /**
-     * 개별 오행 분포 뷰 생성
-     */
-    private fun createElementDistributionView(element: String, distribution: com.example.fortuna_android.api.ElementDistribution): LinearLayout {
-        val layout = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 8)
+                val emoji = getElementEmoji(element)
+                entries.add(PieEntry(distribution.percentage.toFloat(), "$emoji $element"))
+                colors.add(getElementColorFromString(element))
             }
         }
 
-        // 오행 이름 + 이모지
-        val elementText = TextView(context).apply {
-            val emoji = getElementEmoji(element)
-            text = "$emoji $element"
-            textSize = 14f
-            setTextColor(getElementColorFromString(element))
-            layoutParams = LinearLayout.LayoutParams(
-                0,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
+        // 데이터 세트 설정
+        val dataSet = PieDataSet(entries, "").apply {
+            this.colors = colors
+            valueTextColor = Color.WHITE
+            valueTextSize = 14f
+            sliceSpace = 2f
+            valueFormatter = PercentFormatter(pieChart)
         }
 
-        // 개수
-        val countText = TextView(context).apply {
-            text = "${distribution.count}개"
-            textSize = 14f
-            setTextColor(Color.parseColor("#CCCCCC"))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(16, 0, 16, 0)
-            }
+        // 파이 데이터 설정
+        val data = PieData(dataSet).apply {
+            setValueTextColor(Color.WHITE)
+            setValueTextSize(12f)
         }
 
-        // 퍼센트
-        val percentText = TextView(context).apply {
-            text = String.format("%.1f%%", distribution.percentage)
-            textSize = 14f
-            setTextColor(Color.parseColor("#AAAAAA"))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+        // 차트 설정
+        pieChart.apply {
+            this.data = data
+            description.isEnabled = false
+            legend.isEnabled = true
+            legend.textColor = Color.parseColor("#CCCCCC")
+            legend.textSize = 12f
+            setDrawEntryLabels(false)
+            setUsePercentValues(true)
+            isRotationEnabled = true
+            setHoleColor(Color.parseColor("#1E1E1E"))
+            transparentCircleRadius = 58f
+            holeRadius = 50f
+            centerText = "오행 분포"
+            setCenterTextColor(Color.parseColor("#FFFFFF"))
+            setCenterTextSize(14f)
+            animateY(1000)
+            invalidate()
         }
-
-        layout.addView(elementText)
-        layout.addView(countText)
-        layout.addView(percentText)
-
-        return layout
     }
 
     /**
