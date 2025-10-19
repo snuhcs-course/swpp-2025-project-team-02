@@ -49,7 +49,6 @@ class ProfileEditFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // 하단 네비게이션 바 숨기기
-        (activity as? MainActivity)?.hideBottomNavigation()
 
         // Handle window insets to avoid overlap with system navigation bar
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->

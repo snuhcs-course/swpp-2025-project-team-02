@@ -9,8 +9,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import com.example.fortuna_android.api.ChakraReading
-import com.example.fortuna_android.api.FortuneData
+import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.databinding.CardFortuneBinding
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -21,63 +25,80 @@ class FortuneCardView @JvmOverloads constructor(
 ) : CardView(context, attrs, defStyleAttr) {
 
     private val binding: CardFortuneBinding
-    private var isDetailVisible = false
 
     init {
         // Set CardView background to black to prevent white corners
         setCardBackgroundColor(Color.parseColor("#000000"))
 
         binding = CardFortuneBinding.inflate(LayoutInflater.from(context), this, true)
-        setupToggleButton()
+
+        // 상세 정보를 기본으로 표시
+        binding.llDetailedInfo.visibility = View.VISIBLE
+
+        // 토글 버튼 숨기기
+        binding.btnToggleDetails.visibility = View.GONE
     }
 
     /**
-     * 상세보기 토글 버튼 설정
+     * TodayFortuneData를 받아서 카드에 표시
      */
-    private fun setupToggleButton() {
-        binding.btnToggleDetails.setOnClickListener {
-            isDetailVisible = !isDetailVisible
-            binding.llDetailedInfo.visibility = if (isDetailVisible) View.VISIBLE else View.GONE
-            binding.btnToggleDetails.text = if (isDetailVisible) "접기" else "운세 상세보기"
-        }
-    }
-
-    /**
-     * FortuneData를 받아서 카드에 표시
-     */
-    fun setFortuneData(fortuneData: FortuneData) {
+    fun setFortuneData(fortuneData: TodayFortuneData) {
         // 날짜 표시
         val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREAN)
-        try {
-            val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(fortuneData.fortune.tomorrowDate)
-            binding.tvFortuneDate.text = dateFormat.format(date ?: Date())
-        } catch (e: Exception) {
-            binding.tvFortuneDate.text = fortuneData.fortune.tomorrowDate
+        if (fortuneData.forDate != null) {
+            try {
+                val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(fortuneData.forDate)
+                binding.tvFortuneDate.text = dateFormat.format(date ?: Date())
+            } catch (e: Exception) {
+                binding.tvFortuneDate.text = fortuneData.forDate
+            }
+        } else {
+            // forDate가 null이면 오늘 날짜 표시
+            binding.tvFortuneDate.text = dateFormat.format(Date())
         }
 
-        // 간지 정보 표시
-        val ganjiElement = getElementEmoji(fortuneData.tomorrowGapja.element)
-        binding.tvTomorrowGanji.text = "${fortuneData.tomorrowGapja.name}($ganjiElement)"
+        // 간지 정보 표시 (fortuneScore의 elements에서 일운 추출)
+        val dayPillar = fortuneData.fortuneScore.elements["일운"]
+        if (dayPillar != null) {
+            val ganjiElement = getElementEmoji(dayPillar.stem.element)
+            binding.tvTomorrowGanji.text = "${dayPillar.twoLetters}일($ganjiElement)"
 
-        // 중앙 오행 원소 한자 표시
-        val elementChar = getElementCharacter(fortuneData.tomorrowGapja.element)
-        val elementColor = getElementColorFromString(fortuneData.tomorrowGapja.element)
-        binding.tvElementCharacter.text = elementChar
-        binding.tvElementCharacter.setTextColor(elementColor)
+            // 중앙 오행 원소 한자 표시 (일간의 오행 사용)
+            val elementChar = getElementCharacter(dayPillar.stem.element)
+            val elementColor = getElementColorFromString(dayPillar.stem.element)
+            binding.tvElementCharacter.text = elementChar
+            binding.tvElementCharacter.setTextColor(elementColor)
+
+            // 오행 기운 메시지
+            val elementMessage = getElementMessage(dayPillar.stem.element)
+            binding.tvElementMessage.text = elementMessage
+        } else {
+            // 데이터가 없을 경우 기본값
+            binding.tvTomorrowGanji.text = "오늘의 운세"
+            binding.tvElementCharacter.text = "運"
+            binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
+            binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
+        }
 
         // 전체 운세 점수
         binding.tvOverallFortune.text = fortuneData.fortune.overallFortune.toString()
 
         // 특별 메시지 & 운세 요약
-        binding.tvSpecialMessage.text = fortuneData.fortune.specialMessage
-        binding.tvFortuneSummary.text = fortuneData.fortune.fortuneSummary
+//        binding.tvSpecialMessage.text = fortuneData.fortune.specialMessage
+//        binding.tvFortuneSummary.text = fortuneData.fortune.fortuneSummary
 
         // 행운의 키워드 (keyAdvice 기반)
         val guidance = fortuneData.fortune.dailyGuidance
-        binding.tvKeywords.text = generateKeywords(guidance.keyAdvice)
+//        binding.tvKeywords.text = generateKeywords(guidance.keyAdvice)
 
         // 오행 균형
         binding.tvElementBalance.text = fortuneData.fortune.elementBalance
+
+        // 오행 분포 표시
+        displayElementDistribution(fortuneData.fortuneScore.elementDistribution)
+
+        // 해석
+        binding.tvInterpretation.text = fortuneData.fortuneScore.interpretation
 
         // 일일 가이던스
         binding.tvKeyAdvice.text = "💡 ${guidance.keyAdvice}"
@@ -87,9 +108,6 @@ class FortuneCardView @JvmOverloads constructor(
 
         // 차크라 리딩
         displayChakraReadings(fortuneData.fortune.chakraReadings)
-
-        // 사주 궁합
-        binding.tvSajuCompatibility.text = fortuneData.fortune.sajuCompatibility
     }
 
     /**
@@ -99,6 +117,61 @@ class FortuneCardView @JvmOverloads constructor(
         // 간단한 키워드 추출 (첫 몇 단어)
         val words = keyAdvice.split(" ").take(2)
         return words.joinToString(" ") { "#$it" }
+    }
+
+    /**
+     * 오행 분포 파이 차트 표시
+     */
+    private fun displayElementDistribution(elementDistribution: Map<String, com.example.fortuna_android.api.ElementDistribution>) {
+        val pieChart = binding.pieChartElementDistribution
+
+        // 오행 순서: 목, 화, 토, 금, 수
+        val elementOrder = listOf("목", "화", "토", "금", "수")
+        val entries = ArrayList<PieEntry>()
+        val colors = ArrayList<Int>()
+
+        elementOrder.forEach { element ->
+            elementDistribution[element]?.let { distribution ->
+                val emoji = getElementEmoji(element)
+                entries.add(PieEntry(distribution.percentage.toFloat(), "$emoji $element"))
+                colors.add(getElementColorFromString(element))
+            }
+        }
+
+        // 데이터 세트 설정
+        val dataSet = PieDataSet(entries, "").apply {
+            this.colors = colors
+            valueTextColor = Color.WHITE
+            valueTextSize = 14f
+            sliceSpace = 2f
+            valueFormatter = PercentFormatter(pieChart)
+        }
+
+        // 파이 데이터 설정
+        val data = PieData(dataSet).apply {
+            setValueTextColor(Color.WHITE)
+            setValueTextSize(12f)
+        }
+
+        // 차트 설정
+        pieChart.apply {
+            this.data = data
+            description.isEnabled = false
+            legend.isEnabled = true
+            legend.textColor = Color.parseColor("#CCCCCC")
+            legend.textSize = 12f
+            setDrawEntryLabels(false)
+            setUsePercentValues(true)
+            isRotationEnabled = true
+            setHoleColor(Color.parseColor("#1E1E1E"))
+            transparentCircleRadius = 58f
+            holeRadius = 50f
+            centerText = "오행 분포"
+            setCenterTextColor(Color.parseColor("#FFFFFF"))
+            setCenterTextSize(14f)
+            animateY(1000)
+            invalidate()
+        }
     }
 
     /**
@@ -228,6 +301,20 @@ class FortuneCardView @JvmOverloads constructor(
             "metal", "쇠", "금" -> "⚔️"
             "water", "물", "수" -> "💧"
             else -> "🔵"
+        }
+    }
+
+    /**
+     * 오행에 따른 기운 메시지 반환
+     */
+    private fun getElementMessage(element: String): String {
+        return when (element.lowercase()) {
+            "wood", "나무", "목" -> "오늘은 나무의 기운이 강한 날입니다"
+            "fire", "불", "화" -> "오늘은 불의 기운이 강한 날입니다"
+            "earth", "흙", "토" -> "오늘은 흙의 기운이 강한 날입니다"
+            "metal", "쇠", "금" -> "오늘은 쇠의 기운이 강한 날입니다"
+            "water", "물", "수" -> "오늘은 물의 기운이 강한 날입니다"
+            else -> "오늘의 기운을 느껴보세요"
         }
     }
 

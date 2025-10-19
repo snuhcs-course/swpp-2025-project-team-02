@@ -53,16 +53,25 @@ class ProfileFragment : Fragment() {
 
     private fun setupHeader() {
         val binding = _binding ?: return
-        // Show settings button in header (it's hidden by default in header_fortuna.xml)
-        val settingsButton = binding.root.findViewById<View>(R.id.settings_button)
-        settingsButton?.visibility = View.VISIBLE
+        // Hide profile button and show settings button instead
+        val profileButton = binding.root.findViewById<View>(R.id.profile_button)
+        profileButton?.visibility = View.GONE
+
+        // Create or show settings button
+        // Since header_fortuna only has profile_button, we'll replace its icon and functionality
+        val headerButton = binding.root.findViewById<android.widget.ImageButton>(R.id.profile_button)
+        headerButton?.apply {
+            visibility = View.VISIBLE
+            setImageResource(android.R.drawable.ic_menu_manage)
+            contentDescription = "설정"
+        }
     }
 
     private fun setupClickListeners() {
         val binding = _binding ?: return
 
-        // Settings button is inside the included header
-        val settingsButton = binding.root.findViewById<View>(R.id.settings_button)
+        // Settings button (profile_button repurposed as settings in this fragment)
+        val settingsButton = binding.root.findViewById<View>(R.id.profile_button)
         settingsButton?.setOnClickListener {
             findNavController().navigate(R.id.action_profile_to_settings)
         }
@@ -178,14 +187,12 @@ class ProfileFragment : Fragment() {
             binding.profileElementTag.text = spannable
         }
 
-        // 사주팔자 타이틀
-        binding.sajuViewText.text = "당신의 사주팔자"
-
-        displaySaju(
-            profile.yearlyGanji,
-            profile.monthlyGanji,
-            profile.dailyGanji,
-            profile.hourlyGanji
+        // 사주팔자 표시 (커스텀 View 사용)
+        binding.sajuPaljaView.setSajuData(
+            yearly = profile.yearlyGanji,
+            monthly = profile.monthlyGanji,
+            daily = profile.dailyGanji,
+            hourly = profile.hourlyGanji
         )
     }
 
@@ -222,51 +229,6 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun displaySaju(yearly: String?, monthly: String?, daily: String?, hourly: String?) {
-        val binding = _binding ?: return
-
-        // 각 간지를 천간(첫글자)과 지지(둘째글자)로 분리하여 표시
-        if (yearly != null && yearly.length == 2) {
-            setGanjiText(binding.yearlyGanji1, yearly[0].toString())
-            setGanjiText(binding.yearlyGanji2, yearly[1].toString())
-        }
-
-        if (monthly != null && monthly.length == 2) {
-            setGanjiText(binding.monthlyGanji1, monthly[0].toString())
-            setGanjiText(binding.monthlyGanji2, monthly[1].toString())
-        }
-
-        if (daily != null && daily.length == 2) {
-            setGanjiText(binding.dailyGanji1, daily[0].toString())
-            setGanjiText(binding.dailyGanji2, daily[1].toString())
-        }
-
-        if (hourly != null && hourly.length == 2) {
-            setGanjiText(binding.hourlyGanji1, hourly[0].toString())
-            setGanjiText(binding.hourlyGanji2, hourly[1].toString())
-        }
-    }
-
-    private fun setGanjiText(textView: TextView, text: String) {
-        textView.text = text
-        textView.setBackgroundColor(getGanjiColor(text))
-    }
-
-    private fun getGanjiColor(ganji: String): Int {
-        return when (ganji) {
-            // 목(木) - 초록색
-            "갑", "을", "인", "묘" -> Color.parseColor("#0BEFA0")
-            // 화(火) - 빨간색
-            "병", "정", "사", "오" -> Color.parseColor("#F93E3E")
-            // 토(土) - 노란색
-            "무", "기", "술", "미", "축", "진" -> Color.parseColor("#FF9500")
-            // 금(金) - 흰색
-            "경", "신", "유" -> Color.parseColor("#C1BFBF")
-            // 수(水) - 회색
-            "임", "계", "자", "해" -> Color.parseColor("#2BB3FC")
-            else -> Color.parseColor("#CCCCCC")
-        }
-    }
 
     override fun onDestroyView() {
         super.onDestroyView()

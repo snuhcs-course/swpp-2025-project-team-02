@@ -212,3 +212,72 @@ data class RefreshTokenRequest(
 data class RefreshTokenResponse(
     @SerializedName("access") val access: String
 )
+
+// GET /api/fortune/today/
+data class TodayFortuneResponse(
+    val status: String,
+    val data: TodayFortuneData
+)
+
+data class TodayFortuneData(
+    @SerializedName("fortune_id")
+    val fortuneId: Int,
+    @SerializedName("user_id")
+    val userId: Int,
+    @SerializedName("generated_at")
+    val generatedAt: String?,
+    @SerializedName("for_date")
+    val forDate: String?,
+    val fortune: TodayFortune,
+    @SerializedName("fortune_score")
+    val fortuneScore: FortuneScore
+)
+
+data class TodayFortune(
+    @SerializedName("saju_compatibility")
+    val sajuCompatibility: String,
+    @SerializedName("overall_fortune")
+    val overallFortune: Int,
+    @SerializedName("fortune_summary")
+    val fortuneSummary: String,
+    @SerializedName("element_balance")
+    val elementBalance: String,
+    @SerializedName("chakra_readings")
+    val chakraReadings: List<ChakraReading>,
+    @SerializedName("daily_guidance")
+    val dailyGuidance: DailyGuidance,
+    @SerializedName("special_message")
+    val specialMessage: String
+)
+
+data class FortuneScore(
+    @SerializedName("entropy_score")
+    val entropyScore: Double,
+    val elements: Map<String, ElementPillar>,
+    @SerializedName("element_distribution")
+    val elementDistribution: Map<String, ElementDistribution>,
+    val interpretation: String
+)
+
+data class ElementPillar(
+    @SerializedName("two_letters")
+    val twoLetters: String,
+    val stem: StemBranchDetail,
+    val branch: StemBranchDetail
+)
+
+data class StemBranchDetail(
+    @SerializedName("korean_name")
+    val koreanName: String,
+    val element: String,
+    @SerializedName("element_color")
+    val elementColor: String,
+    @SerializedName("yin_yang")
+    val yinYang: String,
+    val animal: String? = null
+)
+
+data class ElementDistribution(
+    val count: Int,
+    val percentage: Double
+)

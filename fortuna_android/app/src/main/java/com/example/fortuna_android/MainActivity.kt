@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -59,17 +58,7 @@ class MainActivity : AppCompatActivity() {
         // edge-to-edge handling
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
-
-            // Apply bottom padding to navigation bar to account for system navigation bar
-            val bottomNavView = binding.bottomNavigationView
-            bottomNavView.setPadding(
-                bottomNavView.paddingLeft,
-                bottomNavView.paddingTop,
-                bottomNavView.paddingRight,
-                systemBars.bottom + 8 // 8dp extra padding
-            )
-
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
@@ -106,9 +95,6 @@ class MainActivity : AppCompatActivity() {
         // Login associated tasks
         setupGoogleSignIn()
         checkLoginStatus()
-
-        // Setup custom bottom navigation
-        setupCustomBottomNavigation(navController)
     }
 
     override fun onResume() {
@@ -129,105 +115,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupCustomBottomNavigation(navController: androidx.navigation.NavController) {
-        // Set initial selected state (Home)
-        updateNavigationSelection(R.id.homeFragment)
-
-        // Home button
-        binding.navHome.setOnClickListener {
-            navigateToFragment(navController, R.id.homeFragment)
-        }
-
-        // Search button
-        binding.navSearch.setOnClickListener {
-            navigateToFragment(navController, R.id.searchFragment)
-        }
-
-        // Camera button - check permissions and navigate to camera
-        binding.navCamera.setOnClickListener {
-            checkAndNavigateToCamera(navController)
-        }
-
-        // Profile button
-        binding.navProfile.setOnClickListener {
-            navigateToFragment(navController, R.id.profileFragment)
-        }
-
-        // Listen to navigation changes to update selection state
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            updateNavigationSelection(destination.id)
-        }
-    }
-
-    private fun navigateToFragment(navController: androidx.navigation.NavController, fragmentId: Int) {
-        if (_binding == null) return
-
-        val options = when (fragmentId) {
-            R.id.profileFragment -> {
-                // ProfileFragment: slide in from right
-                NavOptions.Builder()
-                    .setEnterAnim(R.anim.slide_in_right)
-                    .setExitAnim(R.anim.slide_out_left)
-                    .setPopEnterAnim(R.anim.slide_in_left)
-                    .setPopExitAnim(R.anim.slide_out_right)
-                    .build()
-            }
-            R.id.searchFragment -> {
-                // SearchFragment: slide in from left
-                NavOptions.Builder()
-                    .setEnterAnim(R.anim.slide_in_left)
-                    .setExitAnim(R.anim.slide_out_right)
-                    .setPopEnterAnim(R.anim.slide_in_right)
-                    .setPopExitAnim(R.anim.slide_out_left)
-                    .build()
-            }
-            else -> {
-                // Default animations for Home
-                NavOptions.Builder()
-                    .setEnterAnim(android.R.anim.fade_in)
-                    .setExitAnim(android.R.anim.fade_out)
-                    .setPopEnterAnim(android.R.anim.fade_in)
-                    .setPopExitAnim(android.R.anim.fade_out)
-                    .build()
-            }
-        }
-
-        try {
-            navController.navigate(fragmentId, null, options)
-        } catch (e: IllegalStateException) {
-            Log.w(TAG, "Navigation failed - activity may be finishing", e)
-        }
-    }
-
-    private fun updateNavigationSelection(fragmentId: Int) {
-        val binding = _binding ?: return
-
-        // Reset all to unselected state (gray)
-        binding.navHomeIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
-        binding.navHomeLabel.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
-
-        binding.navSearchIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
-        binding.navSearchLabel.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
-
-        binding.navProfileIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.darker_gray))
-        binding.navProfileLabel.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
-
-        // Set selected item to white
-        when (fragmentId) {
-            R.id.homeFragment -> {
-                binding.navHomeIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.white))
-                binding.navHomeLabel.setTextColor(ContextCompat.getColor(this, android.R.color.white))
-            }
-            R.id.searchFragment -> {
-                binding.navSearchIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.white))
-                binding.navSearchLabel.setTextColor(ContextCompat.getColor(this, android.R.color.white))
-            }
-            R.id.profileFragment -> {
-                binding.navProfileIcon.setColorFilter(ContextCompat.getColor(this, android.R.color.white))
-                binding.navProfileLabel.setTextColor(ContextCompat.getColor(this, android.R.color.white))
-            }
-        }
-    }
 
     private fun setupGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -427,15 +314,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    fun hideBottomNavigation() {
-        val binding = _binding ?: return
-        binding.bottomNavigationView.visibility = View.GONE
-    }
-
-    fun showBottomNavigation() {
-        val binding = _binding ?: return
-        binding.bottomNavigationView.visibility = View.VISIBLE
-    }
 
     /**
      * Release any active camera resources to prepare for ARCore usage

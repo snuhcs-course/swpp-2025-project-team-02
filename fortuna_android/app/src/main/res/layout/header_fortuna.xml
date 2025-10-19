@@ -1,29 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
     android:paddingBottom="16dp">
 
     <TextView
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_centerInParent="true"
         android:text="Fortuna"
         android:textColor="#FFFFFF"
         android:textSize="24sp"
         android:textStyle="bold" />
 
     <ImageButton
-        android:id="@+id/settings_button"
+        android:id="@+id/profile_button"
         android:layout_width="48dp"
         android:layout_height="48dp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="설정"
-        android:src="@android:drawable/ic_menu_manage"
-        app:tint="#FFFFFF"
-        android:visibility="gone" />
+        android:contentDescription="프로필"
+        android:src="@drawable/ic_profile"
+        app:tint="#FFFFFF" />
 
-</LinearLayout>
+</RelativeLayout>
