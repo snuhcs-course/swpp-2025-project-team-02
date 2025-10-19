@@ -38,6 +38,7 @@ class DetailAnalysisFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         loadUserProfile()
+        loadTodayFortune()
     }
 
     private fun loadUserProfile() {
@@ -100,10 +101,55 @@ class DetailAnalysisFragment : Fragment() {
         binding.contentContainer.visibility = View.VISIBLE
     }
 
+    private fun loadTodayFortune() {
+        if (!isAdded) return
+
+        // Get JWT token from SharedPreferences
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val accessToken = prefs.getString(KEY_TOKEN, null)
+
+        if (accessToken.isNullOrEmpty()) {
+            Log.e(TAG, "No access token found for today fortune")
+            return
+        }
+
+        Log.d(TAG, "Loading today's fortune for saju data...")
+
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.getTodayFortune()
+
+                if (response.isSuccessful) {
+                    val fortuneResponse = response.body()
+                    if (fortuneResponse != null) {
+                        updateTodaySajuUI(fortuneResponse.data)
+                    }
+                } else {
+                    Log.e(TAG, "오늘의 운세 로드 실패: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "오늘의 운세 로드 중 오류", e)
+            }
+        }
+    }
+
+    private fun updateTodaySajuUI(fortuneData: com.example.fortuna_android.api.TodayFortuneData) {
+        val binding = _binding ?: return
+
+        // 오늘의 사주팔자 표시
+        val elements = fortuneData.fortuneScore.elements
+        binding.todaySajuPaljaView.setTodaySajuData(
+            daeun = elements["대운"],
+            saeun = elements["세운"],
+            wolun = elements["월운"],
+            ilun = elements["일운"]
+        )
+    }
+
     private fun updateUI(profile: UserProfile) {
         val binding = _binding ?: return
 
-        // 사주팔자 표시
+        // 당신의 사주팔자 표시
         binding.sajuPaljaView.setSajuData(
             yearly = profile.yearlyGanji,
             monthly = profile.monthlyGanji,

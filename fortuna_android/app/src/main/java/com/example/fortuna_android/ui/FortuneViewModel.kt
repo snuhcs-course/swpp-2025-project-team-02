@@ -133,7 +133,7 @@ class FortuneViewModel : ViewModel() {
                         "Cannot connect to server at ${RetrofitClient.getBaseUrl()}. Please check if the server is running."
                     e.message?.contains("SocketTimeoutException") == true ->
                         "Server request timed out. The server might be slow or unavailable."
-                    else -> "Network error: ${e.message ?: "Unknown error"}"
+                    else -> ""
                 }
 
                 // Update error state

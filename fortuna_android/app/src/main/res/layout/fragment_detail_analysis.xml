@@ -35,8 +35,14 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- 오늘의 사주팔자 커스텀 View -->
+            <com.example.fortuna_android.ui.TodaySajuPaljaView
+                android:id="@+id/todaySajuPaljaView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp" />
 
-            <!-- 사주팔자 커스텀 View -->
+            <!-- 당신의 사주팔자 커스텀 View -->
             <com.example.fortuna_android.ui.SajuPaljaView
                 android:id="@+id/sajuPaljaView"
                 android:layout_width="match_parent"
