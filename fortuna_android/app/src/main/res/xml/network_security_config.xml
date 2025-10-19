@@ -4,6 +4,6 @@
         <!-- 에뮬레이터가 로컬 PC를 가리키는 특수 IP -->
         <domain includeSubdomains="true">10.0.2.2</domain>
         <!-- 실제 PC의 IP 주소 (필요 시) -->
-        <domain includeSubdomains="true">10.149.194.205</domain>
+        <domain includeSubdomains="true">120.50.70.13</domain>
     </domain-config>
 </network-security-config>
