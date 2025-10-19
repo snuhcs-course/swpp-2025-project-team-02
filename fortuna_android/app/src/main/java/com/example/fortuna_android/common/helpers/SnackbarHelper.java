@@ -77,16 +77,6 @@ public final class SnackbarHelper {
     maxLines = lines;
   }
 
-  /**
-   * Sets the view that will be used to find a suitable parent view to hold the Snackbar view.
-   *
-   * <p>To use the root layout ({@link android.R.id.content}), pass in {@code null}.
-   *
-   * @param snackbarView the view to pass to {@link
-   *     Snackbar#make(…)} which will be used to find a
-   *     suitable parent, which is a {@link androidx.coordinatorlayout.widget.CoordinatorLayout}, or
-   *     the window decor's content view, whichever comes first.
-   */
   public void setParentView(View snackbarView) {
     this.snackbarView = snackbarView;
   }

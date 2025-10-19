@@ -89,9 +89,7 @@ public class Texture implements Closeable {
   /**
    * Construct an empty {@link Texture}.
    *
-   * <p>Since {@link Texture}s created in this way are not populated with data, this method is
-   * mostly only useful for creating {@link Target.TEXTURE_EXTERNAL_OES} textures. See {@link
-   * #createFromAsset} if you want a texture with data.
+   * <p>Since {@link Texture}s created in this way are not populated with data
    */
   public Texture(SampleRender render, Target target, WrapMode wrapMode) {
     this(render, target, wrapMode, /*useMipmaps=*/ true);

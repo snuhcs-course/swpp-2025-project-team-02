@@ -76,8 +76,6 @@ public class BackgroundRenderer {
 
   /**
    * Allocates and initializes OpenGL resources needed by the background renderer. Must be called
-   * during a {@link SampleRender.Renderer} callback, typically in {@link
-   * SampleRender.Renderer#onSurfaceCreated()}.
    */
   public BackgroundRenderer(SampleRender render) {
     cameraColorTexture =
@@ -149,8 +147,6 @@ public class BackgroundRenderer {
   /**
    * Updates the display geometry. This must be called every frame before calling either of
    * BackgroundRenderer's draw methods.
-   *
-   * @param frame The current {@code Frame} as returned by {@link Session#update()}.
    */
   public void updateDisplayGeometry(Frame frame) {
     if (frame.hasDisplayGeometryChanged()) {
@@ -197,7 +193,6 @@ public class BackgroundRenderer {
 
   /**
    * Draws the virtual scene. Any objects rendered in the given {@link Framebuffer} will be drawn
-   * given the previously specified {@link OcclusionMode}.
    *
    * <p>Virtual content should be rendered using the matrices provided by {@link
    * com.google.ar.core.Camera#getViewMatrix(float[], int)} and {@link

@@ -53,12 +53,12 @@ public final class DisplayRotationHelper implements DisplayListener {
     display = windowManager.getDefaultDisplay();
   }
 
-  /** Registers the display listener. Should be called from {@link Activity#onResume()}. */
+
   public void onResume() {
     displayManager.registerDisplayListener(this, null);
   }
 
-  /** Unregisters the display listener. Should be called from {@link Activity#onPause()}. */
+
   public void onPause() {
     displayManager.unregisterDisplayListener(this);
   }
