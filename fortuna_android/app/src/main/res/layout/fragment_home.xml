@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -10,348 +11,64 @@
     <!-- 상단 헤더 -->
     <include layout="@layout/header_fortuna" />
 
-    <!-- 날짜 및 시간 표시 (상단) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="12dp"
-        android:orientation="vertical"
-        android:gravity="center">
-
-        <TextView
-            android:id="@+id/tvDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="오늘은 2025년 09월 19일 정유일(🔥)"
-            android:textColor="#AAAAAA"
-            android:textSize="12sp"
-            android:layout_marginBottom="2dp" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/tvTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="지금은 14시 30분(미시☁️)"
-                android:textColor="#AAAAAA"
-                android:textSize="12sp" />
-
-            <!-- [개발용] 작은 Fortune 버튼 -->
-            <Button
-                android:id="@+id/btnGoToFortune"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DEV"
-                android:textSize="8sp"
-                android:layout_marginStart="8dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp" />
-
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <!-- 메인 컨텐츠 영역 (스크롤 제거) -->
-    <LinearLayout
+    <!-- 메인 컨텐츠 영역: 오늘의 운세 카드 -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center">
+        android:fillViewport="true">
 
-        <!-- 4개 이미지 카드 그리드 (2x2) - 더 작게 -->
-        <GridLayout
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:rowCount="2"
-            android:layout_marginBottom="16dp">
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
 
-            <!-- 1번 카드: 업로드된 이미지 -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardImage1"
-                android:layout_width="140dp"
-                android:layout_height="160dp"
-                android:layout_margin="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?android:attr/selectableItemBackground"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#1A1A1A">
+            <!-- 로딩 상태 -->
+            <TextView
+                android:id="@+id/tvLoading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="오늘의 운세를 불러오는 중..."
+                android:textColor="#AAAAAA"
+                android:textSize="14sp"
+                android:visibility="gone" />
 
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+            <!-- 에러 상태 -->
+            <TextView
+                android:id="@+id/tvError"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="40dp"
+                android:text="아직 오늘의 운세가 준비되지 않았습니다.\n사진을 업로드해주세요."
+                android:textColor="#999999"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:visibility="gone" />
 
-                    <!-- 이미지뷰 (나중에 데이터 연동) -->
-                    <ImageView
-                        android:id="@+id/ivPhoto1"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
+            <!-- 운세 카드 -->
+            <com.example.fortuna_android.ui.FortuneCardView
+                android:id="@+id/fortuneCardView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:visibility="gone"
+                tools:ignore="MissingClass" />
 
-                    <!-- 빈 상태 표시 -->
-                    <TextView
-                        android:id="@+id/tvEmpty1"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="첫번째 오늘 찍은 사진"
-                        android:textColor="#666666"
-                        android:textSize="12sp" />
+            <!-- 사주 설명 버튼 -->
+            <Button
+                android:id="@+id/btnSajuExplanation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="사주에 기반한 오늘의 운세란?"
+                android:textSize="14sp"
+                android:textColor="#000000"
+                android:backgroundTint="#FFCC4D"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="12dp" />
 
-                    <!-- 오행 원소 태그 (왼쪽 상단) -->
-                    <TextView
-                        android:id="@+id/tvElement1"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="top|start"
-                        android:layout_margin="6dp"
-                        android:background="@drawable/button_default"
-                        android:paddingStart="6dp"
-                        android:paddingEnd="6dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
-                        android:text="모은 원소(🔵)"
-                        android:textColor="#FFFFFF"
-                        android:textSize="9sp"
-                        android:visibility="gone" />
-
-                </FrameLayout>
-
-            </androidx.cardview.widget.CardView>
-
-            <!-- 2번 카드: 이미지 또는 카메라 버튼 -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardImage2"
-                android:layout_width="140dp"
-                android:layout_height="160dp"
-                android:layout_margin="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?android:attr/selectableItemBackground"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#1A1A1A"
-                app:strokeColor="#FFFFFF"
-                app:strokeWidth="2dp">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-
-                    <!-- 이미지뷰 -->
-                    <ImageView
-                        android:id="@+id/ivPhoto2"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-
-                    <!-- 카메라 버튼 -->
-                    <LinearLayout
-                        android:id="@+id/layoutCamera"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:visibility="visible">
-
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@android:drawable/ic_menu_camera"
-                            app:tint="#FFFFFF" />
-
-                    </LinearLayout>
-
-                    <!-- 오행 원소 태그 -->
-                    <TextView
-                        android:id="@+id/tvElement2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="top|start"
-                        android:layout_margin="6dp"
-                        android:background="@drawable/button_default"
-                        android:paddingStart="6dp"
-                        android:paddingEnd="6dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
-                        android:text="모은 원소(🔵)"
-                        android:textColor="#FFFFFF"
-                        android:textSize="9sp"
-                        android:visibility="gone" />
-
-                </FrameLayout>
-
-            </androidx.cardview.widget.CardView>
-
-            <!-- 3번 카드: 이미지 또는 잠금 -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardImage3"
-                android:layout_width="140dp"
-                android:layout_height="160dp"
-                android:layout_margin="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?android:attr/selectableItemBackground"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#1A1A1A"
-                app:strokeColor="#666666"
-                app:strokeWidth="2dp"
-                app:cardElevation="0dp">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-
-                    <!-- 이미지뷰 -->
-                    <ImageView
-                        android:id="@+id/ivPhoto3"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-
-                    <!-- 잠금 상태 -->
-                    <TextView
-                        android:id="@+id/tvLocked3"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="?"
-                        android:textColor="#666666"
-                        android:textSize="42sp"
-                        android:textStyle="bold"
-                        android:visibility="visible" />
-
-                    <!-- 오행 원소 태그 -->
-                    <TextView
-                        android:id="@+id/tvElement3"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="top|start"
-                        android:layout_margin="6dp"
-                        android:background="@drawable/button_default"
-                        android:paddingStart="6dp"
-                        android:paddingEnd="6dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
-                        android:text="모은 원소(🔵)"
-                        android:textColor="#FFFFFF"
-                        android:textSize="9sp"
-                        android:visibility="gone" />
-
-                </FrameLayout>
-
-            </androidx.cardview.widget.CardView>
-
-            <!-- 4번 카드: 이미지 또는 잠금 -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardImage4"
-                android:layout_width="140dp"
-                android:layout_height="160dp"
-                android:layout_margin="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?android:attr/selectableItemBackground"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#1A1A1A"
-                app:strokeColor="#666666"
-                app:strokeWidth="2dp"
-                app:cardElevation="0dp">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-
-                    <!-- 이미지뷰 -->
-                    <ImageView
-                        android:id="@+id/ivPhoto4"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone" />
-
-                    <!-- 잠금 상태 -->
-                    <TextView
-                        android:id="@+id/tvLocked4"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:text="?"
-                        android:textColor="#666666"
-                        android:textSize="42sp"
-                        android:textStyle="bold"
-                        android:visibility="visible" />
-
-                    <!-- 오행 원소 태그 -->
-                    <TextView
-                        android:id="@+id/tvElement4"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="top|start"
-                        android:layout_margin="6dp"
-                        android:background="@drawable/button_default"
-                        android:paddingStart="6dp"
-                        android:paddingEnd="6dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp"
-                        android:text="모은 원소(🔵)"
-                        android:textColor="#FFFFFF"
-                        android:textSize="9sp"
-                        android:visibility="gone" />
-
-                </FrameLayout>
-
-            </androidx.cardview.widget.CardView>
-
-        </GridLayout>
-
-        <!-- Progress 표시 -->
-        <TextView
-            android:id="@+id/tvProgress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1 / 4"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp" />
-
-        <!-- AR 버튼 -->
-        <Button
-            android:id="@+id/btnARDetection"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🔍 AR 원소 찾기"
-            android:textSize="14sp"
-            android:textColor="#FFFFFF"
-            android:background="@drawable/rounded_button_background"
-            android:layout_marginBottom="8dp" />
-
-        <!-- 사주 설명 버튼 -->
-        <Button
-            android:id="@+id/btnSajuExplanation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="사주에 기반한 오늘의 운세란?"
-            android:textSize="14sp"
-            android:textColor="#000000"
-            android:backgroundTint="#FFCC4D"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="12dp" />
-
-    </LinearLayout>
+        </LinearLayout>
 
 </LinearLayout>
