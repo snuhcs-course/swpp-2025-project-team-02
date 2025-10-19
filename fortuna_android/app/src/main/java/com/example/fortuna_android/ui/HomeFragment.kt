@@ -60,6 +60,11 @@ class HomeFragment : Fragment() {
         binding.root.findViewById<View>(R.id.profile_button)?.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_profile)
         }
+
+        // 개운하기 버튼 (FloatingActionButton) - 카메라로 이동
+        binding.fabRefreshFortune.setOnClickListener {
+            findNavController().navigate(R.id.cameraFragment)
+        }
     }
 
     private fun setupObservers() {
@@ -71,7 +76,7 @@ class HomeFragment : Fragment() {
                 Log.d(TAG, "FortuneData received, displaying on card")
                 // Show fortune card and hide loading/error
                 binding.fortuneCardView.visibility = View.VISIBLE
-                binding.tvLoading.visibility = View.GONE
+                binding.loadingContainer.visibility = View.GONE
                 binding.tvError.visibility = View.GONE
 
                 // Set fortune data to card view
@@ -84,11 +89,11 @@ class HomeFragment : Fragment() {
             val binding = _binding ?: return@observe
 
             if (isLoading) {
-                binding.tvLoading.visibility = View.VISIBLE
+                binding.loadingContainer.visibility = View.VISIBLE
                 binding.fortuneCardView.visibility = View.GONE
                 binding.tvError.visibility = View.GONE
             } else {
-                binding.tvLoading.visibility = View.GONE
+                binding.loadingContainer.visibility = View.GONE
             }
         }
 
@@ -101,7 +106,7 @@ class HomeFragment : Fragment() {
                 binding.tvError.text = errorMessage
                 binding.tvError.visibility = View.VISIBLE
                 binding.fortuneCardView.visibility = View.GONE
-                binding.tvLoading.visibility = View.GONE
+                binding.loadingContainer.visibility = View.GONE
 
                 // Clear the error after showing it
                 fortuneViewModel.clearError()

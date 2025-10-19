@@ -1,74 +1,121 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="#000000"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#000000">
 
-    <!-- 상단 헤더 -->
-    <include layout="@layout/header_fortuna" />
-
-    <!-- 메인 컨텐츠 영역: 오늘의 운세 카드 -->
-    <ScrollView
+    <!-- 메인 컨텐츠 영역 -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <LinearLayout
+        <!-- 상단 헤더 -->
+        <include layout="@layout/header_fortuna" />
+
+        <!-- 메인 컨텐츠 영역: 오늘의 운세 카드 -->
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true">
 
-            <!-- 로딩 상태 -->
-            <TextView
-                android:id="@+id/tvLoading"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
-                android:text="오늘의 운세를 불러오는 중..."
-                android:textColor="#AAAAAA"
-                android:textSize="14sp"
-                android:visibility="gone" />
-
-            <!-- 에러 상태 -->
-            <TextView
-                android:id="@+id/tvError"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
-                android:text="아직 오늘의 운세가 준비되지 않았습니다.\n사진을 업로드해주세요."
-                android:textColor="#999999"
-                android:textSize="14sp"
-                android:gravity="center"
-                android:visibility="gone" />
-
-            <!-- 운세 카드 -->
-            <com.example.fortuna_android.ui.FortuneCardView
-                android:id="@+id/fortuneCardView"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:visibility="gone"
-                tools:ignore="MissingClass" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
 
-            <!-- 사주 설명 버튼 -->
-            <Button
-                android:id="@+id/btnSajuExplanation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="사주에 기반한 오늘의 운세란?"
-                android:textSize="14sp"
-                android:textColor="#000000"
-                android:backgroundTint="#FFCC4D"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="12dp" />
+                <!-- 로딩 상태 -->
+                <LinearLayout
+                    android:id="@+id/loadingContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="80dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone">
 
-        </LinearLayout>
+                    <!-- 로딩 애니메이션 (원형 프로그레스) -->
+                    <ProgressBar
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:indeterminateTint="#FFCC4D"
+                        android:layout_marginBottom="24dp" />
 
-</LinearLayout>
+                    <!-- 로딩 메시지 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✨ 오늘의 운세를 준비하고 있어요"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="오행의 기운을 분석하는 중입니다..."
+                        android:textColor="#AAAAAA"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <!-- 에러 상태 -->
+                <TextView
+                    android:id="@+id/tvError"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="40dp"
+                    android:text="아직 오늘의 운세가 준비되지 않았습니다.\n사진을 업로드해주세요."
+                    android:textColor="#999999"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:visibility="gone" />
+
+                <!-- 운세 카드 -->
+                <com.example.fortuna_android.ui.FortuneCardView
+                    android:id="@+id/fortuneCardView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="8dp"
+                    android:visibility="gone"
+                    tools:ignore="MissingClass" />
+
+                <!-- 사주 설명 버튼 -->
+                <Button
+                    android:id="@+id/btnSajuExplanation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="사주에 기반한 오늘의 운세란?"
+                    android:textSize="14sp"
+                    android:textColor="#000000"
+                    android:backgroundTint="#FFCC4D"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="12dp" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+    <!-- 개운하기 버튼 (Floating Action Button) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_refresh_fortune"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:contentDescription="개운하기"
+        android:src="@drawable/ic_camera"
+        app:tint="#FFFFFF"
+        app:backgroundTint="#FFCC4D"
+        app:elevation="6dp" />
+
+</FrameLayout>
