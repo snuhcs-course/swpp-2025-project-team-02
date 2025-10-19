@@ -7,9 +7,11 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
+from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
 from django.conf import settings
+from user.models import User
 from ..utils.saju_concepts import (
     Saju,
     GanJi,
@@ -20,7 +22,7 @@ from ..utils.saju_concepts import (
 from .image import ImageService
 from core.models import FortuneResult
 from loguru import logger
-
+import numpy as np
 
 class ChakraReading(BaseModel):
     """Individual Chakra reading based on photo and location."""
@@ -40,7 +42,7 @@ class DailyGuidance(BaseModel):
     key_advice: str = Field(description="One key piece of advice for tomorrow")
 
 
-class FortuneResponse(BaseModel):
+class FortuneAIResponse(BaseModel):
     """Complete fortune-telling response structure."""
     tomorrow_date: str = Field(description="Tomorrow's date in YYYY-MM-DD format")
     saju_compatibility: str = Field(description="Compatibility between user's day pillar and tomorrow's")
@@ -51,6 +53,26 @@ class FortuneResponse(BaseModel):
     daily_guidance: DailyGuidance = Field(description="Practical guidance for tomorrow")
     special_message: str = Field(description="Personalized encouraging message")
 
+class FortuneScore(BaseModel):
+    ...
+
+class TomorrowGapja(BaseModel):
+    code: int = Field(description="Gapja code")
+    name: str = Field(description="Gapja name")
+    stem: str = Field(description="Gapja stem")
+    branch: str = Field(description="Gapja branch")
+    element: str = Field(description="Gapja element")
+    element_color: str = Field(description="Gapja element color")
+    animal: str = Field(description="Gapja animal")
+
+class FortuneResponse(BaseModel):
+    fortune_id: int = Field(description="Fortune ID")
+    user_id: int = Field(description="User ID")
+    generated_at: str = Field(description="Generation time")
+    for_date: str = Field(description="Date for which fortune was generated")
+    tomorrow_gapja: TomorrowGapja = Field(description="Tomorrow's gapja")
+    fortune: FortuneAIResponse = Field(description="Fortune AI response")
+    fortune_score: FortuneScore = Field(description="Fortune score")
 
 class FortuneService:
     """Service for generating Saju-based fortune tellings."""
@@ -64,6 +86,8 @@ class FortuneService:
             self.client = None
         # logger.info(f"FortuneService initialized with OpenAI client: {api_key}")
         self.image_service = image_service if image_service else ImageService()
+
+    ### private methods ###
 
     def calculate_day_ganji(self, date_value: datetime) -> GanJi:
         """
@@ -287,7 +311,7 @@ class FortuneService:
         tomorrow_day_ganji: GanJi,
         compatibility: Dict[str, Any],
         photo_contexts: List[Dict[str, Any]]
-    ) -> FortuneResponse:
+    ) -> FortuneAIResponse:
         """
         Generate fortune using OpenAI API with structured output.
 
@@ -372,7 +396,7 @@ class FortuneService:
         except Exception as e:
             logger.error(f"Failed to generate fortune with AI: {e}")
             # Return default fortune on error
-            return FortuneResponse(
+            return FortuneAIResponse(
                 tomorrow_date=tomorrow_date.strftime('%Y-%m-%d'),
                 saju_compatibility=f"{compatibility['level']} ({compatibility['score']}/100)",
                 overall_fortune=compatibility['score'],
@@ -397,11 +421,11 @@ class FortuneService:
                 special_message="당신의 내일이 밝고 희망찬 날이 되기를 기원합니다."
             )
 
-    def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneResponse:
+    def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
         """Parse AI response into FortuneResponse structure."""
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
-        return FortuneResponse(
+        return FortuneAIResponse(
             tomorrow_date=tomorrow_date.strftime('%Y-%m-%d'),
             saju_compatibility=f"{compatibility['level']} ({compatibility['score']}/100)",
             overall_fortune=compatibility['score'],
@@ -426,6 +450,9 @@ class FortuneService:
             special_message="AI가 생성한 맞춤형 운세입니다."
         )
 
+    ### public methods ###
+    
+    # todo - fade out.
     def generate_tomorrow_fortune(
         self,
         user_id: int,
@@ -518,3 +545,160 @@ class FortuneService:
                 "status": "error",
                 "message": str(e)
             }
+
+    # new method for fetching fortune.
+    def generate_fortune(
+        self,
+        user: User,
+        date: datetime
+    ) -> Dict[str, Any]:
+        fortune = self.generate_tomorrow_fortune(
+            user.id,
+            date,
+            False
+        )
+        
+        fortune['data']['fortune_score'] = self.calculate_fortune_balance(user, date)
+        return {
+            "status": "success",
+            "data": fortune['data']
+        }
+        
+    def calculate_fortune_balance(self, user: User, date: datetime) -> Dict[str, Any]:
+        """
+        Calculate five elements balance score using entropy.
+
+        Analyzes 16 items (8 stems + 8 branches) from:
+        - User's saju (4 pillars)
+        - Date's saju (3 pillars: yearly, monthly, daily)
+        - User's daewoon (1 pillar)
+
+        Total: 4*2 + 3*2 + 1*2 = 16 elements mapped to 5 categories (목화토금수)
+
+        Args:
+            user: User object with saju data
+            date: Date to calculate fortune for
+
+        Returns:
+            Dictionary with entropy score (0-100) and element distribution
+        """
+        # Convert birth_time_units string to time object
+        birth_time = user._convert_time_units_to_time(user.birth_time_units)
+
+        # Get saju from date (년주, 월주, 일주)
+        ganji_from_date = Saju.from_date(date.date() if isinstance(date, datetime) else date, birth_time)
+
+        # Get user's saju (년주, 월주, 일주, 시주)
+        ganji_from_user = user.saju()
+
+        # Get daewoon (may be None if before starting age)
+        ganji_from_daewoon = DaewoonCalculator.calculate_daewoon(user)
+
+        # Initialize element counts for 5 elements (목화토금수)
+        from collections import defaultdict
+        elements_count = defaultdict(int)
+
+        # Collect all ganji to analyze (8 pillars = 16 elements)
+        ganji_list = []
+
+        # Add date pillars (3 pillars = 6 elements)
+        ganji_list.extend([
+            ganji_from_date.yearly,
+            ganji_from_date.monthly,
+            ganji_from_date.daily,
+        ])
+
+        # Add user pillars (4 pillars = 8 elements)
+        ganji_list.extend([
+            ganji_from_user.yearly,
+            ganji_from_user.monthly,
+            ganji_from_user.daily,
+            ganji_from_user.hourly,
+        ])
+
+        # Add daewoon pillar (1 pillar = 2 elements) if exists
+        if ganji_from_daewoon:
+            ganji_list.append(ganji_from_daewoon)
+
+        # Count elements from stems and branches
+        for ganji in ganji_list:
+            # Stem element (천간)
+            elements_count[ganji.stem.element] += 1
+            # Branch element (지지)
+            elements_count[ganji.branch.element] += 1
+
+        # Get counts for all 5 elements (목화토금수)
+        # Ensure all 5 elements are present even if count is 0
+        all_five_elements = [
+            FiveElements.WOOD,
+            FiveElements.FIRE,
+            FiveElements.EARTH,
+            FiveElements.METAL,
+            FiveElements.WATER
+        ]
+
+        counts = [elements_count[element] for element in all_five_elements]
+
+        # Calculate entropy score (0-100)
+        entropy_score = self._five_element_entropy_score(counts)
+
+        # Prepare detailed distribution
+        element_distribution = {
+            element.chinese: {
+                "count": elements_count[element],
+                "percentage": round(100 * elements_count[element] / sum(counts), 1) if sum(counts) > 0 else 0
+            }
+            for element in all_five_elements
+        }
+
+        return {
+            "entropy_score": entropy_score,
+            "total_elements": sum(counts),
+            "element_distribution": element_distribution,
+            "interpretation": self._interpret_balance_score(entropy_score)
+        }
+
+    def _five_element_entropy_score(self, counts: List[int]) -> float:
+        """
+        Calculate entropy-based balance score.
+
+        Higher entropy (closer to 100) means more balanced distribution.
+        Lower entropy means concentration in specific elements.
+
+        Args:
+            counts: List of 5 integers representing counts for each element
+
+        Returns:
+            Score from 0-100, where 100 is perfectly balanced
+        """
+        total = sum(counts)
+        if total == 0:
+            return 0.0
+
+        # Calculate probabilities
+        p = np.array(counts) / total
+        p = p[p > 0]  # Filter out zeros to avoid log(0)
+
+        # Calculate entropy: -Σ(p * log(p))
+        entropy = -np.sum(p * np.log(p))
+
+        # Maximum entropy for 5 categories is log(5)
+        max_entropy = np.log(5)
+
+        # Normalize to 0-100 scale
+        score = 100 * entropy / max_entropy if max_entropy > 0 else 0
+
+        return round(score, 2)
+
+    def _interpret_balance_score(self, score: float) -> str:
+        """Interpret entropy score as human-readable message."""
+        if score >= 90:
+            return "매우 균형잡힌 오행 배치입니다. 모든 방면에서 조화로운 에너지가 흐릅니다."
+        elif score >= 75:
+            return "균형잡힌 오행 배치입니다. 전반적으로 안정적인 기운이 있습니다."
+        elif score >= 60:
+            return "적당히 균형잡힌 오행 배치입니다. 특정 영역에 강점이 있습니다."
+        elif score >= 40:
+            return "특정 오행에 편중된 배치입니다. 장단점이 뚜렷합니다."
+        else:
+            return "매우 편중된 오행 배치입니다. 특정 분야에 강한 개성이 있습니다."

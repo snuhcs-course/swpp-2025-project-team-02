@@ -23,7 +23,7 @@ urlpatterns = [
 
     # Fortune API URLs 
     path('api/core/', include('core.urls')), # kept for backward compatibility
-    path('api/fortune/', include('core.urls')),
+    path('api/', include('core.urls')),
 
     # USER URLs
     path('api/user/', include('user.urls')),

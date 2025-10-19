@@ -64,7 +64,7 @@ class DaewoonCalculator:
         return date_offset.days // 3
                 
     @staticmethod
-    def calculate_daewoon(user: User):
+    def calculate_daewoon(user: User) -> GanJi:
         direction = DaewoonCalculator.calculate_daewoon_direction(user)
         starting_age = DaewoonCalculator.calculate_daewoon_starting_age(user)
 

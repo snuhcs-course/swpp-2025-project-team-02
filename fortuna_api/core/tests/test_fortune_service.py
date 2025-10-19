@@ -8,7 +8,7 @@ from django.test import TestCase
 import json
 from ..services.fortune import (
     FortuneService,
-    FortuneResponse,
+    FortuneAIResponse,
     ChakraReading,
     DailyGuidance
 )
@@ -208,7 +208,7 @@ class TestFortuneService(TestCase):
             user_saju, tomorrow_date, tomorrow_day_ganji, compatibility, photo_contexts
         )
 
-        self.assertIsInstance(result, FortuneResponse)
+        self.assertIsInstance(result, FortuneAIResponse)
         self.assertEqual(result.tomorrow_date, "2024-01-02")
         self.assertEqual(result.overall_fortune, 75)
 
@@ -255,7 +255,7 @@ class TestFortuneService(TestCase):
         )
 
         # Should return default fortune on error
-        self.assertIsInstance(result, FortuneResponse)
+        self.assertIsInstance(result, FortuneAIResponse)
         self.assertEqual(result.overall_fortune, compatibility['score'])
 
     @patch.object(FortuneService, 'generate_fortune_with_ai')
@@ -294,7 +294,7 @@ class TestFortuneService(TestCase):
             'tomorrow_ganji': '갑자'
         }
         mock_photo.return_value = [{'filename': 'test.jpg'}]
-        mock_fortune = FortuneResponse(
+        mock_fortune = FortuneAIResponse(
             tomorrow_date="2024-01-02",
             saju_compatibility="좋음",
             overall_fortune=80,

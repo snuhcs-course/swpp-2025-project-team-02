@@ -192,8 +192,8 @@ class TestFortuneServicePersistence(TestCase):
     @patch.object(FortuneService, 'generate_fortune_with_ai')
     def test_fortune_generation_saves_to_db(self, mock_ai):
         """Test that fortune generation saves to database."""
-        from core.services.fortune import FortuneResponse, ChakraReading, DailyGuidance
-        mock_ai.return_value = FortuneResponse(
+        from core.services.fortune import FortuneAIResponse, ChakraReading, DailyGuidance
+        mock_ai.return_value = FortuneAIResponse(
             tomorrow_date='2024-01-02',
             saju_compatibility='좋음',
             overall_fortune=85,
@@ -229,8 +229,8 @@ class TestFortuneServicePersistence(TestCase):
     @patch.object(FortuneService, 'generate_fortune_with_ai')
     def test_fortune_regeneration_updates_existing(self, mock_ai):
         """Test that regenerating fortune updates existing record."""
-        from core.services.fortune import FortuneResponse, DailyGuidance
-        mock_ai.return_value = FortuneResponse(
+        from core.services.fortune import FortuneAIResponse, DailyGuidance
+        mock_ai.return_value = FortuneAIResponse(
             tomorrow_date='2024-01-02',
             saju_compatibility='좋음',
             overall_fortune=80,

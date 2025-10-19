@@ -2,6 +2,7 @@
 URL configuration for Fortuna core API endpoints.
 """
 
+from warnings import deprecated
 from django.urls import path
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
@@ -253,6 +254,7 @@ def upload_chakra_image(request):
         return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
 
+@deprecated
 @extend_schema(
     summary="Generate Tomorrow's Fortune",
     description="Generate personalized Saju fortune for tomorrow based on today's collected chakras. Can retrieve pre-generated fortune if available.",
@@ -385,39 +387,27 @@ def get_tomorrow_fortune(request):
         else:
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @extend_schema(
-    summary="Get Hourly Fortune",
-    description="Get fortune for a specific hour based on traditional Korean time units",
-    parameters=[
-        OpenApiParameter(
-            name='datetime',
-            type=OpenApiTypes.DATETIME,
-            location=OpenApiParameter.QUERY,
-            description='Target datetime (ISO format). Defaults to current time.',
-            required=False
-        )
-    ],
-    responses={
-        200: {
-            'description': 'Hourly fortune retrieved successfully',
-            'content': {
-                'application/json': {
-                    'example': {
-                        'status': 'success',
-                        'data': {
-                            'current_time': '2024-01-01T14:30:00',
-                            'time_unit': '미시',
-                            'time_element': '토',
-                            'compatibility': 'neutral',
-                            'advice': '평온한 시간입니다.'
-                        }
-                    }
-                }
-            }
-        }
-    }
+    summary="Get Fortune for the day (YYYY-MM-DD)",
+    description="Get personalized Saju fortune for the day (YYYY-MM-DD). Can retrieve pre-generated fortune if available.",
 )
+@api_view(['GET', 'POST'])
+@permission_classes([DevelopmentOrAuthenticated])
+def get_today_fortune(request):
+    """
+    Get personalized Saju fortune for the day (YYYY-MM-DD).
+    TODO - save to DB so that response can be cached.
+    """
+    user = request.user
+    result = fortune_service.generate_fortune(
+        user=user,
+        date=datetime.now()
+    )
+
+    if result['status'] == 'success':
+        return Response(result, status=status.HTTP_200_OK)
+    else:
+        return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @extend_schema(
     summary="Get User Images for Date",
@@ -497,5 +487,6 @@ urlpatterns = [
     path('chakra/images/', get_user_images, name='get_user_images'),
 
     # Fortune endpoints
-    path('fortune/tomorrow/', get_tomorrow_fortune, name='tomorrow_fortune'),
+    path('fortune/tomorrow/', get_tomorrow_fortune, name='tomorrow_fortune'), # will be deprecated.
+    path('fortune/today/', get_today_fortune, name='today_fortune'),
 ]
