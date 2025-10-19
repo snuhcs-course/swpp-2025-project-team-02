@@ -323,7 +323,6 @@ class MainActivity : AppCompatActivity() {
         if (missingPermissions.isEmpty()) {
             // All permissions granted - navigate to camera
             Log.d(TAG, "All permissions granted - navigating to camera")
-            CustomToast.show(this, "All permissions granted! Ready to proceed.")
             try {
                 navController.navigate(R.id.cameraFragment)
             } catch (e: IllegalStateException) {
