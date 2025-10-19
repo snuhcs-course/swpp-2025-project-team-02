@@ -73,16 +73,17 @@
 
     </LinearLayout>
 
-    <!-- 개운하기 버튼 (Floating Action Button) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- 개운하기 버튼 (Extended Floating Action Button) -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fab_refresh_fortune"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
-        android:contentDescription="개운하기"
-        android:src="@drawable/ic_camera"
-        app:tint="#FFFFFF"
+        android:text="오늘의 기운 보충하러가기"
+        android:textColor="#000000"
+        android:textSize="14sp"
+        android:contentDescription="오늘의 기운 보충하러가기"
         app:backgroundTint="#FFCC4D"
         app:elevation="6dp" />
 
