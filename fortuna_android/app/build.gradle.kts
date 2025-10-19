@@ -74,6 +74,8 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.play.services.auth)
+    implementation(libs.navigation.fragment.ktx)
+    implementation(libs.navigation.ui.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -81,8 +83,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     // Dependency for Google ARCore
     implementation(libs.google.ar.core)
-    // Dependency for Sceneform AndroidX (3D model rendering)
-    implementation(libs.sceneform.androidx)
     // Dependency for CameraX API
     implementation(libs.bundles.camerax)
     // Dependency for fragment navigation
@@ -103,8 +103,8 @@ dependencies {
     // Dependency for WorkManager (scheduled notifications)
     implementation(libs.androidx.work.runtime.ktx)
     // Dependency for custom toast
-
     implementation("androidx.cardview:cardview:1.0.0")
+    // Dependency for Google Cloud Vision
     implementation("com.google.cloud:google-cloud-vision:3.72.0")
     implementation("io.grpc:grpc-okhttp:1.36.0")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
@@ -116,4 +116,6 @@ dependencies {
     // Dependency for SceneView AndroidX (3D model rendering)
     implementation("io.github.sceneview:arsceneview:2.3.0")
     implementation("io.github.sceneview:sceneview:2.3.0")
+    // Dependency for MPAndroidChart (pie chart)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

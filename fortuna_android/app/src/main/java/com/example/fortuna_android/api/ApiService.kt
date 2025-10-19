@@ -45,6 +45,9 @@ interface ApiService {
         @Query("date") date: String
     ): Response<FortuneResponse>
 
+    @GET("api/fortune/today")
+    suspend fun getTodayFortune(): Response<TodayFortuneResponse>
+
     @POST("api/user/auth/refresh/")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
 

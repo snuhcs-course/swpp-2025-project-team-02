@@ -48,10 +48,6 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Hide bottom navigation
-        if (activity is MainActivity) {
-            (activity as MainActivity).hideBottomNavigation()
-        }
 
         setupARSession()
         setupClickListeners()
@@ -211,10 +207,6 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     override fun onDestroyView() {
         super.onDestroyView()
 
-        // Show bottom navigation when leaving AR fragment
-        if (activity is MainActivity) {
-            (activity as MainActivity).showBottomNavigation()
-        }
 
         _binding = null
     }

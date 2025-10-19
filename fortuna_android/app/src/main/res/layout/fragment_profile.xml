@@ -31,10 +31,10 @@
 
     <ScrollView
         android:id="@+id/content_container"
-        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -222,197 +222,14 @@
 
             </LinearLayout>
 
-            <!-- 통계 카드 2: 지금까지 본 내일의 수 -->
-            <LinearLayout
+
+
+            <!-- 사주팔자 카드 (커스텀 View) -->
+            <com.example.fortuna_android.ui.SajuPaljaView
+                android:id="@+id/sajuPaljaView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/card_background"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="🔮 지금까지 본 내일의 수"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tomorrow_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="8"
-                    android:textColor="#BB86FC"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
-
-            <!-- 사주팔자 카드 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/card_background"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:id="@+id/saju_view_text"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:gravity="center"
-                    android:text="당신의 사주팔자"
-                    android:textColor="#FFFFFF"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <GridLayout
-                    android:id="@+id/saju_grid"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:alignmentMode="alignBounds"
-                    android:columnCount="4"
-                    android:rowCount="2"
-                    android:useDefaultMargins="true">
-
-                    <!-- 시 -->
-                    <LinearLayout
-                        android:layout_width="60dp"
-                        android:layout_height="80dp"
-                        android:layout_margin="4dp"
-                        android:background="#FFFFFF"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/hourly_ganji_1"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="정" />
-
-                        <TextView
-                            android:id="@+id/hourly_ganji_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="오" />
-                    </LinearLayout>
-
-                    <!-- 일 -->
-                    <LinearLayout
-                        android:layout_width="60dp"
-                        android:layout_height="80dp"
-                        android:layout_margin="4dp"
-                        android:background="#FFFFFF"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/daily_ganji_1"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="무" />
-
-                        <TextView
-                            android:id="@+id/daily_ganji_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="신" />
-                    </LinearLayout>
-
-                    <!-- 월 -->
-                    <LinearLayout
-                        android:layout_width="60dp"
-                        android:layout_height="80dp"
-                        android:layout_margin="4dp"
-                        android:background="#FFFFFF"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/monthly_ganji_1"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="기" />
-
-                        <TextView
-                            android:id="@+id/monthly_ganji_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="묘" />
-                    </LinearLayout>
-
-                    <!-- 년 -->
-                    <LinearLayout
-                        android:layout_width="60dp"
-                        android:layout_height="80dp"
-                        android:layout_margin="4dp"
-                        android:background="#FFFFFF"
-                        android:gravity="center"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/yearly_ganji_1"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="을" />
-
-                        <TextView
-                            android:id="@+id/yearly_ganji_2"
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:textColor="#000000"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            tools:text="해" />
-                    </LinearLayout>
-
-                </GridLayout>
-
-            </LinearLayout>
+                android:layout_marginBottom="16dp" />
 
         </LinearLayout>
 

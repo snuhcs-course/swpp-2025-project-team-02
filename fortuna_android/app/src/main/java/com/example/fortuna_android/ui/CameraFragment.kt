@@ -104,7 +104,7 @@ class CameraFragment : Fragment() {
 
         // Hide bottom navigation when camera fragment is shown
         if (activity is MainActivity) {
-            (activity as? MainActivity)?.hideBottomNavigation()
+//            (activity as? MainActivity)?.hideBottomNavigation()
         }
 
         // Start camera
@@ -716,7 +716,7 @@ class CameraFragment : Fragment() {
 
         // Show bottom navigation when leaving camera fragment
         if (activity is MainActivity) {
-            (activity as MainActivity).showBottomNavigation()
+//            (activity as MainActivity).showBottomNavigation()
         }
         cameraExecutor.shutdown()
         _binding = null
