@@ -74,18 +74,36 @@ class TomorrowGapja(BaseModel):
     element: str = Field(description="Gapja element")
     element_color: str = Field(description="Gapja element color")
     animal: str = Field(description="Gapja animal")
-    
+
+
+class ElementDistribution(BaseModel):
+    """Distribution of a specific element in the fortune."""
+    count: int = Field(description="Number of occurrences")
+    percentage: float = Field(description="Percentage of total elements")
+
+
 class FortuneScore(BaseModel):
-    ...
+    """Fortune score with entropy-based five elements balance."""
+    entropy_score: float = Field(description="Balance score from 0-100 based on entropy")
+    elements: Dict[str, Optional[Dict[str, Any]]] = Field(
+        description="8 pillars: 대운, 세운, 월운, 일운, 년주, 월주, 일주, 시주 (full GanJi dicts)"
+    )
+    element_distribution: Dict[str, ElementDistribution] = Field(
+        description="Distribution of 5 elements: 목, 화, 토, 금, 수"
+    )
+    interpretation: str = Field(description="Human-readable interpretation of balance score")
 
 class FortuneResponse(BaseModel):
+    """Response model for today's fortune endpoint."""
+    model_config = {'arbitrary_types_allowed': True}
+
     date: str = Field(description="Date for which fortune was generated")
     user_id: int = Field(description="User ID")
     fortune: FortuneAIResponse = Field(description="Fortune AI response")
     fortune_score: FortuneScore = Field(description="Fortune score")
-    saju_date: Saju = Field(description="Saju date")
-    saju_user: Saju = Field(description="Saju user")
-    daewoon: GanJi = Field(description="Ganji daewoon")
+    saju_date: Any = Field(description="Saju calculated from date (Saju object)")
+    saju_user: Any = Field(description="User's birth Saju (Saju object)")
+    daewoon: Any = Field(description="Current Daewoon (GanJi object, may be None)")
 
 class FortuneResponseDeprecated(BaseModel):
     fortune_id: int = Field(description="Fortune ID")
@@ -480,7 +498,7 @@ class FortuneService:
         user_id: int,
         date: datetime,
         include_photos: bool = True
-    ) -> Response[FortuneResponseDeprecated]:
+    ) -> Dict[str, Any]:
         """
         Generate complete tomorrow's fortune for a user.
 
@@ -538,32 +556,35 @@ class FortuneService:
                 }
             )
 
-            # Prepare final response
-            response_data = FortuneResponseDeprecated(
-                fortune_id=fortune_result.id,
-                user_id=user_id,
-                generated_at=fortune_result.created_at.isoformat(),
-                for_date=tomorrow_date.strftime('%Y-%m-%d'),
-                tomorrow_gapja=TomorrowGapja(
-                    code=tomorrow_ganji_index,
-                    name=tomorrow_day_ganji.two_letters,
-                    stem=tomorrow_day_ganji.stem.korean_name,
-                    branch=tomorrow_day_ganji.branch.korean_name,
-                    element=tomorrow_day_ganji.stem.element.chinese,
-                    element_color=tomorrow_day_ganji.stem.element.color,
-                    animal=tomorrow_day_ganji.branch.animal
-                ),
-                fortune=fortune.model_dump() if fortune else None,
-                fortune_score=FortuneScore(
-                    entropy_score=self.calculate_fortune_balance(user_id, tomorrow_date)
-                )
-            )
-            
-            return Response(status="success", data=response_data)
+            # Prepare final response (dict format for backward compatibility)
+            response = {
+                "status": "success",
+                "data": {
+                    "fortune_id": fortune_result.id,
+                    "user_id": user_id,
+                    "generated_at": fortune_result.created_at.isoformat(),
+                    "for_date": tomorrow_date.strftime('%Y-%m-%d'),
+                    "tomorrow_gapja": {
+                        "code": tomorrow_ganji_index,
+                        "name": tomorrow_day_ganji.two_letters,
+                        "stem": tomorrow_day_ganji.stem.korean_name,
+                        "branch": tomorrow_day_ganji.branch.korean_name,
+                        "element": tomorrow_day_ganji.stem.element.chinese,
+                        "element_color": tomorrow_day_ganji.stem.element.color,
+                        "animal": tomorrow_day_ganji.branch.animal
+                    },
+                    "fortune": fortune.model_dump() if fortune else None
+                }
+            }
+
+            return response
 
         except Exception as e:
             logger.error(f"Failed to generate fortune: {e}")
-            return Response(status="error", error=ErrorInfo(code="fortune_generation_failed", message=str(e)))
+            return {
+                "status": "error",
+                "message": str(e)
+            }
 
     # new method for fetching fortune.
     def generate_fortune(
@@ -576,7 +597,7 @@ class FortuneService:
             tomorrow_date = date + timedelta(days=1)
 
             # Get user's Saju information (returns Saju object)
-            user_saju = self.get_user_saju_info(user_id)
+            user_saju = self.get_user_saju_info(user.id)
 
             # Calculate tomorrow's day pillar (일주)
             tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
@@ -587,10 +608,8 @@ class FortuneService:
                 tomorrow_day_ganji  # Tomorrow's day pillar
             )
 
-            # Get photo contexts if requested
+            # Don't include photos for today's fortune
             photo_contexts = []
-            if include_photos:
-                photo_contexts = self.prepare_photo_context(user_id, date)
 
             # Generate fortune with AI
             fortune = self.generate_fortune_with_ai(
@@ -605,15 +624,19 @@ class FortuneService:
             cached_ganji_list = GanJi._get_cached()
             tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
+            # Calculate fortune score
+            fortune_score = self.calculate_fortune_balance(user, date)
+
             # Save to database
             fortune_result, created = FortuneResult.objects.update_or_create(
-                user_id=user_id,
+                user_id=user.id,
                 for_date=tomorrow_date.date(),
                 defaults={
                     'gapja_code': tomorrow_ganji_index,
                     'gapja_name': tomorrow_day_ganji.two_letters,
                     'gapja_element': tomorrow_day_ganji.stem.element.chinese,
-                    'fortune_data': fortune.model_dump() if fortune else {}
+                    'fortune_data': fortune.model_dump() if fortune else {},
+                    'fortune_score': fortune_score.model_dump()
                 }
             )
 
@@ -621,15 +644,13 @@ class FortuneService:
             response_data = FortuneResponse(
                 date=date.strftime('%Y-%m-%d'),
                 user_id=user.id,
-                fortune=fortune.model_dump() if fortune else None,
-                fortune_score=FortuneScore(
-                    entropy_score=self.calculate_fortune_balance(user, date)
-                ),
-                saju_date=Saju.from_date(date.date() if isinstance(date, datetime) else date, user.birth_time_units),
+                fortune=fortune,
+                fortune_score=fortune_score,
+                saju_date=Saju.from_date(date.date() if isinstance(date, datetime) else date, user._convert_time_units_to_time(user.birth_time_units)),
                 saju_user=user.saju(),
                 daewoon=DaewoonCalculator.calculate_daewoon(user)
             )
-            
+
             return Response(status="success", data=response_data)
 
         except Exception as e:
@@ -637,7 +658,7 @@ class FortuneService:
             return Response(status="error", error=ErrorInfo(code="fortune_generation_failed", message=str(e)))
 
         
-    def calculate_fortune_balance(self, user: User, date: datetime) -> Dict[str, Any]:
+    def calculate_fortune_balance(self, user: User, date: datetime) -> FortuneScore:
         """
         Calculate five elements balance score using entropy.
 
@@ -653,7 +674,7 @@ class FortuneService:
             date: Date to calculate fortune for
 
         Returns:
-            Dictionary with entropy score (0-100) and element distribution
+            FortuneScore object with entropy score and element distribution
         """
         # Convert birth_time_units string to time object
         birth_time = user._convert_time_units_to_time(user.birth_time_units)
@@ -717,27 +738,37 @@ class FortuneService:
 
         # Prepare detailed distribution
         element_distribution = {
-            element.chinese: {
-                "count": elements_count[element],
-                "percentage": round(100 * elements_count[element] / sum(counts), 1) if sum(counts) > 0 else 0
-            }
+            element.chinese: ElementDistribution(
+                count=elements_count[element],
+                percentage=round(100 * elements_count[element] / sum(counts), 1) if sum(counts) > 0 else 0
+            )
             for element in all_five_elements
         }
 
-        # Helper function to serialize GanJi to dict
-        def ganji_to_dict(ganji: Optional[GanJi]) -> Optional[Dict[str, str]]:
+        # Helper function to convert GanJi to full dict
+        def ganji_to_dict(ganji: Optional[GanJi]) -> Optional[Dict[str, Any]]:
             if ganji is None:
                 return None
             return {
-                "name": ganji.two_letters,
-                "stem": ganji.stem.korean_name,
-                "branch": ganji.branch.korean_name,
-                "element": ganji.stem.element.chinese
+                "two_letters": ganji.two_letters,
+                "stem": {
+                    "korean_name": ganji.stem.korean_name,
+                    "element": ganji.stem.element.chinese,
+                    "element_color": ganji.stem.element.color,
+                    "yin_yang": ganji.stem.yin_yang.value
+                },
+                "branch": {
+                    "korean_name": ganji.branch.korean_name,
+                    "element": ganji.branch.element.chinese,
+                    "element_color": ganji.branch.element.color,
+                    "animal": ganji.branch.animal,
+                    "yin_yang": ganji.branch.yin_yang.value
+                }
             }
 
-        return {
-            "entropy_score": entropy_score,
-            "elements": {
+        return FortuneScore(
+            entropy_score=entropy_score,
+            elements={
                 "대운": ganji_to_dict(ganji_from_daewoon),
                 "세운": ganji_to_dict(ganji_from_date.yearly),
                 "월운": ganji_to_dict(ganji_from_date.monthly),
@@ -747,9 +778,9 @@ class FortuneService:
                 "일주": ganji_to_dict(ganji_from_user.daily),
                 "시주": ganji_to_dict(ganji_from_user.hourly),
             },
-            "element_distribution": element_distribution,
-            "interpretation": self._interpret_balance_score(entropy_score)
-        }
+            element_distribution=element_distribution,
+            interpretation=self._interpret_balance_score(entropy_score)
+        )
 
     def _five_element_entropy_score(self, counts: List[int]) -> float:
         """

@@ -117,13 +117,31 @@ class FortuneAIResponseSerializer(serializers.Serializer):
     special_message = serializers.CharField()
 
 
-class GanjiSerializer(serializers.Serializer):
-    """Serializer for Ganji (간지) information."""
+class StemSerializer(serializers.Serializer):
+    """Serializer for Heavenly Stem (천간) information."""
 
-    name = serializers.CharField()
-    stem = serializers.CharField()
-    branch = serializers.CharField()
-    element = serializers.CharField()
+    korean_name = serializers.CharField(help_text="Korean name (e.g., '갑')")
+    element = serializers.CharField(help_text="Five element (e.g., '木')")
+    element_color = serializers.CharField(help_text="Element color")
+    yin_yang = serializers.CharField(help_text="Yin/Yang (음/양)")
+
+
+class BranchSerializer(serializers.Serializer):
+    """Serializer for Earthly Branch (지지) information."""
+
+    korean_name = serializers.CharField(help_text="Korean name (e.g., '자')")
+    element = serializers.CharField(help_text="Five element (e.g., '水')")
+    element_color = serializers.CharField(help_text="Element color")
+    animal = serializers.CharField(help_text="Zodiac animal (e.g., '쥐')")
+    yin_yang = serializers.CharField(help_text="Yin/Yang (음/양)")
+
+
+class GanjiSerializer(serializers.Serializer):
+    """Serializer for Ganji (간지) with full stem and branch information."""
+
+    two_letters = serializers.CharField(help_text="Ganji name (e.g., '갑자')")
+    stem = StemSerializer(help_text="Heavenly stem details")
+    branch = BranchSerializer(help_text="Earthly branch details")
 
 
 class ElementDistributionSerializer(serializers.Serializer):
@@ -252,7 +270,40 @@ class FortuneResponseDataSerializer(serializers.Serializer):
 
 
 class FortuneResponseSerializer(serializers.Serializer):
-    """Serializer for complete fortune response."""
+    """Serializer for complete fortune response (deprecated)."""
 
     status = serializers.CharField()
     data = FortuneResponseDataSerializer()
+
+
+# ============================================================================
+# New Fortune Response Serializers (Pydantic-based)
+# ============================================================================
+
+class SajuSerializer(serializers.Serializer):
+    """Serializer for complete Saju (four pillars)."""
+
+    yearly = GanjiSerializer(help_text="Year pillar (년주)")
+    monthly = GanjiSerializer(help_text="Month pillar (월주)")
+    daily = GanjiSerializer(help_text="Day pillar (일주)")
+    hourly = GanjiSerializer(help_text="Hour pillar (시주)")
+
+
+class TodayFortuneResponseDataSerializer(serializers.Serializer):
+    """Serializer for today's fortune response data."""
+
+    date = serializers.DateField(format='%Y-%m-%d', help_text="Date for fortune")
+    user_id = serializers.IntegerField(help_text="User ID")
+    fortune = FortuneAIResponseSerializer(help_text="AI-generated fortune")
+    fortune_score = FortuneScoreSerializer(help_text="Five elements balance score")
+    saju_date = SajuSerializer(help_text="Saju calculated from date")
+    saju_user = SajuSerializer(help_text="User's birth Saju")
+    daewoon = GanjiSerializer(allow_null=True, help_text="Current Daewoon (대운)")
+
+
+class TodayFortuneResponseSerializer(serializers.Serializer):
+    """Serializer for /fortune/today endpoint response."""
+
+    status = serializers.CharField()
+    data = TodayFortuneResponseDataSerializer(required=False, allow_null=True)
+    error = serializers.DictField(required=False, allow_null=True)

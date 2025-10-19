@@ -317,20 +317,108 @@ class FortuneViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         summary="Get Today's Fortune",
-        description="Get personalized Saju fortune for today with five elements balance score",
+        description="Get personalized Saju fortune for today with five elements balance score (DB cached)",
         responses={200: FortuneResponseSerializer}
     )
     @action(detail=False, methods=['get'])
     def today(self, request):
-        """Get today's fortune with balance score."""
+        """Get today's fortune with balance score (DB cached)."""
         user = request.user
+        today_date = datetime.now().date()
+        tomorrow_date = today_date + timedelta(days=1)
 
+        # Helper functions to convert GanJi/Saju objects (used in both branches)
+        def ganji_to_dict(ganji):
+            if ganji is None:
+                return None
+            return {
+                'two_letters': ganji.two_letters,
+                'stem': {
+                    'korean_name': ganji.stem.korean_name,
+                    'element': ganji.stem.element.chinese,
+                    'element_color': ganji.stem.element.color,
+                    'yin_yang': ganji.stem.yin_yang.value
+                },
+                'branch': {
+                    'korean_name': ganji.branch.korean_name,
+                    'element': ganji.branch.element.chinese,
+                    'element_color': ganji.branch.element.color,
+                    'animal': ganji.branch.animal,
+                    'yin_yang': ganji.branch.yin_yang.value
+                }
+            }
+
+        def saju_to_dict(saju):
+            if saju is None:
+                return None
+            return {
+                'yearly': ganji_to_dict(saju.yearly),
+                'monthly': ganji_to_dict(saju.monthly),
+                'daily': ganji_to_dict(saju.daily),
+                'hourly': ganji_to_dict(saju.hourly)
+            }
+
+        # Try to get from database first (DB cache)
+        try:
+            fortune_result = FortuneResult.objects.get(
+                user=user,
+                for_date=tomorrow_date
+            )
+
+            # If fortune exists in DB, return it directly (fast! 두 번째 요청부터 빠름)
+            if fortune_result.fortune_data and fortune_result.fortune_score:
+                from core.services.daewoon import DaewoonCalculator
+                from core.utils.saju_concepts import Saju
+
+                birth_time = user._convert_time_units_to_time(user.birth_time_units)
+                saju_date = Saju.from_date(today_date, birth_time)
+                saju_user = user.saju()
+                daewoon = DaewoonCalculator.calculate_daewoon(user)
+
+                response_data = {
+                    'status': 'success',
+                    'data': {
+                        'date': today_date.isoformat(),
+                        'user_id': user.id,
+                        'fortune': fortune_result.fortune_data,
+                        'fortune_score': fortune_result.fortune_score,
+                        'saju_date': saju_to_dict(saju_date),
+                        'saju_user': saju_to_dict(saju_user),
+                        'daewoon': ganji_to_dict(daewoon)
+                    }
+                }
+
+                return Response(response_data, status=status.HTTP_200_OK)
+
+        except FortuneResult.DoesNotExist:
+            pass  # Generate new fortune below
+
+        # If not in DB, generate new fortune
         result = fortune_service.generate_fortune(
             user=user,
             date=datetime.now()
         )
 
-        if result['status'] == 'success':
-            return Response(result, status=status.HTTP_200_OK)
+        # Convert Response[FortuneResponse] to dict
+        if result.status == 'success' and result.data:
+            response_data = {
+                'status': 'success',
+                'data': {
+                    'date': result.data.date,
+                    'user_id': result.data.user_id,
+                    'fortune': result.data.fortune.model_dump(),
+                    'fortune_score': result.data.fortune_score.model_dump(),
+                    'saju_date': saju_to_dict(result.data.saju_date),
+                    'saju_user': saju_to_dict(result.data.saju_user),
+                    'daewoon': ganji_to_dict(result.data.daewoon)
+                }
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
         else:
-            return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Handle error case
+            error_response = {
+                'status': 'error',
+                'error': result.error.model_dump() if result.error else {'code': 'unknown', 'message': 'Unknown error'}
+            }
+            return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

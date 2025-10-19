@@ -425,14 +425,6 @@ class SolarTerms(Enum):
                 return term
         return None
 
-    @classmethod
-    def find_by_month(cls, month: int) -> 'SolarTerms':
-        """월로 절기 찾기 (하위 호환성 - deprecated)"""
-        for term in cls:
-            if term.month == month:
-                return term
-        raise ValueError(f"절기를 찾을 수 없습니다: {month}")
-
 
 class GanJi:
     """간지 (Sexagenary Cycle)"""

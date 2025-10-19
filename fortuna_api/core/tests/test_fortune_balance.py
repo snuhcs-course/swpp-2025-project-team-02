@@ -35,19 +35,20 @@ class TestFortuneBalance(TestCase):
 
         balance = self.service.calculate_fortune_balance(self.user, test_date)
 
-        # Check structure
-        self.assertIn("entropy_score", balance)
-        self.assertIn("elements", balance)
-        self.assertIn("element_distribution", balance)
-        self.assertIn("interpretation", balance)
+        # Check that balance is FortuneScore Pydantic object
+        self.assertIsNotNone(balance)
+        self.assertTrue(hasattr(balance, 'entropy_score'))
+        self.assertTrue(hasattr(balance, 'elements'))
+        self.assertTrue(hasattr(balance, 'element_distribution'))
+        self.assertTrue(hasattr(balance, 'interpretation'))
 
         # Check entropy score range
-        self.assertIsInstance(balance["entropy_score"], float)
-        self.assertGreaterEqual(balance["entropy_score"], 0)
-        self.assertLessEqual(balance["entropy_score"], 100)
+        self.assertIsInstance(balance.entropy_score, float)
+        self.assertGreaterEqual(balance.entropy_score, 0)
+        self.assertLessEqual(balance.entropy_score, 100)
 
         # Check elements structure (should have 8 keys for 8 pillars)
-        elements = balance["elements"]
+        elements = balance.elements
         self.assertIn("대운", elements)
         self.assertIn("세운", elements)
         self.assertIn("월운", elements)
@@ -64,17 +65,17 @@ class TestFortuneBalance(TestCase):
         balance = self.service.calculate_fortune_balance(self.user, test_date)
 
         # Get element distribution
-        distribution = balance["element_distribution"]
+        distribution = balance.element_distribution
 
         # Should have all 5 elements
         self.assertEqual(len(distribution), 5)
 
         # Check that counts exist
-        total_count = sum(elem["count"] for elem in distribution.values())
+        total_count = sum(elem.count for elem in distribution.values())
         self.assertGreater(total_count, 0)
 
         # Check percentages sum to ~100
-        total_percentage = sum(elem["percentage"] for elem in distribution.values())
+        total_percentage = sum(elem.percentage for elem in distribution.values())
         self.assertAlmostEqual(total_percentage, 100.0, places=0)
 
     def test_calculate_fortune_balance_with_daewoon(self):
@@ -97,14 +98,14 @@ class TestFortuneBalance(TestCase):
         balance = self.service.calculate_fortune_balance(older_user, test_date)
 
         # Should have elements field with all 8 pillars
-        elements = balance["elements"]
+        elements = balance.elements
 
         # Check that daewoon exists (not None) for older user
         self.assertIsNotNone(elements["대운"])
 
         # Count total elements from distribution
-        distribution = balance["element_distribution"]
-        total_count = sum(elem["count"] for elem in distribution.values())
+        distribution = balance.element_distribution
+        total_count = sum(elem.count for elem in distribution.values())
 
         # Should have 16 elements (8 pillars * 2) when daewoon exists
         self.assertEqual(total_count, 16)
@@ -155,14 +156,14 @@ class TestFortuneBalance(TestCase):
         """Test that generate_fortune includes fortune_score."""
         test_date = datetime(2024, 12, 25, 12, 0)
 
-        fortune = self.service.generate_fortune(self.user, test_date)
+        result = self.service.generate_fortune(self.user, test_date)
 
-        # Check structure
-        self.assertEqual(fortune["status"], "success")
-        self.assertIn("data", fortune)
-        self.assertIn("fortune_score", fortune["data"])
+        # Check structure (Response[FortuneResponse] object)
+        self.assertEqual(result.status, "success")
+        self.assertIsNotNone(result.data)
+        self.assertIsNotNone(result.data.fortune_score)
 
-        # Check fortune_score structure
-        fortune_score = fortune["data"]["fortune_score"]
-        self.assertIn("entropy_score", fortune_score)
-        self.assertIn("element_distribution", fortune_score)
+        # Check fortune_score structure (FortuneScore Pydantic object)
+        fortune_score = result.data.fortune_score
+        self.assertTrue(hasattr(fortune_score, 'entropy_score'))
+        self.assertTrue(hasattr(fortune_score, 'element_distribution'))
