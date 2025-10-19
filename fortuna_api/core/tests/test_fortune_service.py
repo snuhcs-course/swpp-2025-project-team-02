@@ -256,40 +256,6 @@ class TestFortuneService(TestCase):
         self.assertIn('fortune', result['data'])
         self.assertIn('tomorrow_gapja', result['data'])
 
-    def test_get_hourly_fortune(self):
-        """Test hourly fortune generation."""
-        # Test morning time (오시: 11-13)
-        target_time = datetime(2024, 1, 1, 12, 0, 0)
-        result = self.service.get_hourly_fortune(self.user_id, target_time)
-
-        self.assertEqual(result['status'], 'success')
-        self.assertEqual(result['data']['time_unit'], '오시')
-        self.assertEqual(result['data']['time_element'], '화')
-        self.assertIn('compatibility', result['data'])
-        self.assertIn('advice', result['data'])
-
-        # Test midnight time (자시: 23-01)
-        midnight_time = datetime(2024, 1, 1, 23, 30, 0)
-        result_midnight = self.service.get_hourly_fortune(
-            self.user_id, midnight_time
-        )
-
-        self.assertEqual(result_midnight['status'], 'success')
-        self.assertEqual(result_midnight['data']['time_unit'], '자시')
-        self.assertEqual(result_midnight['data']['time_element'], '수')
-
-    def test_get_hourly_advice(self):
-        """Test hourly advice generation based on compatibility."""
-        advice_generates = self.service._get_hourly_advice('generates')
-        self.assertIn('최적의 시간', advice_generates)
-
-        advice_destroyed = self.service._get_hourly_advice('is_destroyed_by')
-        self.assertIn('신중한', advice_destroyed)
-
-        advice_unknown = self.service._get_hourly_advice('unknown')
-        self.assertEqual(advice_unknown, '일반적인 시간입니다.')
-
-
 class TestFortuneServiceIntegration(TestCase):
     """Integration tests for FortuneService."""
 
@@ -318,23 +284,3 @@ class TestFortuneServiceIntegration(TestCase):
         code_61 = self.service.calculate_gapja_code(date_61)
         # Note: This might not be exactly equal due to simplified calculation
         # In real implementation, proper lunar calendar should be used
-
-    def test_time_unit_coverage(self):
-        """Test that all 12 time units are covered."""
-        time_units_found = set()
-
-        for hour in range(24):
-            target_time = datetime(2024, 1, 1, hour, 0, 0)
-            result = self.service.get_hourly_fortune(
-                self.user_id, target_time
-            )
-
-            if result['status'] == 'success':
-                time_units_found.add(result['data']['time_unit'])
-
-        # Should cover all 12 traditional time units
-        expected_units = {
-            '자시', '축시', '인시', '묘시', '진시', '사시',
-            '오시', '미시', '신시', '유시', '술시', '해시'
-        }
-        self.assertEqual(time_units_found, expected_units)

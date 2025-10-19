@@ -418,44 +418,6 @@ def get_tomorrow_fortune(request):
         }
     }
 )
-@api_view(['GET'])
-@permission_classes([DevelopmentOrAuthenticated])
-def get_hourly_fortune(request):
-    """
-    Get fortune for specific hour using traditional Korean time units.
-
-    Traditional time units (시진):
-    - 자시 (23:00-01:00): Water
-    - 축시 (01:00-03:00): Earth
-    - 인시 (03:00-05:00): Wood
-    - And so on...
-    """
-    user_id = request.user.id
-
-    # Get datetime parameter
-    datetime_str = request.GET.get('datetime')
-    if datetime_str:
-        try:
-            target_datetime = datetime.fromisoformat(datetime_str)
-        except ValueError:
-            return Response(
-                {'status': 'error', 'message': 'Invalid datetime format. Use ISO format'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    else:
-        target_datetime = datetime.now()
-
-    # Get hourly fortune
-    result = fortune_service.get_hourly_fortune(
-        user_id=user_id,
-        target_datetime=target_datetime
-    )
-
-    if result['status'] == 'success':
-        return Response(result, status=status.HTTP_200_OK)
-    else:
-        return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 @extend_schema(
     summary="Get User Images for Date",
