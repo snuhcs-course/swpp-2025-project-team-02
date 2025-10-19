@@ -82,7 +82,7 @@ class HomeFragment : Fragment() {
 
         // 개운하기 버튼 (FloatingActionButton) - 카메라로 이동
         binding.fabRefreshFortune.setOnClickListener {
-            findNavController().navigate(R.id.cameraFragment)
+            findNavController().navigate(R.id.arFragment)
         }
     }
 
