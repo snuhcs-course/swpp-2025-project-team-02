@@ -33,4 +33,7 @@
     <!-- Borders & Dividers -->
     <color name="border">#E0E0E0</color>
     <color name="divider">#F0F0F0</color>
+
+    <!-- App Icon -->
+    <color name="ic_launcher_background">#000000</color>
 </resources>
