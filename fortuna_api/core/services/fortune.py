@@ -6,7 +6,7 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 import os
 import json
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
 from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
@@ -23,6 +23,19 @@ from .image import ImageService
 from core.models import FortuneResult
 from loguru import logger
 import numpy as np
+
+# TODO - move to global utils
+
+T = TypeVar("T", bound=BaseModel)
+
+class ErrorInfo(BaseModel):
+    code: str
+    message: str
+
+class Response(BaseModel, Generic[T]):
+    status: Literal["success", "error"]
+    data: Optional[T] = None
+    error: Optional[ErrorInfo] = None
 
 class ChakraReading(BaseModel):
     """Individual Chakra reading based on photo and location."""
@@ -53,9 +66,6 @@ class FortuneAIResponse(BaseModel):
     daily_guidance: DailyGuidance = Field(description="Practical guidance for tomorrow")
     special_message: str = Field(description="Personalized encouraging message")
 
-class FortuneScore(BaseModel):
-    ...
-
 class TomorrowGapja(BaseModel):
     code: int = Field(description="Gapja code")
     name: str = Field(description="Gapja name")
@@ -64,8 +74,20 @@ class TomorrowGapja(BaseModel):
     element: str = Field(description="Gapja element")
     element_color: str = Field(description="Gapja element color")
     animal: str = Field(description="Gapja animal")
+    
+class FortuneScore(BaseModel):
+    ...
 
 class FortuneResponse(BaseModel):
+    date: str = Field(description="Date for which fortune was generated")
+    user_id: int = Field(description="User ID")
+    fortune: FortuneAIResponse = Field(description="Fortune AI response")
+    fortune_score: FortuneScore = Field(description="Fortune score")
+    saju_date: Saju = Field(description="Saju date")
+    saju_user: Saju = Field(description="Saju user")
+    daewoon: GanJi = Field(description="Ganji daewoon")
+
+class FortuneResponseDeprecated(BaseModel):
     fortune_id: int = Field(description="Fortune ID")
     user_id: int = Field(description="User ID")
     generated_at: str = Field(description="Generation time")
@@ -422,7 +444,7 @@ class FortuneService:
             )
 
     def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
-        """Parse AI response into FortuneResponse structure."""
+        """Parse AI response into FortuneAIResponse structure."""
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
         return FortuneAIResponse(
@@ -458,7 +480,7 @@ class FortuneService:
         user_id: int,
         date: datetime,
         include_photos: bool = True
-    ) -> Dict[str, Any]:
+    ) -> Response[FortuneResponseDeprecated]:
         """
         Generate complete tomorrow's fortune for a user.
 
@@ -517,52 +539,103 @@ class FortuneService:
             )
 
             # Prepare final response
-            response = {
-                "status": "success",
-                "data": {
-                    "fortune_id": fortune_result.id,
-                    "user_id": user_id,
-                    "generated_at": fortune_result.created_at.isoformat(),
-                    "for_date": tomorrow_date.strftime('%Y-%m-%d'),
-                    "tomorrow_gapja": {
-                        "code": tomorrow_ganji_index,
-                        "name": tomorrow_day_ganji.two_letters,
-                        "stem": tomorrow_day_ganji.stem.korean_name,
-                        "branch": tomorrow_day_ganji.branch.korean_name,
-                        "element": tomorrow_day_ganji.stem.element.chinese,
-                        "element_color": tomorrow_day_ganji.stem.element.color,
-                        "animal": tomorrow_day_ganji.branch.animal
-                    },
-                    "fortune": fortune.model_dump() if fortune else None
-                }
-            }
-
-            return response
+            response_data = FortuneResponseDeprecated(
+                fortune_id=fortune_result.id,
+                user_id=user_id,
+                generated_at=fortune_result.created_at.isoformat(),
+                for_date=tomorrow_date.strftime('%Y-%m-%d'),
+                tomorrow_gapja=TomorrowGapja(
+                    code=tomorrow_ganji_index,
+                    name=tomorrow_day_ganji.two_letters,
+                    stem=tomorrow_day_ganji.stem.korean_name,
+                    branch=tomorrow_day_ganji.branch.korean_name,
+                    element=tomorrow_day_ganji.stem.element.chinese,
+                    element_color=tomorrow_day_ganji.stem.element.color,
+                    animal=tomorrow_day_ganji.branch.animal
+                ),
+                fortune=fortune.model_dump() if fortune else None,
+                fortune_score=FortuneScore(
+                    entropy_score=self.calculate_fortune_balance(user_id, tomorrow_date)
+                )
+            )
+            
+            return Response(status="success", data=response_data)
 
         except Exception as e:
             logger.error(f"Failed to generate fortune: {e}")
-            return {
-                "status": "error",
-                "message": str(e)
-            }
+            return Response(status="error", error=ErrorInfo(code="fortune_generation_failed", message=str(e)))
 
     # new method for fetching fortune.
     def generate_fortune(
         self,
         user: User,
         date: datetime
-    ) -> Dict[str, Any]:
-        fortune = self.generate_tomorrow_fortune(
-            user.id,
-            date,
-            False
-        )
-        
-        fortune['data']['fortune_score'] = self.calculate_fortune_balance(user, date)
-        return {
-            "status": "success",
-            "data": fortune['data']
-        }
+    ) -> Response[FortuneResponse]:
+        try:
+            # Get tomorrow's date
+            tomorrow_date = date + timedelta(days=1)
+
+            # Get user's Saju information (returns Saju object)
+            user_saju = self.get_user_saju_info(user_id)
+
+            # Calculate tomorrow's day pillar (일주)
+            tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
+
+            # Analyze compatibility between user's day pillar and tomorrow's day pillar
+            compatibility = self.analyze_saju_compatibility(
+                user_saju.daily,  # User's day pillar
+                tomorrow_day_ganji  # Tomorrow's day pillar
+            )
+
+            # Get photo contexts if requested
+            photo_contexts = []
+            if include_photos:
+                photo_contexts = self.prepare_photo_context(user_id, date)
+
+            # Generate fortune with AI
+            fortune = self.generate_fortune_with_ai(
+                user_saju,
+                tomorrow_date,
+                tomorrow_day_ganji,
+                compatibility,
+                photo_contexts
+            )
+
+            # Get index of tomorrow's ganji in 60-ganji cycle for storage
+            cached_ganji_list = GanJi._get_cached()
+            tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
+
+            # Save to database
+            fortune_result, created = FortuneResult.objects.update_or_create(
+                user_id=user_id,
+                for_date=tomorrow_date.date(),
+                defaults={
+                    'gapja_code': tomorrow_ganji_index,
+                    'gapja_name': tomorrow_day_ganji.two_letters,
+                    'gapja_element': tomorrow_day_ganji.stem.element.chinese,
+                    'fortune_data': fortune.model_dump() if fortune else {}
+                }
+            )
+
+            # Prepare final response
+            response_data = FortuneResponse(
+                date=date.strftime('%Y-%m-%d'),
+                user_id=user.id,
+                fortune=fortune.model_dump() if fortune else None,
+                fortune_score=FortuneScore(
+                    entropy_score=self.calculate_fortune_balance(user, date)
+                ),
+                saju_date=Saju.from_date(date.date() if isinstance(date, datetime) else date, user.birth_time_units),
+                saju_user=user.saju(),
+                daewoon=DaewoonCalculator.calculate_daewoon(user)
+            )
+            
+            return Response(status="success", data=response_data)
+
+        except Exception as e:
+            logger.error(f"Failed to generate fortune: {e}")
+            return Response(status="error", error=ErrorInfo(code="fortune_generation_failed", message=str(e)))
+
         
     def calculate_fortune_balance(self, user: User, date: datetime) -> Dict[str, Any]:
         """
