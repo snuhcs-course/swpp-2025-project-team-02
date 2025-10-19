@@ -103,5 +103,17 @@ dependencies {
     // Dependency for WorkManager (scheduled notifications)
     implementation(libs.androidx.work.runtime.ktx)
     // Dependency for custom toast
+
     implementation("androidx.cardview:cardview:1.0.0")
+    implementation("com.google.cloud:google-cloud-vision:3.72.0")
+    implementation("io.grpc:grpc-okhttp:1.36.0")
+    implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
+    implementation("androidx.lifecycle:lifecycle-common-java8:2.9.4")
+    // MLKit
+    implementation("com.google.mlkit:object-detection:17.0.2")
+    implementation("com.google.mlkit:object-detection-custom:17.0.2")
+    implementation("de.javagl:obj:0.4.0")
+    // Dependency for SceneView AndroidX (3D model rendering)
+    implementation("io.github.sceneview:arsceneview:2.3.0")
+    implementation("io.github.sceneview:sceneview:2.3.0")
 }
