@@ -306,10 +306,13 @@ class SolarTerms(Enum):
             cur_lon = sun.elon % 360.0
             # Forward delta from current to target (0..360)
             delta = (target_longitude - cur_lon) % 360.0
-            if delta < 1e-6:
+
+            # If we're very close or if we've overshot (delta > 180 means we went backwards)
+            if delta < 1e-4 or delta > 180.0:
                 break
+
             # Mean solar motion ~ 0.9856 deg/day; jump most of the remaining arc.
-            jump_days = max(0.02, delta / 0.985647)  # clamp to avoid zero/negative or too small jumps
+            jump_days = max(0.01, delta / 0.985647)  # clamp to avoid zero/negative or too small jumps
             dt = dt + timedelta(days=jump_days)
         return dt
 
