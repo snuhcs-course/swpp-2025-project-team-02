@@ -47,7 +47,7 @@ touch local.properties
 # - Windows: C:\Users\YOUR_USERNAME\AppData\Local\Android\Sdk
 sdk.dir=/path/to/your/Android/sdk
 
-GOOGLE_CLIENT_ID=891993316970-vdr3b8vrilumhc762bs17qda2ma1s7u8.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=30527837999-vs55bhsnu1rf4qnrikgpko6p5gtj76jd.apps.googleusercontent.com
 
 # API Configuration
 API_BASE_URL=https://fortuna.up.railway.app/
