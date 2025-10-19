@@ -61,12 +61,6 @@ import android.graphics.BitmapFactory
 import androidx.annotation.RequiresApi
 import java.io.FileOutputStream
 import com.example.fortuna_android.service.S3UploadService
-// AR overlay dependency
-import io.github.sceneview.ar.ArSceneView
-import io.github.sceneview.ar.node.ArModelNode
-import io.github.sceneview.math.Position
-import com.example.fortuna_android.util.ModelLoader
-import kotlinx.coroutines.withContext
 
 class CameraFragment : Fragment() {
 
@@ -93,10 +87,6 @@ class CameraFragment : Fragment() {
     private var currentLocation: Location? = null
     private val s3UploadService = S3UploadService()
 
-     // AR related variable (3D asset overlay)
-     private var modelLoader: ModelLoader? = null
-     private var currentModelNode: ArModelNode? = null
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -122,137 +112,7 @@ class CameraFragment : Fragment() {
 
         // Get current location for GPS metadata
         getCurrentLocation()
-
-        // AR 초기화를 지연시켜 CameraX가 먼저 로드되도록 함
-//        view.postDelayed({
-//            if (isAdded && _binding != null) {
-//                setupArOverlay()
-//            }
-//        }, 300) // 300ms 지연
     }
-
-    /**
-     * AR 오버레이 초기화 예시 코드
-     * fire.glb 모델을 화면 중앙에 오버레이
-     * 비동기로 처리하여 UI 렉 방지
-     */
-    private fun setupArOverlay() {
-        val currentContext = context ?: return
-
-        // ARCore 사용 가능 여부 확인
-        try {
-            val availability = com.google.ar.core.ArCoreApk.getInstance().checkAvailability(currentContext)
-            if (availability != com.google.ar.core.ArCoreApk.Availability.SUPPORTED_INSTALLED) {
-                Log.w(TAG, "ARCore not available: $availability")
-                CustomToast.show(requireContext(), "⚠️ ARCore를 사용할 수 없습니다. Google Play Services for AR를 설치해주세요.")
-                return
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking ARCore availability", e)
-            CustomToast.show(requireContext(), "⚠️ ARCore 확인 실패")
-            return
-        }
-
-        // 로딩 표시
-        CustomToast.show(requireContext(), "🔄 AR 초기화 중...")
-
-        // 비동기로 AR 초기화 (메인 스레드 블로킹 방지)
-        lifecycleScope.launch {
-            try {
-                // 백그라운드에서 모델 체크
-                val modelLoader = ModelLoader(currentContext)
-                if (!modelLoader.checkAllModelsExist()) {
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        CustomToast.show(requireContext(), "⚠️ GLB 파일을 찾을 수 없습니다")
-                    }
-                    return@launch
-                }
-
-                // 메인 스레드로 전환하여 UI 업데이트
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    // CameraX 중지 (ArSceneView가 자체 카메라를 사용함)
-                    cameraProvider?.unbindAll()
-                    binding.viewFinder.visibility = View.GONE
-
-                    // ArSceneView 표시
-                    binding.arSceneView.visibility = View.VISIBLE
-
-                    Log.d(TAG, "ArSceneView visibility: ${binding.arSceneView.visibility}")
-                }
-
-                // 짧은 지연 후 모델 로드 (ArSceneView 초기화 대기)
-                kotlinx.coroutines.delay(500)
-
-                // 메인 스레드에서 모델 생성 및 추가
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    this@CameraFragment.modelLoader = modelLoader
-
-                    currentModelNode = modelLoader.createModelNode(
-                        engine = binding.arSceneView.engine,
-                        element = ModelLoader.Element.FIRE
-                    )
-
-                    currentModelNode?.let { node ->
-                        binding.arSceneView.addChild(node)
-                        Log.d(TAG, "Fire model node added to AR scene")
-                        Log.d(TAG, "Model node position: ${node.position}")
-                        Log.d(TAG, "Model node scale: ${node.scale}")
-                        Log.d(TAG, "ArSceneView children count: ${binding.arSceneView.children.size}")
-                        CustomToast.show(requireContext(), "🔥 Fire 모델 로딩 완료!")
-                    } ?: run {
-                        Log.e(TAG, "Failed to create model node")
-                        CustomToast.show(requireContext(), "❌ 모델 노드 생성 실패")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during AR initialization", e)
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    CustomToast.show(requireContext(), "❌ AR 초기화 실패: ${e.message}")
-                }
-            }
-        }
-    }
-
-    /**
-     * 다른 모델로 변경하는 예시
-     * (Object Detection 결과에 따라 모델을 바꿀 때 사용)
-     */
-    /*
-    private fun changeModel(element: ModelLoader.Element) {
-        // 기존 모델 제거
-        currentModelNode?.let { node ->
-            binding.arSceneView.removeChild(node)
-            currentModelNode = null
-        }
-
-        // 새 모델 추가
-        currentModelNode = modelLoader?.createModelNode(
-            engine = binding.arSceneView.engine,
-            element = element
-        )
-
-        currentModelNode?.let { node ->
-            binding.arSceneView.addChild(node)
-            Log.d(TAG, "${element.displayName} model loaded")
-            CustomToast.show(requireContext(), "${element.displayName} 모델 표시")
-        }
-    }
-    */
-
-    /**
-     * Object Detection 라벨에 따라 자동으로 모델 변경
-     * (나중에 Object Detection 구현 시 사용)
-     */
-    /*
-    private fun updateModelForLabel(label: String) {
-        val element = modelLoader?.getElementForLabel(label)
-        if (element != null) {
-            changeModel(element)
-        } else {
-            Log.d(TAG, "No matching element for label: $label")
-        }
-    }
-    */
 
     private fun setupClickListeners() {
         val binding = _binding ?: return
@@ -859,9 +719,6 @@ class CameraFragment : Fragment() {
             (activity as MainActivity).showBottomNavigation()
         }
         cameraExecutor.shutdown()
-
-        // AR resources will be closed automatically. (ArFragment follows Fragment lifecycle)
-
         _binding = null
     }
 }
