@@ -116,8 +116,7 @@ class HomeFragment : Fragment() {
 
     private fun loadTodayFortune() {
         Log.d(TAG, "Loading today's fortune...")
-        // isTomorrow = true means today (confusing naming from original code)
-        fortuneViewModel.getFortune(requireContext(), isTomorrow = true)
+        fortuneViewModel.getTodayFortune(requireContext())
     }
 
     override fun onResume() {

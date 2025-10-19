@@ -43,7 +43,7 @@ class FortuneViewModel : ViewModel() {
     // Coroutine job for fortune generation
     private var fortuneJob: Job? = null
 
-    fun getFortune(context: Context, isTomorrow: Boolean = true) {
+    fun getTodayFortune(context: Context) {
         // Don't start new request if one is already running
         if (_isLoading.value == true) {
             Log.d(TAG, "Fortune generation already in progress")
@@ -73,18 +73,9 @@ class FortuneViewModel : ViewModel() {
                     return@launch
                 }
 
-                // Prepare request parameters
+                // Prepare request parameters - always get today's date
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                val currentDate = if (isTomorrow) {
-                    dateFormat.format(Date())
-                } else {
-                    // Calculate yesterday's date
-                    val calendar = java.util.Calendar.getInstance()
-                    calendar.add(java.util.Calendar.DAY_OF_YEAR, -1)
-                    dateFormat.format(calendar.time)
-                }
-
-                Log.d(TAG, "Fortune request parameters: date=$currentDate")
+                val currentDate = dateFormat.format(Date())
 
                 // Network call on IO thread - AuthInterceptor will handle token automatically
                 val response = RetrofitClient.instance.getFortune(currentDate)
