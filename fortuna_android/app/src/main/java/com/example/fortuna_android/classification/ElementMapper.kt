@@ -1,0 +1,168 @@
+package com.example.fortuna_android.classification
+
+import android.content.Context
+import android.util.Log
+import java.io.BufferedReader
+import java.io.InputStreamReader
+
+/**
+ * Maps detection labels to Chinese Five Elements + Others categories
+ * Based on the classification defined in assets/class.txt
+ */
+class ElementMapper(private val context: Context) {
+
+    companion object {
+        private const val TAG = "ElementMapper"
+        private const val CLASS_FILE = "class.txt"
+    }
+
+    // Categories based on Chinese Five Elements
+    enum class Element(val displayName: String) {
+        FIRE("Fire"),
+        METAL("Metal"),
+        EARTH("Earth"),
+        WOOD("Wood"),
+        WATER("Water"),
+        OTHERS("Others")
+    }
+
+    private val labelToElementMap = mutableMapOf<String, Element>()
+    private var isInitialized = false
+
+    init {
+        loadClassMapping()
+    }
+
+    /**
+     * Load the class mapping from assets/class.txt
+     */
+    private fun loadClassMapping() {
+        try {
+            val inputStream = context.assets.open(CLASS_FILE)
+            val reader = BufferedReader(InputStreamReader(inputStream))
+
+            var currentElement = Element.OTHERS
+            var lineNumber = 0
+
+            reader.useLines { lines ->
+                lines.forEach { line ->
+                    lineNumber++
+                    val trimmedLine = line.trim()
+
+                    when {
+                        trimmedLine.startsWith("1. Fire") -> {
+                            currentElement = Element.FIRE
+                            Log.d(TAG, "Found Fire section at line $lineNumber")
+                        }
+                        trimmedLine.startsWith("2. Metal") -> {
+                            currentElement = Element.METAL
+                            Log.d(TAG, "Found Metal section at line $lineNumber")
+                        }
+                        trimmedLine.startsWith("3. Ground") -> {
+                            currentElement = Element.EARTH
+                            Log.d(TAG, "Found Earth section at line $lineNumber")
+                        }
+                        trimmedLine.startsWith("4. Wood") -> {
+                            currentElement = Element.WOOD
+                            Log.d(TAG, "Found Wood section at line $lineNumber")
+                        }
+                        trimmedLine.startsWith("5. Water") -> {
+                            currentElement = Element.WATER
+                            Log.d(TAG, "Found Water section at line $lineNumber")
+                        }
+                        trimmedLine.startsWith("6. others") -> {
+                            currentElement = Element.OTHERS
+                            Log.d(TAG, "Found Others section at line $lineNumber")
+                        }
+                        trimmedLine.isNotEmpty() && !trimmedLine.startsWith("1.") &&
+                        !trimmedLine.startsWith("2.") && !trimmedLine.startsWith("3.") &&
+                        !trimmedLine.startsWith("4.") && !trimmedLine.startsWith("5.") &&
+                        !trimmedLine.startsWith("6.") -> {
+                            // This is a class label, map it to current element
+                            labelToElementMap[trimmedLine.lowercase()] = currentElement
+                        }
+                    }
+                }
+            }
+
+            isInitialized = true
+            Log.d(TAG, "Loaded ${labelToElementMap.size} class mappings")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading class mapping from $CLASS_FILE", e)
+            isInitialized = false
+        }
+    }
+
+    /**
+     * Map a detected label to its corresponding element category
+     */
+    fun mapLabelToElement(detectedLabel: String): Element {
+        if (!isInitialized) {
+            Log.w(TAG, "ElementMapper not initialized, returning OTHERS for label: $detectedLabel")
+            return Element.OTHERS
+        }
+
+        val normalizedLabel = detectedLabel.lowercase().trim()
+
+        // Direct match
+        labelToElementMap[normalizedLabel]?.let { element ->
+            Log.d(TAG, "Direct match: '$detectedLabel' -> ${element.displayName}")
+            return element
+        }
+
+        // Fuzzy matching - check if detected label contains any of our class labels
+        for ((classLabel, element) in labelToElementMap) {
+            if (normalizedLabel.contains(classLabel) || classLabel.contains(normalizedLabel)) {
+                Log.d(TAG, "Fuzzy match: '$detectedLabel' contains '$classLabel' -> ${element.displayName}")
+                return element
+            }
+        }
+
+        // Check for partial word matches
+        val detectedWords = normalizedLabel.split(" ")
+        for ((classLabel, element) in labelToElementMap) {
+            val classWords = classLabel.split(" ")
+            for (detectedWord in detectedWords) {
+                for (classWord in classWords) {
+                    if (detectedWord.length > 3 && classWord.length > 3 &&
+                        (detectedWord.contains(classWord) || classWord.contains(detectedWord))) {
+                        Log.d(TAG, "Word match: '$detectedWord' matches '$classWord' -> ${element.displayName}")
+                        return element
+                    }
+                }
+            }
+        }
+
+        Log.d(TAG, "No match found for '$detectedLabel', returning OTHERS")
+        return Element.OTHERS
+    }
+
+    /**
+     * Get all available elements
+     */
+    fun getAllElements(): List<Element> = Element.values().toList()
+
+    /**
+     * Check if mapper is properly initialized
+     */
+    fun isReady(): Boolean = isInitialized
+
+    /**
+     * Get mapping statistics for debugging
+     */
+    fun getMappingStats(): String {
+        val stats = mutableMapOf<Element, Int>()
+        labelToElementMap.values.forEach { element ->
+            stats[element] = stats.getOrDefault(element, 0) + 1
+        }
+
+        return buildString {
+            appendLine("Element Mapping Statistics:")
+            stats.forEach { (element, count) ->
+                appendLine("  ${element.displayName}: $count items")
+            }
+            appendLine("  Total: ${labelToElementMap.size} mappings")
+        }
+    }
+}

@@ -96,6 +96,11 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_home_to_fortune)
         }
 
+        // AR 객체 인식 버튼
+        binding.btnARDetection.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_ar)
+        }
+
         // 사주 설명 버튼
         binding.btnSajuExplanation.setOnClickListener {
             val intent = Intent(requireContext(), IntroActivity::class.java)
