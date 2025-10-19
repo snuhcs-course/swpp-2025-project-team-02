@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from asgiref.sync import sync_to_async
-from core.urls import fortune_service
+from core.views import fortune_service
 from django.db import transaction
 
 logger = logging.getLogger(__name__)
