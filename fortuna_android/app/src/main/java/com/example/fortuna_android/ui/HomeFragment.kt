@@ -1,6 +1,6 @@
 package com.example.fortuna_android.ui
 
-import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
-import com.example.fortuna_android.IntroActivity
+import androidx.viewpager2.widget.ViewPager2
 import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentHomeBinding
 
@@ -18,6 +18,7 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var fortuneViewModel: FortuneViewModel
+    private lateinit var pagerAdapter: HomePagerAdapter
 
     companion object {
         private const val TAG = "HomeFragment"
@@ -39,25 +40,44 @@ class HomeFragment : Fragment() {
         // Initialize ViewModel
         fortuneViewModel = ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
 
+        setupViewPager()
         setupClickListeners()
-        setupObservers()
 
         // Load today's fortune automatically
         loadTodayFortune()
     }
 
+    private fun setupViewPager() {
+        // ViewPager2 어댑터 설정
+        pagerAdapter = HomePagerAdapter(this)
+        binding.viewPager.adapter = pagerAdapter
+        binding.viewPager.isUserInputEnabled = true // 스와이프 가능
+
+        // ViewPager2 페이지 변경 리스너
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                updateTabUI(position)
+            }
+        })
+    }
+
     private fun setupClickListeners() {
         val binding = _binding ?: return
-
-        // 사주 설명 버튼
-        binding.btnSajuExplanation.setOnClickListener {
-            val intent = Intent(requireContext(), IntroActivity::class.java)
-            startActivity(intent)
-        }
 
         // 프로필 버튼 (헤더에 포함된 버튼)
         binding.root.findViewById<View>(R.id.profile_button)?.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_profile)
+        }
+
+        // 오늘의 운세 탭
+        binding.tabTodayFortune.setOnClickListener {
+            binding.viewPager.currentItem = 0
+        }
+
+        // 상세 분석 탭
+        binding.tabDetailAnalysis.setOnClickListener {
+            binding.viewPager.currentItem = 1
         }
 
         // 개운하기 버튼 (FloatingActionButton) - 카메라로 이동
@@ -66,49 +86,21 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun setupObservers() {
-        // Observe FortuneData
-        fortuneViewModel.fortuneData.observe(viewLifecycleOwner) { fortuneData ->
-            val binding = _binding ?: return@observe
-
-            if (fortuneData != null) {
-                Log.d(TAG, "FortuneData received, displaying on card")
-                // Show fortune card and hide loading/error
-                binding.fortuneCardView.visibility = View.VISIBLE
-                binding.loadingContainer.visibility = View.GONE
-                binding.tvError.visibility = View.GONE
-
-                // Set fortune data to card view
-                binding.fortuneCardView.setFortuneData(fortuneData)
+    private fun updateTabUI(position: Int) {
+        when (position) {
+            0 -> {
+                // 오늘의 운세 탭 활성화
+                binding.tabTodayFortune.setTextColor(Color.parseColor("#FFFFFF"))
+                binding.tabTodayFortune.setTypeface(null, android.graphics.Typeface.BOLD)
+                binding.tabDetailAnalysis.setTextColor(Color.parseColor("#888888"))
+                binding.tabDetailAnalysis.setTypeface(null, android.graphics.Typeface.NORMAL)
             }
-        }
-
-        // Observe loading state
-        fortuneViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            val binding = _binding ?: return@observe
-
-            if (isLoading) {
-                binding.loadingContainer.visibility = View.VISIBLE
-                binding.fortuneCardView.visibility = View.GONE
-                binding.tvError.visibility = View.GONE
-            } else {
-                binding.loadingContainer.visibility = View.GONE
-            }
-        }
-
-        // Observe error messages
-        fortuneViewModel.errorMessage.observe(viewLifecycleOwner) { errorMessage ->
-            val binding = _binding ?: return@observe
-
-            if (errorMessage != null) {
-                Log.e(TAG, "Error loading fortune: $errorMessage")
-                binding.tvError.text = errorMessage
-                binding.tvError.visibility = View.VISIBLE
-                binding.fortuneCardView.visibility = View.GONE
-                binding.loadingContainer.visibility = View.GONE
-
-                // Clear the error after showing it
-                fortuneViewModel.clearError()
+            1 -> {
+                // 상세 분석 탭 활성화
+                binding.tabTodayFortune.setTextColor(Color.parseColor("#888888"))
+                binding.tabTodayFortune.setTypeface(null, android.graphics.Typeface.NORMAL)
+                binding.tabDetailAnalysis.setTextColor(Color.parseColor("#FFFFFF"))
+                binding.tabDetailAnalysis.setTypeface(null, android.graphics.Typeface.BOLD)
             }
         }
     }
