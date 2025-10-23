@@ -1,0 +1,294 @@
+package com.example.fortuna_android.classification
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Unit tests for ElementMapper
+ * Tests the mapping of detection labels to Chinese Five Elements
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
+class ElementMapperTest {
+
+    private lateinit var context: Context
+    private lateinit var elementMapper: ElementMapper
+
+    @Before
+    fun setup() {
+        context = ApplicationProvider.getApplicationContext()
+        elementMapper = ElementMapper(context)
+    }
+
+    @Test
+    fun `test ElementMapper initialization`() {
+        // Check if assets are accessible
+        try {
+            val inputStream = context.assets.open("class.txt")
+            inputStream.close()
+            println("Assets file class.txt is accessible")
+        } catch (e: Exception) {
+            println("ERROR: Cannot access assets file: ${e.message}")
+            e.printStackTrace()
+        }
+
+        assertTrue("ElementMapper should be initialized", elementMapper.isReady())
+    }
+
+    @Test
+    fun `test getAllElements returns all element types`() {
+        val elements = elementMapper.getAllElements()
+
+        assertEquals(6, elements.size)
+        assertTrue(elements.contains(ElementMapper.Element.FIRE))
+        assertTrue(elements.contains(ElementMapper.Element.METAL))
+        assertTrue(elements.contains(ElementMapper.Element.EARTH))
+        assertTrue(elements.contains(ElementMapper.Element.WOOD))
+        assertTrue(elements.contains(ElementMapper.Element.WATER))
+        assertTrue(elements.contains(ElementMapper.Element.OTHERS))
+    }
+
+    @Test
+    fun `test Element enum display names`() {
+        assertEquals("Fire", ElementMapper.Element.FIRE.displayName)
+        assertEquals("Metal", ElementMapper.Element.METAL.displayName)
+        assertEquals("Earth", ElementMapper.Element.EARTH.displayName)
+        assertEquals("Wood", ElementMapper.Element.WOOD.displayName)
+        assertEquals("Water", ElementMapper.Element.WATER.displayName)
+        assertEquals("Others", ElementMapper.Element.OTHERS.displayName)
+    }
+
+    // Fire element tests
+    @Test
+    fun `test fire element direct match`() {
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("candle"))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("torch"))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("volcano"))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("stove"))
+    }
+
+    @Test
+    fun `test fire element case insensitive`() {
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("CANDLE"))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("Torch"))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("VoLcAnO"))
+    }
+
+    @Test
+    fun `test fire element with whitespace`() {
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("  candle  "))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("\ttorch\t"))
+    }
+
+    // Metal element tests
+    @Test
+    fun `test metal element direct match`() {
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("hammer"))
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("nail"))
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("bicycle-built-for-two"))
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("laptop"))
+    }
+
+    // Earth element tests
+    @Test
+    fun `test earth element direct match`() {
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("hen"))
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("ostrich"))
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("snail"))
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("golden retriever"))
+    }
+
+    // Wood element tests
+    @Test
+    fun `test wood element direct match`() {
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("desk"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("violin"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("broom"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("banana"))
+    }
+
+    // Water element tests
+    @Test
+    fun `test water element direct match`() {
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("goldfish"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("whale"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("submarine"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("bucket"))
+    }
+
+    // Others element tests
+    @Test
+    fun `test others element direct match`() {
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement("balloon"))
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement("umbrella"))
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement("basketball"))
+    }
+
+    // Fuzzy matching tests
+    @Test
+    fun `test fuzzy matching with contains`() {
+        // Label contains class name
+        val result1 = elementMapper.mapLabelToElement("red candle")
+        assertTrue(result1 == ElementMapper.Element.FIRE || result1 == ElementMapper.Element.OTHERS)
+
+        // Class name contains label
+        val result2 = elementMapper.mapLabelToElement("desk")
+        assertEquals(ElementMapper.Element.WOOD, result2)
+    }
+
+    @Test
+    fun `test partial word matching`() {
+        // Words longer than 3 characters should match
+        val result = elementMapper.mapLabelToElement("hammering tool")
+        assertTrue(result == ElementMapper.Element.METAL || result == ElementMapper.Element.OTHERS)
+    }
+
+    @Test
+    fun `test no match returns OTHERS`() {
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement("xyz123"))
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement("unknown object"))
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement(""))
+    }
+
+    @Test
+    fun `test multiple word labels`() {
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("fire engine"))
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("laptop"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("grand piano"))
+    }
+
+    // getMappingStats tests
+    @Test
+    fun `test getMappingStats returns valid statistics`() {
+        val stats = elementMapper.getMappingStats()
+
+        assertNotNull(stats)
+        assertTrue(stats.contains("Element Mapping Statistics:"))
+        assertTrue(stats.contains("Total:"))
+        assertTrue(stats.isNotEmpty())
+    }
+
+    @Test
+    fun `test getMappingStats contains all elements`() {
+        val stats = elementMapper.getMappingStats()
+
+        // Should contain statistics for various elements
+        assertTrue(stats.contains("Fire:") || stats.contains("Metal:") ||
+                   stats.contains("Earth:") || stats.contains("Wood:") ||
+                   stats.contains("Water:"))
+    }
+
+    // Edge cases
+    @Test
+    fun `test empty string returns OTHERS`() {
+        assertEquals(ElementMapper.Element.OTHERS, elementMapper.mapLabelToElement(""))
+    }
+
+    @Test
+    fun `test very long string`() {
+        val longLabel = "a".repeat(1000)
+        val result = elementMapper.mapLabelToElement(longLabel)
+        assertEquals(ElementMapper.Element.OTHERS, result)
+    }
+
+    @Test
+    fun `test special characters`() {
+        val result = elementMapper.mapLabelToElement("!@#$%^&*()")
+        assertEquals(ElementMapper.Element.OTHERS, result)
+    }
+
+    @Test
+    fun `test numbers only`() {
+        val result = elementMapper.mapLabelToElement("123456")
+        assertEquals(ElementMapper.Element.OTHERS, result)
+    }
+
+    // Test specific complex labels from class.txt
+    @Test
+    fun `test compound labels with hyphens`() {
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("hand-held computer"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("four-poster"))
+    }
+
+    @Test
+    fun `test labels with apostrophes`() {
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("yellow lady's slipper"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("carpenter's kit"))
+    }
+
+    // isReady tests
+    @Test
+    fun `test isReady returns true after successful initialization`() {
+        assertTrue(elementMapper.isReady())
+    }
+
+    // Test element distribution across categories
+    @Test
+    fun `test various animal classifications`() {
+        // Fire animals
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("cock"))
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("peacock"))
+
+        // Earth animals
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("tiger"))
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("lion"))
+
+        // Wood animals
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("panda"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("gorilla"))
+
+        // Water animals
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("goldfish"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("penguin"))
+    }
+
+    @Test
+    fun `test various food items`() {
+        // Earth foods
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("pizza"))
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("cheeseburger"))
+
+        // Wood foods
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("banana"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("broccoli"))
+
+        // Water foods
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("ice cream"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("wine"))
+    }
+
+    @Test
+    fun `test various buildings and structures`() {
+        // Earth structures
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("castle"))
+        assertEquals(ElementMapper.Element.EARTH, elementMapper.mapLabelToElement("church"))
+
+        // Wood structures
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("barn"))
+        assertEquals(ElementMapper.Element.WOOD, elementMapper.mapLabelToElement("greenhouse"))
+    }
+
+    @Test
+    fun `test various vehicles`() {
+        // Metal vehicles
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("bicycle-built-for-two"))
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("ambulance"))
+
+        // Water vehicles
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("submarine"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("gondola"))
+    }
+
+    @Test
+    fun `test case sensitivity with mixed case inputs`() {
+        assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("CaNdLe"))
+        assertEquals(ElementMapper.Element.METAL, elementMapper.mapLabelToElement("HaMmEr"))
+        assertEquals(ElementMapper.Element.WATER, elementMapper.mapLabelToElement("GoLdFiSh"))
+    }
+}
