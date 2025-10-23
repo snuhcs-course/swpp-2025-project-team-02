@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.llama.cpp.LLamaAndroid
 import android.net.Uri
 import android.util.Log
+import com.example.fortuna_android.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -14,7 +15,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 
 /**
- * Manager class for SmolVLM vision-language model
+ * Manager class for InternVL3 vision-language model
  * Wraps llama.cpp Android library with vision capabilities
  */
 class SmolVLMManager(private val context: Context) {
@@ -26,9 +27,14 @@ class SmolVLMManager(private val context: Context) {
     private var mmprojPath: String? = null
 
     companion object {
-        private const val MODEL_FILENAME = "SmolVLM-500M-Instruct-Q8_0.gguf"
-        private const val MMPROJ_FILENAME = "mmproj-SmolVLM-500M-Instruct-Q8_0.gguf"
+        // Model filenames from BuildConfig (Single Source of Truth)
+        private val MODEL_FILENAME = BuildConfig.VLM_MODEL_FILENAME
+        private val MMPROJ_FILENAME = BuildConfig.VLM_MMPROJ_FILENAME
+
         private const val MODELS_DIR = "models"
+        // llama.cpp mtmd uses <__media__> as the universal media placeholder
+        // This works for all VLM models (SmolVLM, InternVL, etc.)
+        // The mtmd library internally converts this to model-specific tokens
         private const val IMAGE_MARKER = "<__media__>"
 
         @Volatile
@@ -176,12 +182,12 @@ class SmolVLMManager(private val context: Context) {
     }
 
     /**
-     * Build a prompt in the format expected by SmolVLM
-     * The IMAGE_MARKER will be replaced with actual image embeddings by mtmd
+     * Build a prompt in the format expected by llama.cpp mtmd
+     * The IMAGE_MARKER will be replaced with actual image embeddings by llama.cpp
      */
     private fun buildVisionPrompt(userPrompt: String): String {
-        // SmolVLM format: image marker followed by the text prompt
-        // The mtmd library will replace IMAGE_MARKER with actual image tokens
+        // llama.cpp mtmd format: <__media__> placeholder for any media (image/audio)
+        // The mtmd library will replace this with model-specific image tokens
         return "$IMAGE_MARKER\n$userPrompt"
     }
 
