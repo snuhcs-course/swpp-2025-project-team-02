@@ -1,5 +1,6 @@
 package android.llama.cpp
 
+import android.graphics.Bitmap
 import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -79,6 +80,16 @@ class LLamaAndroid {
 
     private external fun kv_cache_clear(context: Long)
 
+    // Vision/Multimodal support
+    private external fun load_mmproj(mmproj_path: String, model: Long): Long
+    private external fun free_mmproj(ctx: Long)
+    private external fun bitmap_from_android(bitmap: Bitmap): Long
+    private external fun bitmap_free(bitmap: Long)
+    private external fun tokenize_with_image(mtmd_ctx: Long, prompt: String, bitmap: Long): Long
+    private external fun chunks_free(chunks: Long)
+    private external fun chunks_size(chunks: Long): Int
+    private external fun batch_add_chunk(batch: Long, chunks: Long, chunk_idx: Int, pos_offset: Int): Int
+
     suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int = 1): String {
         return withContext(runLoop) {
             when (val state = threadLocalState.get()) {
@@ -142,6 +153,9 @@ class LLamaAndroid {
         withContext(runLoop) {
             when (val state = threadLocalState.get()) {
                 is State.Loaded -> {
+                    if (state.mmproj != 0L) {
+                        free_mmproj(state.mmproj)
+                    }
                     free_context(state.context)
                     free_model(state.model)
                     free_batch(state.batch)
@@ -153,6 +167,85 @@ class LLamaAndroid {
             }
         }
     }
+
+    /**
+     * Loads multimodal projector for vision support.
+     */
+    suspend fun loadMmproj(pathToMmproj: String) {
+        withContext(runLoop) {
+            when (val state = threadLocalState.get()) {
+                is State.Loaded -> {
+                    if (state.mmproj != 0L) {
+                        throw IllegalStateException("Mmproj already loaded")
+                    }
+                    val mmproj = load_mmproj(pathToMmproj, state.model)
+                    if (mmproj == 0L) throw IllegalStateException("load_mmproj() failed")
+
+                    Log.i(tag, "Loaded mmproj $pathToMmproj")
+                    threadLocalState.set(state.copy(mmproj = mmproj))
+                }
+                else -> throw IllegalStateException("Model must be loaded first")
+            }
+        }
+    }
+
+    /**
+     * Sends a message with an image for vision-language processing.
+     */
+    fun sendWithImage(message: String, image: Bitmap): Flow<String> = flow {
+        when (val state = threadLocalState.get()) {
+            is State.Loaded -> {
+                if (state.mmproj == 0L) {
+                    throw IllegalStateException("Mmproj not loaded. Call loadMmproj() first.")
+                }
+
+                // Convert Android Bitmap to native mtmd_bitmap
+                val bitmapPtr = bitmap_from_android(image)
+                if (bitmapPtr == 0L) {
+                    throw IllegalStateException("bitmap_from_android() failed")
+                }
+
+                try {
+                    // Tokenize text with image
+                    val chunksPtr = tokenize_with_image(state.mmproj, message, bitmapPtr)
+                    if (chunksPtr == 0L) {
+                        throw IllegalStateException("tokenize_with_image() failed")
+                    }
+
+                    try {
+                        val nChunks = chunks_size(chunksPtr)
+                        Log.d(tag, "Image tokenized into $nChunks chunks")
+
+                        // Add all chunks to batch
+                        var pos = 0
+                        for (i in 0 until nChunks) {
+                            val nTokens = batch_add_chunk(state.batch, chunksPtr, i, pos)
+                            if (nTokens < 0) {
+                                throw IllegalStateException("batch_add_chunk() failed for chunk $i")
+                            }
+                            pos += nTokens
+                        }
+
+                        // Generate response using completion loop
+                        val ncur = IntVar(pos)
+                        while (ncur.value <= nlen + pos) {
+                            val str = completion_loop(state.context, state.batch, state.sampler, nlen + pos, ncur)
+                            if (str == null) {
+                                break
+                            }
+                            emit(str)
+                        }
+                        kv_cache_clear(state.context)
+                    } finally {
+                        chunks_free(chunksPtr)
+                    }
+                } finally {
+                    bitmap_free(bitmapPtr)
+                }
+            }
+            else -> throw IllegalStateException("Model not loaded")
+        }
+    }.flowOn(runLoop)
 
     companion object {
         private class IntVar(value: Int) {
@@ -169,7 +262,7 @@ class LLamaAndroid {
 
         private sealed interface State {
             data object Idle: State
-            data class Loaded(val model: Long, val context: Long, val batch: Long, val sampler: Long): State
+            data class Loaded(val model: Long, val context: Long, val batch: Long, val sampler: Long, val mmproj: Long = 0L): State
         }
 
         // Enforce only one instance of Llm.

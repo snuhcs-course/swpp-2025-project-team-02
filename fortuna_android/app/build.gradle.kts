@@ -80,7 +80,7 @@ android {
             excludes += "/META-INF/io.netty.versions.properties"
         }
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
     }
 }

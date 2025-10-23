@@ -19,4 +19,15 @@
         app:navGraph="@navigation/nav_graph"
         app:defaultNavHost="true" />
 
+    <!-- VLM Test Button (Debug) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabVlmTest"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_info_details"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="VLM Test" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

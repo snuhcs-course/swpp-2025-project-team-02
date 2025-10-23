@@ -1,11 +1,14 @@
 #include <android/log.h>
+#include <android/bitmap.h>
 #include <jni.h>
 #include <iomanip>
 #include <math.h>
 #include <string>
 #include <unistd.h>
+#include <vector>
 #include "llama.h"
 #include "common.h"
+#include "mtmd/mtmd.h"
 
 // Write C++ code here.
 //

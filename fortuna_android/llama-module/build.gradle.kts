@@ -22,8 +22,10 @@ android {
                 arguments += "-DLLAMA_BUILD_COMMON=ON"
                 arguments += "-DGGML_LLAMAFILE=OFF"
                 arguments += "-DCMAKE_BUILD_TYPE=Release"
+                // 16KB page size support
+                arguments += "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
+                arguments += "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
                 cppFlags += listOf()
-                arguments += listOf()
 
                 cppFlags("")
             }
@@ -58,7 +60,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
     }
 }
