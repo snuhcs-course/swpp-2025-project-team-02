@@ -68,6 +68,48 @@
                 android:layout_marginStart="4dp"/>
         </LinearLayout>
 
+        <!-- Vision Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Vision Test (Image + Prompt)"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"/>
+
+        <ImageView
+            android:id="@+id/imagePreview"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:background="#E0E0E0"
+            android:contentDescription="Selected image preview"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <Button
+                android:id="@+id/cameraButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Camera"
+                android:layout_marginEnd="4dp"/>
+
+            <Button
+                android:id="@+id/galleryButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Gallery"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -80,20 +122,35 @@
             android:id="@+id/promptInput"
             android:layout_width="match_parent"
             android:layout_height="120dp"
-            android:hint="Enter your prompt here..."
+            android:hint="E.g., 'Describe this image in detail'"
             android:gravity="top|start"
             android:inputType="textMultiLine"
             android:padding="12dp"
             android:background="@android:drawable/edit_text"
             android:layout_marginBottom="8dp"/>
 
-        <Button
-            android:id="@+id/generateButton"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Generate"
-            android:textSize="16sp"
-            android:layout_marginBottom="16dp"/>
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/analyzeImageButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Analyze Image"
+                android:layout_marginEnd="4dp"/>
+
+            <Button
+                android:id="@+id/generateButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Text Only"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"

@@ -34,13 +34,28 @@ project("llama-android")
 #load local llama.cpp
 add_subdirectory(../../../../llama.cpp build-llama)
 
+# Build mtmd library for vision/multimodal support
+add_library(mtmd STATIC
+        mtmd/mtmd.cpp
+        mtmd/clip.cpp
+        mtmd/mtmd-helper.cpp
+        mtmd/mtmd-audio.cpp
+        )
+
+target_link_libraries(mtmd PUBLIC ggml llama)
+target_include_directories(mtmd PUBLIC mtmd)
+target_include_directories(mtmd PRIVATE ../../../../llama.cpp)
+target_include_directories(mtmd PRIVATE ../../../../llama.cpp/vendor)
+target_compile_features(mtmd PRIVATE cxx_std_17)
+
 # In order to load a library into your app from Java/Kotlin, you must call
 # System.loadLibrary() and pass the name of the library defined here;
 # for GameActivity/NativeActivity derived applications, the same library name must be
 # used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        llama-android.cpp)
+        llama-android.cpp
+        llama-android-vlm.cpp)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -49,5 +64,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         llama
         common
+        mtmd
         android
+        jnigraphics
         log)
