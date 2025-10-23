@@ -87,8 +87,7 @@ class LLamaAndroid {
     private external fun bitmap_free(bitmap: Long)
     private external fun tokenize_with_image(mtmd_ctx: Long, prompt: String, bitmap: Long): Long
     private external fun chunks_free(chunks: Long)
-    private external fun chunks_size(chunks: Long): Int
-    private external fun batch_add_chunk(batch: Long, chunks: Long, chunk_idx: Int, pos_offset: Int): Int
+    private external fun eval_chunks(mtmd_ctx: Long, llama_ctx: Long, chunks: Long, n_past: Int, n_batch: Int): Long
 
     suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int = 1): String {
         return withContext(runLoop) {
@@ -213,28 +212,34 @@ class LLamaAndroid {
                     }
 
                     try {
-                        val nChunks = chunks_size(chunksPtr)
-                        Log.d(tag, "Image tokenized into $nChunks chunks")
+                        // Evaluate chunks using mtmd_helper
+                        // This properly encodes image through vision encoder
+                        val newNPast = eval_chunks(
+                            state.mmproj,
+                            state.context,
+                            chunksPtr,
+                            0,      // n_past (starting position)
+                            512     // n_batch
+                        )
 
-                        // Add all chunks to batch
-                        var pos = 0
-                        for (i in 0 until nChunks) {
-                            val nTokens = batch_add_chunk(state.batch, chunksPtr, i, pos)
-                            if (nTokens < 0) {
-                                throw IllegalStateException("batch_add_chunk() failed for chunk $i")
-                            }
-                            pos += nTokens
+                        if (newNPast < 0) {
+                            throw IllegalStateException("eval_chunks() failed")
                         }
 
-                        // Generate response using completion loop
-                        val ncur = IntVar(pos)
-                        while (ncur.value <= nlen + pos) {
-                            val str = completion_loop(state.context, state.batch, state.sampler, nlen + pos, ncur)
+                        Log.d(tag, "Chunks evaluated, new position: $newNPast")
+
+                        // Generate response tokens using completion loop
+                        val ncur = IntVar(newNPast.toInt())
+                        val maxTokens = newNPast.toInt() + nlen
+
+                        while (ncur.value < maxTokens) {
+                            val str = completion_loop(state.context, state.batch, state.sampler, maxTokens, ncur)
                             if (str == null) {
                                 break
                             }
                             emit(str)
                         }
+
                         kv_cache_clear(state.context)
                     } finally {
                         chunks_free(chunksPtr)

@@ -56,4 +56,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:fabSize="normal" />
 
+    <!-- Text test button (left of capture) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/testTextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:layout_marginEnd="16dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:contentDescription="Test text only"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/captureButton"
+        app:fabSize="mini" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
