@@ -140,9 +140,10 @@ class VLMTestActivity : AppCompatActivity() {
                     it.setSurfaceProvider(cameraPreview.surfaceProvider)
                 }
 
-            // ImageCapture
+            // ImageCapture with optimized resolution
             imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setTargetResolution(android.util.Size(640, 480)) // Small resolution for speed
                 .build()
 
             // Select back camera
