@@ -79,11 +79,6 @@ class HomeFragment : Fragment() {
         binding.tabDetailAnalysis.setOnClickListener {
             binding.viewPager.currentItem = 1
         }
-
-        // 개운하기 버튼 (FloatingActionButton) - 카메라로 이동
-        binding.fabRefreshFortune.setOnClickListener {
-            findNavController().navigate(R.id.arFragment)
-        }
     }
 
     private fun updateTabUI(position: Int) {

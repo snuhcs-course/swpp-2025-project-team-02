@@ -11,10 +11,6 @@ import androidx.cardview.widget.CardView
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.databinding.CardFortuneBinding
-import com.github.mikephil.charting.data.PieData
-import com.github.mikephil.charting.data.PieDataSet
-import com.github.mikephil.charting.data.PieEntry
-import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -25,6 +21,8 @@ class FortuneCardView @JvmOverloads constructor(
 ) : CardView(context, attrs, defStyleAttr) {
 
     private val binding: CardFortuneBinding
+
+    private var onRefreshFortuneClickListener: (() -> Unit)? = null
 
     init {
         // Set CardView background to black to prevent white corners
@@ -37,6 +35,18 @@ class FortuneCardView @JvmOverloads constructor(
 
         // 토글 버튼 숨기기
         binding.btnToggleDetails.visibility = View.GONE
+
+        // 오늘의 기운 보충하러가기 버튼 클릭 리스너
+        binding.btnRefreshFortune.setOnClickListener {
+            onRefreshFortuneClickListener?.invoke()
+        }
+    }
+
+    /**
+     * 오늘의 기운 보충하러가기 버튼 클릭 리스너 설정
+     */
+    fun setOnRefreshFortuneClickListener(listener: () -> Unit) {
+        onRefreshFortuneClickListener = listener
     }
 
     /**
@@ -94,12 +104,6 @@ class FortuneCardView @JvmOverloads constructor(
         // 오행 균형
         binding.tvElementBalance.text = fortuneData.fortune.elementBalance
 
-        // 오행 분포 표시
-        displayElementDistribution(fortuneData.fortuneScore.elementDistribution)
-
-        // 해석
-        binding.tvInterpretation.text = fortuneData.fortuneScore.interpretation
-
         // 일일 가이던스
         binding.tvKeyAdvice.text = "💡 ${guidance.keyAdvice}"
         binding.tvBestTime.text = "⏰ ${guidance.bestTime}"
@@ -108,70 +112,6 @@ class FortuneCardView @JvmOverloads constructor(
 
         // 차크라 리딩
         displayChakraReadings(fortuneData.fortune.chakraReadings)
-    }
-
-    /**
-     * 키워드 생성 (keyAdvice 기반)
-     */
-    private fun generateKeywords(keyAdvice: String): String {
-        // 간단한 키워드 추출 (첫 몇 단어)
-        val words = keyAdvice.split(" ").take(2)
-        return words.joinToString(" ") { "#$it" }
-    }
-
-    /**
-     * 오행 분포 파이 차트 표시
-     */
-    private fun displayElementDistribution(elementDistribution: Map<String, com.example.fortuna_android.api.ElementDistribution>) {
-        val pieChart = binding.pieChartElementDistribution
-
-        // 오행 순서: 목, 화, 토, 금, 수
-        val elementOrder = listOf("목", "화", "토", "금", "수")
-        val entries = ArrayList<PieEntry>()
-        val colors = ArrayList<Int>()
-
-        elementOrder.forEach { element ->
-            elementDistribution[element]?.let { distribution ->
-                val emoji = getElementEmoji(element)
-                entries.add(PieEntry(distribution.percentage.toFloat(), "$emoji $element"))
-                colors.add(getElementColorFromString(element))
-            }
-        }
-
-        // 데이터 세트 설정
-        val dataSet = PieDataSet(entries, "").apply {
-            this.colors = colors
-            valueTextColor = Color.WHITE
-            valueTextSize = 14f
-            sliceSpace = 2f
-            valueFormatter = PercentFormatter(pieChart)
-        }
-
-        // 파이 데이터 설정
-        val data = PieData(dataSet).apply {
-            setValueTextColor(Color.WHITE)
-            setValueTextSize(12f)
-        }
-
-        // 차트 설정
-        pieChart.apply {
-            this.data = data
-            description.isEnabled = false
-            legend.isEnabled = true
-            legend.textColor = Color.parseColor("#CCCCCC")
-            legend.textSize = 12f
-            setDrawEntryLabels(false)
-            setUsePercentValues(true)
-            isRotationEnabled = true
-            setHoleColor(Color.parseColor("#1E1E1E"))
-            transparentCircleRadius = 58f
-            holeRadius = 50f
-            centerText = "오행 분포"
-            setCenterTextColor(Color.parseColor("#FFFFFF"))
-            setCenterTextSize(14f)
-            animateY(1000)
-            invalidate()
-        }
     }
 
     /**

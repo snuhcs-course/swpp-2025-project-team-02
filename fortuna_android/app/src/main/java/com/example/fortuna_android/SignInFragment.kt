@@ -326,14 +326,8 @@ class SignInFragment : Fragment() {
     private fun updateUI(account: GoogleSignInAccount?) {
         val binding = _binding ?: return
         val isLoggedIn = account != null
-        if (isLoggedIn) {
-            binding.nameTextView.text = "이름: ${account!!.displayName}"
-            binding.emailTextView.text = "이메일: ${account.email}"
-            binding.idTextView.text = "고유 ID: ${account.id}"
-        }
 
         binding.signInButton.visibility = if (isLoggedIn) View.GONE else View.VISIBLE
-        binding.userInfoLayout.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
         binding.signOutButton.visibility = if (isLoggedIn) View.VISIBLE else View.GONE
     }
 
