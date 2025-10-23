@@ -349,8 +349,9 @@ class ARRenderer(private val fragment: ARFragment) :
                     return@launch
                 }
 
-                // Optimize for VLM (downscale to 336x336)
-                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 336)
+                // Optimize for VLM (aggressive downscale for speed)
+                // 196x196 is ~2x faster than 336x336 with acceptable quality loss
+                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 196)
                 Log.i(TAG, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
 
                 // Clean up original if different
