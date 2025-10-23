@@ -58,41 +58,9 @@ class VLMNativeTest {
         println("Bitmap test - Pixel RGBA: ($red, $green, $blue, $alpha)")
     }
 
-    @Test
-    fun testModelFileExists() {
-        // Test that model files exist in assets
-        val modelExists = try {
-            context.assets.open("models/SmolVLM-500M-Instruct-Q8_0.gguf").use { true }
-        } catch (e: Exception) {
-            false
-        }
-
-        val mmprojExists = try {
-            context.assets.open("models/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf").use { true }
-        } catch (e: Exception) {
-            false
-        }
-
-        assertTrue("Model file should exist in assets", modelExists)
-        assertTrue("Mmproj file should exist in assets", mmprojExists)
-
-        // Check file sizes
-        if (modelExists) {
-            val modelSize = context.assets.open("models/SmolVLM-500M-Instruct-Q8_0.gguf").use {
-                it.available()
-            }
-            assertTrue("Model file should not be empty", modelSize > 0)
-            println("Model file size: ${modelSize / 1024 / 1024} MB")
-        }
-
-        if (mmprojExists) {
-            val mmprojSize = context.assets.open("models/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf").use {
-                it.available()
-            }
-            assertTrue("Mmproj file should not be empty", mmprojSize > 0)
-            println("Mmproj file size: ${mmprojSize / 1024 / 1024} MB")
-        }
-    }
+    // NOTE: Model files are in app module's assets, not llama-module
+    // This test would fail in llama-module context
+    // Model existence is tested in SmolVLMManagerTest instead
 
     @Test
     fun testInternalStorageAccess() {
