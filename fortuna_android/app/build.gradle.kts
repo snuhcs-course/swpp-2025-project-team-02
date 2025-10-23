@@ -11,9 +11,9 @@ plugins {
 // ========================================
 // VLM Model Configuration (Single Source of Truth)
 // ========================================
-val VLM_MODEL_FILENAME = "InternVL3-1B-Instruct-Q8_0.gguf"
-val VLM_MMPROJ_FILENAME = "mmproj-InternVL3-1B-Instruct-f16.gguf"
-val VLM_HUGGINGFACE_REPO = "ggml-org/InternVL3-1B-Instruct-GGUF"
+val VLM_MODEL_FILENAME = "SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
+val VLM_MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-f16.gguf"
+val VLM_HUGGINGFACE_REPO = "ggml-org/SmolVLM2-500M-Video-Instruct-GGUF"
 
 android {
     namespace = "com.example.fortuna_android"
