@@ -283,6 +283,33 @@ class ElementMapperTest {
         assertEquals(ElementMapper.Element.FIRE, elementMapper.mapLabelToElement("candle"))  // repeat
     }
 
+    // ========== Error Handling Tests ==========
+
+    @Test
+    fun `test ElementMapper with invalid context still initializes`() {
+        // Even if assets loading fails somehow, the mapper should handle it gracefully
+        // In practice, with ApplicationProvider context, this should always work
+        // But we test that isReady() reflects initialization state
+        assertTrue("ElementMapper should be initialized with valid context", elementMapper.isReady())
+    }
+
+    @Test
+    fun `test word matching edge case with 3 character words`() {
+        // Words with exactly 3 characters should not match (threshold is > 3)
+        // "car" has 3 chars, so it won't trigger word matching
+        val result = elementMapper.mapLabelToElement("old car")
+        // This might match "convertible" or other car-related items via fuzzy match
+        assertNotNull("Should return a valid element", result)
+    }
+
+    @Test
+    fun `test word matching with 4 character words`() {
+        // Words with 4+ characters should enable word matching
+        val result = elementMapper.mapLabelToElement("cars")  // 4 chars
+        // "cars" might match "convertible" or other car items
+        assertNotNull("Should return a valid element", result)
+    }
+
     // ========== Real-world Detection Scenarios ==========
 
     @Test

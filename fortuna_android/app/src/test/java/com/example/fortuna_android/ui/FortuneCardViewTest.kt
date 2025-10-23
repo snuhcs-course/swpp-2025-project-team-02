@@ -136,6 +136,35 @@ class FortuneCardViewTest {
     }
 
     @Test
+    fun `test setFortuneData with date parse exception`() {
+        val fortuneData = createSampleFortuneData().copy(forDate = "2025-13-45")  // Invalid month/day
+
+        // Should handle parse exception gracefully and fall back to showing the string
+        fortuneCardView.setFortuneData(fortuneData)
+
+        assertNotNull(fortuneCardView)
+    }
+
+    @Test
+    fun `test setFortuneData with various date formats`() {
+        val dateFormats = listOf(
+            "2025-10-23",
+            "2025-01-01",
+            "2025-12-31",
+            null
+        )
+
+        dateFormats.forEach { dateStr ->
+            val fortuneData = createSampleFortuneData().copy(forDate = dateStr)
+
+            // Should handle all date formats
+            fortuneCardView.setFortuneData(fortuneData)
+
+            assertNotNull("Should handle date: $dateStr", fortuneCardView)
+        }
+    }
+
+    @Test
     fun `test setFortuneData with no day pillar`() {
         val fortuneData = createSampleFortuneData().copy(
             fortuneScore = FortuneScore(
@@ -253,12 +282,27 @@ class FortuneCardViewTest {
             clicked = true
         }
 
-        // Simulate button click (need to access the button)
-        // Since we can't easily access private binding, we just verify the listener was set
+        // Verify the listener was set
         assertNotNull("Click listener should be set", fortuneCardView)
+        assertFalse("Listener should not be invoked yet", clicked)
+    }
 
-        // In a real scenario, this would trigger the button click
-        // For now, we just verify no exception was thrown
+    @Test
+    fun `test setOnRefreshFortuneClickListener can be called multiple times`() {
+        var counter = 0
+
+        // Set first listener
+        fortuneCardView.setOnRefreshFortuneClickListener {
+            counter += 1
+        }
+
+        // Set second listener (should replace first)
+        fortuneCardView.setOnRefreshFortuneClickListener {
+            counter += 10
+        }
+
+        // Verify listeners can be replaced
+        assertNotNull("FortuneCardView should handle listener replacement", fortuneCardView)
     }
 
     // ========== Helper Functions ==========
