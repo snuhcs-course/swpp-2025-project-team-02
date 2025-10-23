@@ -226,9 +226,27 @@ class VLMTestActivity : AppCompatActivity() {
     private fun analyzeImage(bitmap: Bitmap) {
         lifecycleScope.launch {
             try {
+                // 1. Optimize image - downscale to 336x336 for faster inference
+                val optimizedBitmap = optimizeImageForVLM(bitmap)
+                Log.i(tag, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
+
                 val fullResponse = StringBuilder()
 
-                vlmManager.analyzeImage(bitmap, "Describe what you see in this image in detail.")
+                // 2. Request JSON output with specific classification
+                val prompt = """Analyze this image and respond ONLY with valid JSON in this exact format:
+{
+  "detected-object": "description of main object",
+  "classified-label": "one of: fire, water, metal, wood, land"
+}
+
+Choose the label that best matches the image content. For example:
+- fire: flames, sun, heat, red/orange colors
+- water: ocean, rain, blue, liquids
+- metal: machinery, tools, gray/silver objects
+- wood: trees, plants, brown, natural
+- land: earth, rocks, ground, mountains"""
+
+                vlmManager.analyzeImage(optimizedBitmap, prompt)
                     .catch { e ->
                         Log.e(tag, "Error during analysis", e)
                         withContext(Dispatchers.Main) {
@@ -247,6 +265,11 @@ class VLMTestActivity : AppCompatActivity() {
                         }
                     }
 
+                // Clean up optimized bitmap
+                if (optimizedBitmap != bitmap) {
+                    optimizedBitmap.recycle()
+                }
+
                 // Hide loading when done
                 withContext(Dispatchers.Main) {
                     showLoading(false)
@@ -264,6 +287,34 @@ class VLMTestActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Optimize image for VLM processing
+     * Downscales to max 336x336 while maintaining aspect ratio
+     * Reduces memory usage and speeds up inference
+     */
+    private fun optimizeImageForVLM(bitmap: Bitmap, maxSize: Int = 336): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        // If already small enough, return as-is
+        if (width <= maxSize && height <= maxSize) {
+            return bitmap
+        }
+
+        // Calculate scale to fit within maxSize x maxSize
+        val scale = minOf(
+            maxSize.toFloat() / width,
+            maxSize.toFloat() / height
+        )
+
+        val newWidth = (width * scale).toInt()
+        val newHeight = (height * scale).toInt()
+
+        Log.d(tag, "Downscaling image: ${width}x${height} → ${newWidth}x${newHeight} (scale: $scale)")
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
 
     private fun updateDescriptionOverlay(text: String) {
