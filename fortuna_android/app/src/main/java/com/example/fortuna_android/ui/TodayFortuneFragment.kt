@@ -8,7 +8,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.IntroActivity
+import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
 
 class TodayFortuneFragment : Fragment() {
@@ -66,6 +68,11 @@ class TodayFortuneFragment : Fragment() {
 
                 // Set fortune data to card view
                 binding.fortuneCardView.setFortuneData(fortuneData)
+
+                // Set up refresh fortune button click listener
+                binding.fortuneCardView.setOnRefreshFortuneClickListener {
+                    findNavController().navigate(R.id.arFragment)
+                }
             }
         }
 

@@ -223,26 +223,7 @@
                         android:text="화(火)의 기운이 강합니다."
                         android:textColor="#CCCCCC"
                         android:textSize="14sp"
-                        android:lineSpacingExtra="4dp"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- 오행 분포 파이 차트 -->
-                    <com.github.mikephil.charting.charts.PieChart
-                        android:id="@+id/pieChartElementDistribution"
-                        android:layout_width="match_parent"
-                        android:layout_height="250dp"
-                        android:layout_marginBottom="12dp" />
-
-                    <!-- 해석 -->
-                    <TextView
-                        android:id="@+id/tvInterpretation"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="매우 균형잡힌 오행 배치입니다."
-                        android:textColor="#AAAAAA"
-                        android:textSize="13sp"
-                        android:lineSpacingExtra="4dp"
-                        android:textStyle="italic" />
+                        android:lineSpacingExtra="4dp" />
 
                 </LinearLayout>
 
@@ -338,18 +319,18 @@
                 android:paddingBottom="16dp"
                 android:layout_marginBottom="16dp" />
 
-            <!-- 공유하기 버튼 -->
-            <TextView
-                android:id="@+id/btnShare"
-                android:layout_width="wrap_content"
+            <!-- 오늘의 기운 보충하러가기 버튼 -->
+            <Button
+                android:id="@+id/btnRefreshFortune"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="운세 공유하기"
-                android:textColor="#AAAAAA"
-                android:textSize="14sp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground"
-                android:padding="8dp" />
+                android:text="오늘의 기운 보충하러가기"
+                android:textColor="#000000"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:backgroundTint="#FFCC4D"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp" />
 
         </LinearLayout>
 
