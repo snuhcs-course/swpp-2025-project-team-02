@@ -3,6 +3,10 @@ DRF ViewSets for Fortuna Core API.
 """
 
 from datetime import datetime, timedelta
+from io import BytesIO
+from PIL import Image as PILImage
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,6 +19,9 @@ from .models import ChakraImage, FortuneResult
 from .serializers import (
     ChakraImageSerializer,
     ChakraImageUploadSerializer,
+    ChakraCollectSerializer,
+    ChakraCollectResponseSerializer,
+    ChakraCollectionStatusSerializer,
     PresignedURLRequestSerializer,
     PresignedURLResponseSerializer,
     ImageUploadResponseSerializer,
@@ -31,6 +38,29 @@ from .services.fortune import FortuneService
 # Initialize services
 image_service = ImageService()
 fortune_service = FortuneService(image_service)
+
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def create_dummy_image():
+    """
+    Create a 1x1 transparent PNG image for PoC purposes.
+    Returns a SimpleUploadedFile that can be used as an image field value.
+    """
+    # Create 1x1 transparent PNG in memory
+    img = PILImage.new('RGBA', (1, 1), (0, 0, 0, 0))
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    # Create Django file object
+    return SimpleUploadedFile(
+        name='dummy_chakra.png',
+        content=buffer.read(),
+        content_type='image/png'
+    )
 
 
 @extend_schema_view(
@@ -204,6 +234,134 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             return Response(result, status=status.HTTP_200_OK)
         else:
             return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        summary="Collect Chakra (PoC)",
+        description="Collect a chakra element without image upload (for PoC purposes)",
+        request=ChakraCollectSerializer,
+        responses={
+            201: ChakraCollectResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['post'], url_path='collect')
+    def collect(self, request):
+        """
+        PoC endpoint: Collect a chakra without image upload.
+        Creates a ChakraImage with a dummy image file.
+        """
+        # Validate request
+        serializer = ChakraCollectSerializer(data=request.data)
+        if not serializer.is_valid():
+            error_message = next(iter(serializer.errors.values()))[0]
+            return Response({
+                'status': 'error',
+                'message': str(error_message)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        chakra_type = serializer.validated_data['chakra_type']
+
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        now = datetime.now()
+
+        # Create ChakraImage with dummy image (PoC mode)
+        try:
+            dummy_image = create_dummy_image()
+            chakra_image = ChakraImage.objects.create(
+                user=user,
+                image=dummy_image,
+                chakra_type=chakra_type,
+                date=now.date(),
+                timestamp=now,
+                latitude=None,
+                longitude=None,
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+            return Response({
+                'status': 'success',
+                'data': {
+                    'id': chakra_image.id,
+                    'chakra_type': chakra_image.chakra_type,
+                    'collected_at': chakra_image.timestamp.isoformat()
+                }
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': f'Failed to collect chakra: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        summary="Get Chakra Collection Status",
+        description="Get total count of collected chakras by type (cumulative)",
+        responses={
+            200: ChakraCollectionStatusSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='collection-status')
+    def collection_status(self, request):
+        """
+        Get cumulative chakra collection status for the current user.
+        Returns count by chakra type across all time.
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get counts grouped by chakra_type
+        collections = ChakraImage.objects.filter(
+            user=user
+        ).values('chakra_type').annotate(
+            count=Count('id')
+        ).order_by('chakra_type')
+
+        # Calculate total count
+        total_count = sum(item['count'] for item in collections)
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'collections': list(collections),
+                'total_count': total_count
+            }
+        }, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(

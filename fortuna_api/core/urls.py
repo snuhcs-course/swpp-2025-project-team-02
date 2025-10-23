@@ -22,6 +22,11 @@ urlpatterns = [
     path('chakra/upload-url/', ChakraImageViewSet.as_view({'get': 'presigned_url'}), name='get_upload_presigned_url'),
     path('chakra/upload/', ChakraImageViewSet.as_view({'post': 'create'}), name='upload_chakra'),
     path('chakra/images/', ChakraImageViewSet.as_view({'get': 'list'}), name='get_user_images'),
+
+    # chakra collection endpoints
+    path('chakra/collect/', ChakraImageViewSet.as_view({'post': 'collect'}), name='collect_chakra'),
+    path('chakra/collection-status/', ChakraImageViewSet.as_view({'get': 'collection_status'}), name='chakra_collection_status'),
+
     path('fortune/tomorrow/', FortuneViewSet.as_view({'get': 'tomorrow', 'post': 'tomorrow'}), name='tomorrow_fortune'),
     path('fortune/today/', FortuneViewSet.as_view({'get': 'today'}), name='today_fortune'),
 ]
