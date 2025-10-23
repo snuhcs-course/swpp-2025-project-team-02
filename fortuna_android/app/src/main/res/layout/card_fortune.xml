@@ -227,11 +227,14 @@
                         android:layout_marginBottom="16dp" />
 
                     <!-- 오행 분포 파이 차트 -->
+                    <!-- Temporarily disabled due to JitPack server issues -->
+                    <!--
                     <com.github.mikephil.charting.charts.PieChart
                         android:id="@+id/pieChartElementDistribution"
                         android:layout_width="match_parent"
                         android:layout_height="250dp"
                         android:layout_marginBottom="12dp" />
+                    -->
 
                     <!-- 해석 -->
                     <TextView
