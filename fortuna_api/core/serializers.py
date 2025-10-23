@@ -42,6 +42,35 @@ class ChakraImageUploadSerializer(serializers.Serializer):
     )
 
 
+class ChakraCollectSerializer(serializers.Serializer):
+    """Serializer for PoC chakra collection (no image required)."""
+
+    CHAKRA_TYPE_CHOICES = ['fire', 'water', 'earth', 'metal', 'wood']
+
+    chakra_type = serializers.ChoiceField(
+        choices=CHAKRA_TYPE_CHOICES,
+        required=True,
+        error_messages={
+            'required': 'chakra_type is required',
+            'invalid_choice': 'chakra_type must be one of: fire, water, earth, metal, wood'
+        }
+    )
+
+
+class ChakraCollectionItemSerializer(serializers.Serializer):
+    """Serializer for individual chakra collection count."""
+
+    chakra_type = serializers.CharField()
+    count = serializers.IntegerField()
+
+
+class ChakraCollectionStatusSerializer(serializers.Serializer):
+    """Serializer for chakra collection status response."""
+
+    status = serializers.CharField()
+    data = serializers.DictField()
+
+
 class PresignedURLRequestSerializer(serializers.Serializer):
     """Serializer for presigned URL request."""
 
