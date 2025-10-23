@@ -1,73 +1,62 @@
 package com.example.fortuna_android.vlm
 
 import android.Manifest
-import android.content.Intent
+import android.animation.ObjectAnimator
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.fortuna_android.R
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.IOException
+import kotlinx.coroutines.withContext
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
- * Test activity for SmolVLM integration
- * Provides UI to test model loading and text generation
+ * Real-time camera VLM activity
+ * Full screen camera with one-tap image description
  */
 class VLMTestActivity : AppCompatActivity() {
     private val tag = "VLMTestActivity"
 
+    // Views
+    private lateinit var cameraPreview: PreviewView
+    private lateinit var descriptionOverlay: TextView
+    private lateinit var captureButton: FloatingActionButton
+    private lateinit var loadingProgress: ProgressBar
+
+    // VLM
     private lateinit var vlmManager: SmolVLMManager
-    private lateinit var statusText: TextView
-    private lateinit var outputText: TextView
-    private lateinit var promptInput: EditText
-    private lateinit var loadModelButton: Button
-    private lateinit var generateButton: Button
-    private lateinit var benchmarkButton: Button
-    private lateinit var unloadButton: Button
-    private lateinit var progressBar: ProgressBar
-    private lateinit var imagePreview: ImageView
-    private lateinit var cameraButton: Button
-    private lateinit var galleryButton: Button
-    private lateinit var analyzeImageButton: Button
+    private var isModelLoaded = false
 
-    private var currentImageBitmap: Bitmap? = null
-    private var currentPhotoUri: Uri? = null
+    // CameraX
+    private var imageCapture: ImageCapture? = null
+    private var camera: Camera? = null
+    private lateinit var cameraExecutor: ExecutorService
 
-    // Activity result launchers
-    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && currentPhotoUri != null) {
-            loadImageFromUri(currentPhotoUri!!)
-        }
-    }
-
-    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { loadImageFromUri(it) }
-    }
-
-    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    // Permission launcher
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
         if (granted) {
-            openCamera()
+            startCamera()
         } else {
-            Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Camera permission required", Toast.LENGTH_LONG).show()
+            finish()
         }
     }
 
@@ -75,182 +64,37 @@ class VLMTestActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_vlm_test)
 
+        // Initialize views
+        cameraPreview = findViewById(R.id.cameraPreview)
+        descriptionOverlay = findViewById(R.id.descriptionOverlay)
+        captureButton = findViewById(R.id.captureButton)
+        loadingProgress = findViewById(R.id.loadingProgress)
+
         // Initialize VLM manager
         vlmManager = SmolVLMManager.getInstance(this)
 
-        // Initialize views
-        initViews()
+        // Initialize camera executor
+        cameraExecutor = Executors.newSingleThreadExecutor()
 
-        // Set up button listeners
-        setupListeners()
+        // Setup button listener
+        captureButton.setOnClickListener {
+            captureAndAnalyze()
+        }
 
-        updateUIState(false)
+        // Load model in background
+        loadModel()
+
+        // Request camera permission and start
+        checkCameraPermission()
     }
 
-    private fun initViews() {
-        statusText = findViewById(R.id.statusText)
-        outputText = findViewById(R.id.outputText)
-        promptInput = findViewById(R.id.promptInput)
-        loadModelButton = findViewById(R.id.loadModelButton)
-        generateButton = findViewById(R.id.generateButton)
-        benchmarkButton = findViewById(R.id.benchmarkButton)
-        unloadButton = findViewById(R.id.unloadButton)
-        progressBar = findViewById(R.id.progressBar)
-        imagePreview = findViewById(R.id.imagePreview)
-        cameraButton = findViewById(R.id.cameraButton)
-        galleryButton = findViewById(R.id.galleryButton)
-        analyzeImageButton = findViewById(R.id.analyzeImageButton)
-    }
-
-    private fun setupListeners() {
-        loadModelButton.setOnClickListener {
-            loadModel()
-        }
-
-        generateButton.setOnClickListener {
-            generateText()
-        }
-
-        benchmarkButton.setOnClickListener {
-            runBenchmark()
-        }
-
-        unloadButton.setOnClickListener {
-            unloadModel()
-        }
-
-        cameraButton.setOnClickListener {
-            checkCameraPermissionAndOpen()
-        }
-
-        galleryButton.setOnClickListener {
-            openGallery()
-        }
-
-        analyzeImageButton.setOnClickListener {
-            analyzeImage()
-        }
-    }
-
-    private fun loadModel() {
-        lifecycleScope.launch {
-            try {
-                setLoading(true, "Loading model...")
-                statusText.text = "Initializing SmolVLM model..."
-
-                vlmManager.initialize()
-
-                statusText.text = "Model loaded successfully!"
-                setLoading(false)
-                updateUIState(true)
-
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to load model", e)
-                statusText.text = "Error loading model: ${e.message}"
-                setLoading(false)
-                updateUIState(false)
-            }
-        }
-    }
-
-    private fun generateText() {
-        val prompt = promptInput.text.toString()
-        if (prompt.isBlank()) {
-            statusText.text = "Please enter a prompt"
-            return
-        }
-
-        lifecycleScope.launch {
-            try {
-                setLoading(true, "Generating...")
-                outputText.text = ""
-                statusText.text = "Generating response..."
-
-                val fullResponse = StringBuilder()
-
-                vlmManager.generateText(prompt)
-                    .catch { e ->
-                        Log.e(tag, "Error during generation", e)
-                        statusText.text = "Error: ${e.message}"
-                    }
-                    .collect { token ->
-                        fullResponse.append(token)
-                        outputText.text = fullResponse.toString()
-                    }
-
-                setLoading(false)
-                statusText.text = "Generation complete"
-
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to generate text", e)
-                statusText.text = "Error: ${e.message}"
-                setLoading(false)
-            }
-        }
-    }
-
-    private fun runBenchmark() {
-        lifecycleScope.launch {
-            try {
-                setLoading(true, "Running benchmark...")
-                statusText.text = "Running benchmark..."
-
-                val result = vlmManager.benchmark(pp = 512, tg = 128, pl = 1, nr = 1)
-
-                outputText.text = result
-                statusText.text = "Benchmark complete"
-                setLoading(false)
-
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to run benchmark", e)
-                statusText.text = "Error: ${e.message}"
-                setLoading(false)
-            }
-        }
-    }
-
-    private fun unloadModel() {
-        lifecycleScope.launch {
-            try {
-                setLoading(true, "Unloading...")
-                vlmManager.unload()
-                statusText.text = "Model unloaded"
-                outputText.text = ""
-                setLoading(false)
-                updateUIState(false)
-            } catch (e: Exception) {
-                Log.e(tag, "Failed to unload model", e)
-                statusText.text = "Error: ${e.message}"
-                setLoading(false)
-            }
-        }
-    }
-
-    private fun setLoading(loading: Boolean, message: String = "") {
-        progressBar.visibility = if (loading) View.VISIBLE else View.GONE
-        if (loading && message.isNotEmpty()) {
-            statusText.text = message
-        }
-    }
-
-    private fun updateUIState(modelLoaded: Boolean) {
-        loadModelButton.isEnabled = !modelLoaded
-        generateButton.isEnabled = modelLoaded
-        benchmarkButton.isEnabled = modelLoaded
-        unloadButton.isEnabled = modelLoaded
-        promptInput.isEnabled = modelLoaded
-        cameraButton.isEnabled = modelLoaded
-        galleryButton.isEnabled = modelLoaded
-        analyzeImageButton.isEnabled = modelLoaded && currentImageBitmap != null
-    }
-
-    private fun checkCameraPermissionAndOpen() {
+    private fun checkCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> {
-                openCamera()
+                startCamera()
             }
             else -> {
                 cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -258,100 +102,186 @@ class VLMTestActivity : AppCompatActivity() {
         }
     }
 
-    private fun openCamera() {
-        try {
-            val photoFile = createImageFile()
-            val photoUri = FileProvider.getUriForFile(
-                this,
-                "${packageName}.fileprovider",
-                photoFile
-            )
-            currentPhotoUri = photoUri
-            cameraLauncher.launch(photoUri)
-        } catch (e: IOException) {
-            Log.e(tag, "Failed to create image file", e)
-            Toast.makeText(this, "Failed to open camera", Toast.LENGTH_SHORT).show()
+    private fun loadModel() {
+        lifecycleScope.launch {
+            try {
+                Log.i(tag, "Loading VLM model in background...")
+                vlmManager.initialize()
+                isModelLoaded = true
+                Log.i(tag, "VLM model loaded successfully")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to load VLM model", e)
+                Toast.makeText(
+                    this@VLMTestActivity,
+                    "Failed to load model: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
-    private fun openGallery() {
-        galleryLauncher.launch("image/*")
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+
+            // Preview
+            val preview = Preview.Builder()
+                .build()
+                .also {
+                    it.setSurfaceProvider(cameraPreview.surfaceProvider)
+                }
+
+            // ImageCapture
+            imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build()
+
+            // Select back camera
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            try {
+                // Unbind all use cases before rebinding
+                cameraProvider.unbindAll()
+
+                // Bind use cases to camera
+                camera = cameraProvider.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
+
+            } catch (e: Exception) {
+                Log.e(tag, "Camera binding failed", e)
+            }
+
+        }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun createImageFile(): File {
-        val storageDir = cacheDir
-        return File.createTempFile(
-            "IMG_${System.currentTimeMillis()}_",
-            ".jpg",
-            storageDir
+    private fun captureAndAnalyze() {
+        if (!isModelLoaded) {
+            Toast.makeText(this, "Model still loading, please wait...", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val imageCapture = imageCapture ?: run {
+            Toast.makeText(this, "Camera not ready", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Show loading
+        showLoading(true)
+
+        // Capture image to memory
+        imageCapture.takePicture(
+            ContextCompat.getMainExecutor(this),
+            object : ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(image: ImageProxy) {
+                    // Convert ImageProxy to Bitmap
+                    val bitmap = imageProxyToBitmap(image)
+                    image.close()
+
+                    if (bitmap != null) {
+                        analyzeImage(bitmap)
+                    } else {
+                        showLoading(false)
+                        Toast.makeText(
+                            this@VLMTestActivity,
+                            "Failed to capture image",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e(tag, "Image capture failed", exception)
+                    showLoading(false)
+                    Toast.makeText(
+                        this@VLMTestActivity,
+                        "Capture failed: ${exception.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
         )
     }
 
-    private fun loadImageFromUri(uri: Uri) {
-        try {
-            val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                val source = android.graphics.ImageDecoder.createSource(contentResolver, uri)
-                android.graphics.ImageDecoder.decodeBitmap(source)
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(contentResolver, uri)
-            }
-
-            currentImageBitmap = bitmap
-            imagePreview.setImageBitmap(bitmap)
-            statusText.text = "Image loaded successfully"
-            updateUIState(vlmManager.isLoaded())
-        } catch (e: Exception) {
-            Log.e(tag, "Failed to load image", e)
-            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun analyzeImage() {
-        val bitmap = currentImageBitmap
-        if (bitmap == null) {
-            statusText.text = "Please select an image first"
-            return
-        }
-
-        val prompt = promptInput.text.toString()
-        if (prompt.isBlank()) {
-            statusText.text = "Please enter a prompt"
-            return
-        }
-
+    private fun analyzeImage(bitmap: Bitmap) {
         lifecycleScope.launch {
             try {
-                setLoading(true, "Analyzing image...")
-                outputText.text = ""
-                statusText.text = "Analyzing image with VLM..."
-
                 val fullResponse = StringBuilder()
 
-                vlmManager.analyzeImage(bitmap, prompt)
+                vlmManager.analyzeImage(bitmap, "Describe what you see in this image in detail.")
                     .catch { e ->
-                        Log.e(tag, "Error during image analysis", e)
-                        statusText.text = "Error: ${e.message}"
+                        Log.e(tag, "Error during analysis", e)
+                        withContext(Dispatchers.Main) {
+                            showLoading(false)
+                            Toast.makeText(
+                                this@VLMTestActivity,
+                                "Analysis failed: ${e.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                     .collect { token ->
                         fullResponse.append(token)
-                        outputText.text = fullResponse.toString()
+                        withContext(Dispatchers.Main) {
+                            updateDescriptionOverlay(fullResponse.toString())
+                        }
                     }
 
-                setLoading(false)
-                statusText.text = "Analysis complete"
+                // Hide loading when done
+                withContext(Dispatchers.Main) {
+                    showLoading(false)
+                }
 
             } catch (e: Exception) {
                 Log.e(tag, "Failed to analyze image", e)
-                statusText.text = "Error: ${e.message}"
-                setLoading(false)
+                withContext(Dispatchers.Main) {
+                    showLoading(false)
+                    Toast.makeText(
+                        this@VLMTestActivity,
+                        "Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
+    }
+
+    private fun imageProxyToBitmap(image: ImageProxy): Bitmap? {
+        val buffer = image.planes[0].buffer
+        val bytes = ByteArray(buffer.remaining())
+        buffer.get(bytes)
+        return android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }
+
+    private fun updateDescriptionOverlay(text: String) {
+        descriptionOverlay.text = text
+
+        if (descriptionOverlay.visibility != View.VISIBLE) {
+            descriptionOverlay.visibility = View.VISIBLE
+
+            // Fade in animation
+            ObjectAnimator.ofFloat(descriptionOverlay, "alpha", 0f, 1f).apply {
+                duration = 300
+                start()
+            }
+        }
+    }
+
+    private fun showLoading(loading: Boolean) {
+        loadingProgress.visibility = if (loading) View.VISIBLE else View.GONE
+        captureButton.isEnabled = !loading
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Unload model when activity is destroyed
+        cameraExecutor.shutdown()
+
+        // Unload model
         lifecycleScope.launch {
             try {
                 if (vlmManager.isLoaded()) {
