@@ -57,6 +57,20 @@ android {
     buildFeatures {
         viewBinding = true // Enable ViewBinding
     }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+            all {
+                it.configure<JacocoTaskExtension> {
+                    isIncludeNoLocationClasses = true
+                    excludes = listOf("jdk.internal.*")
+                }
+                // Add JVM args to fix Robolectric bytecode verification issues
+                it.jvmArgs("-noverify", "-XX:+IgnoreUnrecognizedVMOptions", "--add-opens=java.base/java.lang=ALL-UNNAMED")
+            }
+        }
+    }
     packaging {
         resources {
             // Exclude unnecessary files
@@ -78,7 +92,7 @@ dependencies {
     implementation(libs.navigation.fragment.ktx)
     implementation(libs.navigation.ui.ktx)
     testImplementation(libs.junit)
-    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("androidx.test.ext:junit:1.2.1")
     testImplementation("org.mockito:mockito-core:5.7.0")
@@ -168,9 +182,3 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     })
 }
 
-tasks.withType<Test> {
-    configure<JacocoTaskExtension> {
-        isIncludeNoLocationClasses = true
-        excludes = listOf("jdk.internal.*")
-    }
-}
