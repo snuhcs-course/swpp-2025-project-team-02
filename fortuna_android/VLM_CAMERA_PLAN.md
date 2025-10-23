@@ -70,12 +70,68 @@
 - ✅ No compilation errors
 - ✅ Ready for testing
 
+## Critical Bug Fix (2025-01-23)
+
+### Problem Identified
+Original VLM implementation was **completely broken**:
+- ❌ Never called `mtmd_encode_chunk()` (vision encoder not used)
+- ❌ Never obtained image embeddings
+- ❌ Added token ID `-1` to batch instead of embeddings
+- ❌ Result: Model received garbage instead of image data
+
+### Root Cause Analysis
+Research of llama.cpp source code (`tools/mtmd/mtmd-cli.cpp`, `mtmd-helper.cpp`) revealed correct workflow:
+1. `mtmd_tokenize()` - creates chunks from text+image
+2. **`mtmd_encode_chunk()`** - processes image through vision encoder (CRITICAL!)
+3. `mtmd_get_output_embd()` - retrieves float embeddings
+4. Create `llama_batch` with **embeddings** (not tokens)
+5. `llama_decode()` with embedding batch
+
+### Solution Implemented
+**Option 1: Use mtmd_helper** (selected for reliability)
+
+**Files Modified:**
+
+1. **llama-android-vlm.cpp**:
+   - Added `#include "mtmd/mtmd-helper.h"`
+   - Removed broken `batch_add_chunk()`, `chunks_size()` functions
+   - Added `eval_chunks()` JNI wrapper for `mtmd_helper_eval_chunks()`
+   - This function handles image encoding + batch processing automatically
+
+2. **LLamaAndroid.kt**:
+   - Removed: `chunks_size()`, `batch_add_chunk()` bindings
+   - Added: `eval_chunks()` binding
+   - Rewrote `sendWithImage()`:
+     ```kotlin
+     // OLD (broken):
+     for (i in 0 until nChunks) {
+         batch_add_chunk(batch, chunks, i, pos)  // ❌ Wrong!
+     }
+
+     // NEW (correct):
+     val newNPast = eval_chunks(mmproj, context, chunks, 0, 512)
+     // ✅ mtmd_helper internally:
+     //    - Encodes image chunks through vision encoder
+     //    - Extracts embeddings
+     //    - Creates proper llama_batch with embeddings
+     //    - Runs llama_decode()
+     ```
+
+3. **VLMTestActivity.kt**:
+   - Added mini FAB button for text-only testing
+   - `testTextOnly()` function to verify model without images
+
+### Build Status
+- ✅ BUILD SUCCESSFUL
+- ✅ All native functions properly linked
+- ✅ Ready for testing
+
 ## Usage
 1. Open app → Navigate to VLM Test
 2. Camera permission requested automatically
 3. Full screen camera preview appears
 4. Model loads in background (may take ~10 seconds)
-5. Tap camera button at bottom
-6. VLM analyzes current frame
+5. **Left button (small)**: Test text-only to verify model works
+6. **Right button (large)**: Capture and analyze image with VLM
 7. Description appears at top with fade-in
-8. Tap again for new description
+8. Tap again for new analysis
