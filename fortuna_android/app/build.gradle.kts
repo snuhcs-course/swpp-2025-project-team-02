@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.fortuna_android"
-        minSdk = 24
+        minSdk = 28  // Updated from 24 to 28 for llama.cpp compatibility
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -64,10 +64,14 @@ android {
             excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/io.netty.versions.properties"
         }
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
 dependencies {
+    implementation(project(":llama-module"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -117,5 +121,6 @@ dependencies {
     implementation("io.github.sceneview:arsceneview:2.3.0")
     implementation("io.github.sceneview:sceneview:2.3.0")
     // Dependency for MPAndroidChart (pie chart)
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    // Temporarily commented out due to JitPack server issues
+    // implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

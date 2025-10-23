@@ -11,10 +11,11 @@ import androidx.cardview.widget.CardView
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.databinding.CardFortuneBinding
-import com.github.mikephil.charting.data.PieData
-import com.github.mikephil.charting.data.PieDataSet
-import com.github.mikephil.charting.data.PieEntry
-import com.github.mikephil.charting.formatter.PercentFormatter
+// Temporarily disabled due to JitPack server issues
+// import com.github.mikephil.charting.data.PieData
+// import com.github.mikephil.charting.data.PieDataSet
+// import com.github.mikephil.charting.data.PieEntry
+// import com.github.mikephil.charting.formatter.PercentFormatter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -95,7 +96,8 @@ class FortuneCardView @JvmOverloads constructor(
         binding.tvElementBalance.text = fortuneData.fortune.elementBalance
 
         // 오행 분포 표시
-        displayElementDistribution(fortuneData.fortuneScore.elementDistribution)
+        // Temporarily disabled due to JitPack server issues
+        // displayElementDistribution(fortuneData.fortuneScore.elementDistribution)
 
         // 해석
         binding.tvInterpretation.text = fortuneData.fortuneScore.interpretation
@@ -121,7 +123,9 @@ class FortuneCardView @JvmOverloads constructor(
 
     /**
      * 오행 분포 파이 차트 표시
+     * Temporarily disabled due to JitPack server issues
      */
+    /*
     private fun displayElementDistribution(elementDistribution: Map<String, com.example.fortuna_android.api.ElementDistribution>) {
         val pieChart = binding.pieChartElementDistribution
 
@@ -173,6 +177,7 @@ class FortuneCardView @JvmOverloads constructor(
             invalidate()
         }
     }
+    */
 
     /**
      * 차크라 리딩 동적 표시
