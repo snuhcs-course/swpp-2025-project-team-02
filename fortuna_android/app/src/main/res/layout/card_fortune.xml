@@ -224,7 +224,6 @@
                         android:textColor="#CCCCCC"
                         android:textSize="14sp"
                         android:lineSpacingExtra="4dp" />
-
                 </LinearLayout>
 
                 <!-- 일일 가이던스 -->
