@@ -64,11 +64,33 @@ class ChakraCollectionItemSerializer(serializers.Serializer):
     count = serializers.IntegerField()
 
 
+class ChakraCollectResponseDataSerializer(serializers.Serializer):
+    """Serializer for chakra collect response data."""
+
+    id = serializers.IntegerField()
+    chakra_type = serializers.CharField()
+    collected_at = serializers.DateTimeField()
+
+
+class ChakraCollectResponseSerializer(serializers.Serializer):
+    """Serializer for chakra collect response."""
+
+    status = serializers.CharField()
+    data = ChakraCollectResponseDataSerializer()
+
+
+class ChakraCollectionStatusDataSerializer(serializers.Serializer):
+    """Serializer for chakra collection status data."""
+
+    collections = ChakraCollectionItemSerializer(many=True)
+    total_count = serializers.IntegerField()
+
+
 class ChakraCollectionStatusSerializer(serializers.Serializer):
     """Serializer for chakra collection status response."""
 
     status = serializers.CharField()
-    data = serializers.DictField()
+    data = ChakraCollectionStatusDataSerializer()
 
 
 class PresignedURLRequestSerializer(serializers.Serializer):
