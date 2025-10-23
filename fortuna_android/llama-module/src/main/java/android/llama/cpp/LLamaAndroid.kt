@@ -38,8 +38,8 @@ class LLamaAndroid {
     }.asCoroutineDispatcher()
 
     // Maximum tokens to generate
-    // Increased for VLM models which have large image token prefixes
-    private val nlen: Int = 256
+    // Reduced for faster mobile inference (balance speed vs completeness)
+    private val nlen: Int = 128
 
     private external fun log_to_android()
     private external fun load_model(filename: String): Long
