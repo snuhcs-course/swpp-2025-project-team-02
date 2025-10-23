@@ -14,6 +14,8 @@ import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
+import com.example.fortuna_android.common.helpers.ImageUtils
+import com.example.fortuna_android.vlm.SmolVLMManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.example.fortuna_android.common.samplerender.arcore.BackgroundRenderer
 import com.example.fortuna_android.render.LabelRender
@@ -24,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
 import java.util.Collections
 
 /**
@@ -59,6 +62,11 @@ class ARRenderer(private val fragment: ARFragment) :
     // Element mapper for converting ML labels to Chinese Five Elements categories
     private val elementMapper = ElementMapper(fragment.requireContext())
 
+    // VLM manager for scene understanding
+    private val vlmManager = SmolVLMManager.getInstance(fragment.requireContext())
+    private var isVLMLoaded = false
+    private var isVLMAnalyzing = false
+
     data class ARLabeledAnchor(val anchor: Anchor, val element: ElementMapper.Element)
 
     override fun onResume(owner: LifecycleOwner) {
@@ -93,6 +101,18 @@ class ARRenderer(private val fragment: ARFragment) :
         }
         pointCloudRender.onSurfaceCreated(render)
         labelRenderer.onSurfaceCreated(render)
+
+        // Load VLM model in background
+        launch(Dispatchers.IO) {
+            try {
+                Log.i(TAG, "Loading VLM model in background...")
+                vlmManager.initialize()
+                isVLMLoaded = true
+                Log.i(TAG, "VLM model loaded successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load VLM model", e)
+            }
+        }
     }
 
     override fun onSurfaceChanged(render: SampleRender?, width: Int, height: Int) {
@@ -228,6 +248,11 @@ class ARRenderer(private val fragment: ARFragment) :
             fragment.view?.post {
                 fragment.onObjectDetectionCompleted(anchors.size, objects.size)
             }
+
+            // Trigger VLM analysis if model is loaded and not currently analyzing
+            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
+                analyzeCameraImageWithVLM(frame)
+            }
         }
 
         // Draw text labels at their anchor positions - create a safe copy to avoid concurrent modification
@@ -289,6 +314,83 @@ class ARRenderer(private val fragment: ARFragment) :
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create anchor", e)
             null
+        }
+    }
+
+    /**
+     * Analyze camera image with VLM for scene understanding
+     */
+    private fun analyzeCameraImageWithVLM(frame: Frame) {
+        if (isVLMAnalyzing) {
+            Log.d(TAG, "VLM analysis already in progress, skipping")
+            return
+        }
+
+        isVLMAnalyzing = true
+        fragment.view?.post {
+            fragment.onVLMAnalysisStarted()
+        }
+
+        launch(Dispatchers.IO) {
+            try {
+                Log.i(TAG, "Starting VLM analysis...")
+
+                // Acquire camera image
+                val cameraImage = frame.acquireCameraImage()
+
+                // Convert YUV to Bitmap
+                val bitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
+                cameraImage.close()
+
+                if (bitmap == null) {
+                    Log.e(TAG, "Failed to convert camera image to bitmap")
+                    isVLMAnalyzing = false
+                    return@launch
+                }
+
+                // Optimize for VLM (downscale to 336x336)
+                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 336)
+                Log.i(TAG, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
+
+                // Clean up original if different
+                if (optimizedBitmap != bitmap) {
+                    bitmap.recycle()
+                }
+
+                // VLM prompt for scene description
+                val prompt = """Describe what you see in this image in 1-2 sentences.
+Focus on the main objects and their spatial relationships."""
+
+                // Stream VLM results
+                vlmManager.analyzeImage(optimizedBitmap, prompt)
+                    .catch { e ->
+                        Log.e(TAG, "VLM analysis error", e)
+                        fragment.view?.post {
+                            fragment.updateVLMDescription("\nError: ${e.message}")
+                        }
+                    }
+                    .collect { token ->
+                        fragment.updateVLMDescription(token)
+                    }
+
+                // Clean up optimized bitmap
+                optimizedBitmap.recycle()
+
+                Log.i(TAG, "VLM analysis completed")
+                fragment.view?.post {
+                    fragment.onVLMAnalysisCompleted()
+                }
+
+            } catch (e: NotYetAvailableException) {
+                Log.w(TAG, "Camera image not yet available for VLM", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "VLM analysis failed", e)
+                fragment.view?.post {
+                    fragment.updateVLMDescription("\nAnalysis failed: ${e.message}")
+                }
+            } finally {
+                isVLMAnalyzing = false
+            }
         }
     }
 }
