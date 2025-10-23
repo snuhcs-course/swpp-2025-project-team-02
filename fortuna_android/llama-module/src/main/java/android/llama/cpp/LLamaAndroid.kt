@@ -37,7 +37,9 @@ class LLamaAndroid {
         }
     }.asCoroutineDispatcher()
 
-    private val nlen: Int = 64
+    // Maximum tokens to generate
+    // Increased for VLM models which have large image token prefixes
+    private val nlen: Int = 256
 
     private external fun log_to_android()
     private external fun load_model(filename: String): Long
@@ -206,14 +208,17 @@ class LLamaAndroid {
 
                 try {
                     // Tokenize text with image
+                    Log.d(tag, "Tokenizing prompt: $message")
                     val chunksPtr = tokenize_with_image(state.mmproj, message, bitmapPtr)
                     if (chunksPtr == 0L) {
                         throw IllegalStateException("tokenize_with_image() failed")
                     }
+                    Log.d(tag, "✅ Tokenization successful")
 
                     try {
                         // Evaluate chunks using mtmd_helper
                         // This properly encodes image through vision encoder
+                        Log.d(tag, "Evaluating chunks...")
                         val newNPast = eval_chunks(
                             state.mmproj,
                             state.context,
@@ -226,19 +231,24 @@ class LLamaAndroid {
                             throw IllegalStateException("eval_chunks() failed")
                         }
 
-                        Log.d(tag, "Chunks evaluated, new position: $newNPast")
+                        Log.d(tag, "✅ Chunks evaluated, new position: $newNPast")
 
                         // Generate response tokens using completion loop
                         val ncur = IntVar(newNPast.toInt())
                         val maxTokens = newNPast.toInt() + nlen
+                        Log.d(tag, "Starting generation loop: ncur=$newNPast, maxTokens=$maxTokens, nlen=$nlen")
 
+                        var tokenCount = 0
                         while (ncur.value < maxTokens) {
                             val str = completion_loop(state.context, state.batch, state.sampler, maxTokens, ncur)
                             if (str == null) {
+                                Log.d(tag, "Generation ended after $tokenCount tokens")
                                 break
                             }
+                            tokenCount++
                             emit(str)
                         }
+                        Log.d(tag, "✅ Generation complete: $tokenCount tokens")
 
                         kv_cache_clear(state.context)
                     } finally {

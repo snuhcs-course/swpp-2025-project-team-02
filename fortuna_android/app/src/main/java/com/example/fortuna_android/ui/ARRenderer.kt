@@ -13,6 +13,7 @@ import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
+import com.example.fortuna_android.classification.utils.VLM_PROMPT
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
 import com.example.fortuna_android.vlm.SmolVLMManager
@@ -358,11 +359,8 @@ class ARRenderer(private val fragment: ARFragment) :
                 }
 
                 // VLM prompt for scene description
-                val prompt = """Describe what you see in this image in 1-2 sentences.
-Focus on the main objects and their spatial relationships."""
-
                 // Stream VLM results
-                vlmManager.analyzeImage(optimizedBitmap, prompt)
+                vlmManager.analyzeImage(optimizedBitmap, VLM_PROMPT)
                     .catch { e ->
                         Log.e(TAG, "VLM analysis error", e)
                         fragment.view?.post {
