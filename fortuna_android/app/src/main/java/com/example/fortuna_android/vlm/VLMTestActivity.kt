@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -37,6 +38,7 @@ class VLMTestActivity : AppCompatActivity() {
     private lateinit var cameraPreview: PreviewView
     private lateinit var descriptionOverlay: TextView
     private lateinit var captureButton: FloatingActionButton
+    private lateinit var testTextButton: FloatingActionButton
     private lateinit var loadingProgress: ProgressBar
 
     // VLM
@@ -68,6 +70,7 @@ class VLMTestActivity : AppCompatActivity() {
         cameraPreview = findViewById(R.id.cameraPreview)
         descriptionOverlay = findViewById(R.id.descriptionOverlay)
         captureButton = findViewById(R.id.captureButton)
+        testTextButton = findViewById(R.id.testTextButton)
         loadingProgress = findViewById(R.id.loadingProgress)
 
         // Initialize VLM manager
@@ -76,9 +79,13 @@ class VLMTestActivity : AppCompatActivity() {
         // Initialize camera executor
         cameraExecutor = Executors.newSingleThreadExecutor()
 
-        // Setup button listener
+        // Setup button listeners
         captureButton.setOnClickListener {
             captureAndAnalyze()
+        }
+
+        testTextButton.setOnClickListener {
+            testTextOnly()
         }
 
         // Load model in background
@@ -174,14 +181,21 @@ class VLMTestActivity : AppCompatActivity() {
         // Show loading
         showLoading(true)
 
-        // Capture image to memory
+        // Create temp file for capture
+        val photoFile = File.createTempFile("capture_", ".jpg", cacheDir)
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
+        // Capture image to file
         imageCapture.takePicture(
+            outputOptions,
             ContextCompat.getMainExecutor(this),
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
-                    // Convert ImageProxy to Bitmap
-                    val bitmap = imageProxyToBitmap(image)
-                    image.close()
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    // Load bitmap from file
+                    val bitmap = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath)
+
+                    // Delete temp file
+                    photoFile.delete()
 
                     if (bitmap != null) {
                         analyzeImage(bitmap)
@@ -189,7 +203,7 @@ class VLMTestActivity : AppCompatActivity() {
                         showLoading(false)
                         Toast.makeText(
                             this@VLMTestActivity,
-                            "Failed to capture image",
+                            "Failed to load captured image",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -197,6 +211,7 @@ class VLMTestActivity : AppCompatActivity() {
 
                 override fun onError(exception: ImageCaptureException) {
                     Log.e(tag, "Image capture failed", exception)
+                    photoFile.delete()
                     showLoading(false)
                     Toast.makeText(
                         this@VLMTestActivity,
@@ -211,9 +226,27 @@ class VLMTestActivity : AppCompatActivity() {
     private fun analyzeImage(bitmap: Bitmap) {
         lifecycleScope.launch {
             try {
+                // 1. Optimize image - downscale to 336x336 for faster inference
+                val optimizedBitmap = optimizeImageForVLM(bitmap)
+                Log.i(tag, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
+
                 val fullResponse = StringBuilder()
 
-                vlmManager.analyzeImage(bitmap, "Describe what you see in this image in detail.")
+                // 2. Request JSON output with specific classification
+                val prompt = """Analyze this image and respond ONLY with valid JSON in this exact format:
+{
+  "detected-object": "description of main object",
+  "classified-label": "one of: fire, water, metal, wood, land"
+}
+
+Choose the label that best matches the image content. For example:
+- fire: flames, sun, heat, red/orange colors
+- water: ocean, rain, blue, liquids
+- metal: machinery, tools, gray/silver objects
+- wood: trees, plants, brown, natural
+- land: earth, rocks, ground, mountains"""
+
+                vlmManager.analyzeImage(optimizedBitmap, prompt)
                     .catch { e ->
                         Log.e(tag, "Error during analysis", e)
                         withContext(Dispatchers.Main) {
@@ -231,6 +264,11 @@ class VLMTestActivity : AppCompatActivity() {
                             updateDescriptionOverlay(fullResponse.toString())
                         }
                     }
+
+                // Clean up optimized bitmap
+                if (optimizedBitmap != bitmap) {
+                    optimizedBitmap.recycle()
+                }
 
                 // Hide loading when done
                 withContext(Dispatchers.Main) {
@@ -251,11 +289,32 @@ class VLMTestActivity : AppCompatActivity() {
         }
     }
 
-    private fun imageProxyToBitmap(image: ImageProxy): Bitmap? {
-        val buffer = image.planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-        return android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    /**
+     * Optimize image for VLM processing
+     * Downscales to max 336x336 while maintaining aspect ratio
+     * Reduces memory usage and speeds up inference
+     */
+    private fun optimizeImageForVLM(bitmap: Bitmap, maxSize: Int = 336): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        // If already small enough, return as-is
+        if (width <= maxSize && height <= maxSize) {
+            return bitmap
+        }
+
+        // Calculate scale to fit within maxSize x maxSize
+        val scale = minOf(
+            maxSize.toFloat() / width,
+            maxSize.toFloat() / height
+        )
+
+        val newWidth = (width * scale).toInt()
+        val newHeight = (height * scale).toInt()
+
+        Log.d(tag, "Downscaling image: ${width}x${height} → ${newWidth}x${newHeight} (scale: $scale)")
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
 
     private fun updateDescriptionOverlay(text: String) {
@@ -272,9 +331,59 @@ class VLMTestActivity : AppCompatActivity() {
         }
     }
 
+    private fun testTextOnly() {
+        if (!isModelLoaded) {
+            Toast.makeText(this, "Model still loading, please wait...", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        showLoading(true)
+
+        lifecycleScope.launch {
+            try {
+                val fullResponse = StringBuilder()
+
+                vlmManager.generateText("Who is the president of the United States? Answer in a single line.")
+                    .catch { e ->
+                        Log.e(tag, "Error during text generation", e)
+                        withContext(Dispatchers.Main) {
+                            showLoading(false)
+                            Toast.makeText(
+                                this@VLMTestActivity,
+                                "Text test failed: ${e.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    .collect { token ->
+                        fullResponse.append(token)
+                        withContext(Dispatchers.Main) {
+                            updateDescriptionOverlay("TEXT TEST:\n${fullResponse}")
+                        }
+                    }
+
+                withContext(Dispatchers.Main) {
+                    showLoading(false)
+                }
+
+            } catch (e: Exception) {
+                Log.e(tag, "Failed text test", e)
+                withContext(Dispatchers.Main) {
+                    showLoading(false)
+                    Toast.makeText(
+                        this@VLMTestActivity,
+                        "Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
     private fun showLoading(loading: Boolean) {
         loadingProgress.visibility = if (loading) View.VISIBLE else View.GONE
         captureButton.isEnabled = !loading
+        testTextButton.isEnabled = !loading
     }
 
     override fun onDestroy() {

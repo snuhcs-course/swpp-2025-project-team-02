@@ -6,6 +6,7 @@
 #include "llama.h"
 #include "common.h"
 #include "mtmd/mtmd.h"
+#include "mtmd/mtmd-helper.h"
 
 #define TAG "llama-android-vlm.cpp"
 #define LOGi(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
@@ -170,61 +171,47 @@ Java_android_llama_cpp_LLamaAndroid_chunks_1free(JNIEnv *, jobject, jlong chunks
     }
 }
 
-// Get number of chunks
+// Evaluate chunks using mtmd_helper
+// This handles both text and image chunks correctly
 extern "C"
-JNIEXPORT jint JNICALL
-Java_android_llama_cpp_LLamaAndroid_chunks_1size(JNIEnv *, jobject, jlong chunks_ptr) {
-    auto *chunks = reinterpret_cast<mtmd_input_chunks *>(chunks_ptr);
-    if (!chunks) {
-        return 0;
-    }
-    return static_cast<jint>(mtmd_input_chunks_size(chunks));
-}
-
-// Add chunk to batch
-extern "C"
-JNIEXPORT jint JNICALL
-Java_android_llama_cpp_LLamaAndroid_batch_1add_1chunk(
+JNIEXPORT jlong JNICALL
+Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         JNIEnv *,
         jobject,
-        jlong batch_ptr,
+        jlong mtmd_ctx_ptr,
+        jlong llama_ctx_ptr,
         jlong chunks_ptr,
-        jint chunk_idx,
-        jint pos_offset) {
+        jint n_past,
+        jint n_batch) {
 
-    auto *batch = reinterpret_cast<llama_batch *>(batch_ptr);
+    auto *mtmd_ctx = reinterpret_cast<mtmd_context *>(mtmd_ctx_ptr);
+    auto *llama_ctx = reinterpret_cast<llama_context *>(llama_ctx_ptr);
     auto *chunks = reinterpret_cast<mtmd_input_chunks *>(chunks_ptr);
 
-    if (!batch || !chunks) {
+    if (!mtmd_ctx || !llama_ctx || !chunks) {
+        LOGe("eval_chunks: Invalid pointers");
         return -1;
     }
 
-    size_t n_chunks = mtmd_input_chunks_size(chunks);
-    if (chunk_idx < 0 || chunk_idx >= static_cast<jint>(n_chunks)) {
+    llama_pos new_n_past = 0;
+
+    // Use mtmd_helper to evaluate all chunks (text + image)
+    int32_t ret = mtmd_helper_eval_chunks(
+        mtmd_ctx,
+        llama_ctx,
+        chunks,
+        n_past,          // n_past
+        0,               // seq_id
+        n_batch,         // n_batch
+        true,            // logits_last
+        &new_n_past      // output: new position
+    );
+
+    if (ret != 0) {
+        LOGe("mtmd_helper_eval_chunks failed with code %d", ret);
         return -1;
     }
 
-    const mtmd_input_chunk *chunk = mtmd_input_chunks_get(chunks, chunk_idx);
-    enum mtmd_input_chunk_type type = mtmd_input_chunk_get_type(chunk);
-
-    size_t n_tokens_chunk;
-    int pos = pos_offset;
-
-    if (type == MTMD_INPUT_CHUNK_TYPE_TEXT) {
-        const llama_token *tokens = mtmd_input_chunk_get_tokens_text(chunk, &n_tokens_chunk);
-        for (size_t i = 0; i < n_tokens_chunk; i++) {
-            common_batch_add(*batch, tokens[i], pos++, {0}, false);
-        }
-    } else if (type == MTMD_INPUT_CHUNK_TYPE_IMAGE) {
-        const mtmd_image_tokens *img_tokens = mtmd_input_chunk_get_tokens_image(chunk);
-        n_tokens_chunk = mtmd_image_tokens_get_n_tokens(img_tokens);
-        // For image tokens, we need special handling - just add placeholder for now
-        // The actual embedding will be computed by llama.cpp
-        for (size_t i = 0; i < n_tokens_chunk; i++) {
-            // Image tokens use negative IDs or special handling
-            common_batch_add(*batch, -1, pos++, {0}, false);
-        }
-    }
-
-    return static_cast<jint>(n_tokens_chunk);
+    LOGi("Chunks evaluated successfully, new n_past: %d", (int)new_n_past);
+    return static_cast<jlong>(new_n_past);
 }
