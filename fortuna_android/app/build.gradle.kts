@@ -8,6 +8,13 @@ plugins {
     jacoco
 }
 
+// ========================================
+// VLM Model Configuration (Single Source of Truth)
+// ========================================
+val VLM_MODEL_FILENAME = "InternVL3-1B-Instruct-Q8_0.gguf"
+val VLM_MMPROJ_FILENAME = "mmproj-InternVL3-1B-Instruct-f16.gguf"
+val VLM_HUGGINGFACE_REPO = "ggml-org/InternVL3-1B-Instruct-GGUF"
+
 android {
     namespace = "com.example.fortuna_android"
     compileSdk = 36
@@ -32,6 +39,10 @@ android {
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_CLIENT_ID", "")}\"")
         buildConfigField("String", "API_BASE_URL", "\"${localProperties.getProperty("API_BASE_URL", "")}\"")
         buildConfigField("String", "API_HOST", "\"${localProperties.getProperty("API_HOST", "")}\"")
+
+        // VLM model filenames (from top-level constants)
+        buildConfigField("String", "VLM_MODEL_FILENAME", "\"$VLM_MODEL_FILENAME\"")
+        buildConfigField("String", "VLM_MMPROJ_FILENAME", "\"$VLM_MMPROJ_FILENAME\"")
     }
 
     buildFeatures {
@@ -182,4 +193,68 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     executionData.setFrom(fileTree(buildDir) {
         include("**/*.exec", "**/*.ec")
     })
+}
+
+// ========================================
+// VLM Model Download Task
+// ========================================
+// Downloads InternVL3-1B-Instruct GGUF models from HuggingFace at build time
+// This keeps large model files out of git repository
+
+tasks.register("downloadVLMModels") {
+    description = "Download $VLM_HUGGINGFACE_REPO models from HuggingFace"
+    group = "build"
+
+    val modelsDir = file("src/main/assets/models")
+    val modelFile = File(modelsDir, VLM_MODEL_FILENAME)
+    val mmprojFile = File(modelsDir, VLM_MMPROJ_FILENAME)
+
+    // HuggingFace repository URL
+    val baseUrl = "https://huggingface.co/$VLM_HUGGINGFACE_REPO/resolve/main"
+
+    inputs.property("modelUrl", "$baseUrl/$VLM_MODEL_FILENAME")
+    inputs.property("mmprojUrl", "$baseUrl/$VLM_MMPROJ_FILENAME")
+    outputs.files(modelFile, mmprojFile)
+
+    doLast {
+        modelsDir.mkdirs()
+
+        // Download main model if not exists
+        if (!modelFile.exists()) {
+            println("📥 Downloading VLM model: $VLM_MODEL_FILENAME (~675MB)...")
+            println("   This may take several minutes...")
+            exec {
+                commandLine(
+                    "curl", "-L", "-o", modelFile.absolutePath,
+                    "--progress-bar",
+                    "$baseUrl/$VLM_MODEL_FILENAME"
+                )
+            }
+            println("✅ Model downloaded: ${modelFile.name}")
+        } else {
+            println("✓ Model already exists: ${modelFile.name}")
+        }
+
+        // Download mmproj (vision encoder) if not exists
+        if (!mmprojFile.exists()) {
+            println("📥 Downloading vision encoder: $VLM_MMPROJ_FILENAME (~591MB)...")
+            exec {
+                commandLine(
+                    "curl", "-L", "-o", mmprojFile.absolutePath,
+                    "--progress-bar",
+                    "$baseUrl/$VLM_MMPROJ_FILENAME"
+                )
+            }
+            println("✅ Vision encoder downloaded: ${mmprojFile.name}")
+        } else {
+            println("✓ Vision encoder already exists: ${mmprojFile.name}")
+        }
+
+        println("🎉 All VLM models ready at: ${modelsDir.absolutePath}")
+    }
+}
+
+// Auto-download models before building
+tasks.named("preBuild") {
+    dependsOn("downloadVLMModels")
 }
