@@ -137,6 +137,103 @@ class TestImageAPIEndpoints(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Invalid date format', response.data['message'])
 
+    def test_get_needed_element_with_fortune_result(self):
+        """Test getting needed element when FortuneResult exists with needed_element."""
+        from core.models import FortuneResult
+
+        # Create a fortune result for tomorrow
+        today = datetime(2024, 1, 1).date()
+        tomorrow = today + timedelta(days=1)
+
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=tomorrow,
+            status='completed',
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='목',
+            fortune_data={
+                'needed_element': '화',
+                'overall_fortune': 85
+            }
+        )
+
+        url = reverse('core:needed_element')
+        response = self.client.get(url, {'date': '2024-01-01'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['date'], '2024-01-01')
+        self.assertEqual(response.data['data']['needed_element'], '화')
+
+    def test_get_needed_element_without_needed_element_field(self):
+        """Test getting needed element when FortuneResult exists but no needed_element field."""
+        from core.models import FortuneResult
+
+        today = datetime(2024, 1, 1).date()
+        tomorrow = today + timedelta(days=1)
+
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=tomorrow,
+            status='completed',
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='목',
+            fortune_data={
+                'overall_fortune': 85
+                # needed_element field is missing
+            }
+        )
+
+        url = reverse('core:needed_element')
+        response = self.client.get(url, {'date': '2024-01-01'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['needed_element'], '목')  # Default value
+
+    def test_get_needed_element_without_fortune_result(self):
+        """Test getting needed element when FortuneResult doesn't exist."""
+        url = reverse('core:needed_element')
+        response = self.client.get(url, {'date': '2024-01-01'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['date'], '2024-01-01')
+        self.assertEqual(response.data['data']['needed_element'], '목')  # Default value
+
+    def test_get_needed_element_default_date(self):
+        """Test getting needed element without date parameter (uses today)."""
+        url = reverse('core:needed_element')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertIn('date', response.data['data'])
+        self.assertIn('needed_element', response.data['data'])
+        # Should use today's date
+        today = datetime.now().date()
+        self.assertEqual(response.data['data']['date'], today.isoformat())
+
+    def test_get_needed_element_invalid_date(self):
+        """Test getting needed element with invalid date format."""
+        url = reverse('core:needed_element')
+        response = self.client.get(url, {'date': 'invalid-date'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Invalid date format', response.data['message'])
+
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_get_needed_element_unauthenticated(self):
+        """Test getting needed element without authentication."""
+        self.client.credentials()  # Remove credentials
+        url = reverse('core:needed_element')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class TestFortuneAPIEndpoints(APITestCase):
     """Test cases for fortune-related API endpoints."""
