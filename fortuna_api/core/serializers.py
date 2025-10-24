@@ -358,3 +358,17 @@ class TodayFortuneResponseSerializer(serializers.Serializer):
     status = serializers.CharField()
     data = TodayFortuneResponseDataSerializer(required=False, allow_null=True)
     error = serializers.DictField(required=False, allow_null=True)
+
+
+class NeededElementDataSerializer(serializers.Serializer):
+    """Serializer for needed element data."""
+
+    date = serializers.DateField(format='%Y-%m-%d', help_text="Date for which element is needed")
+    needed_element = serializers.CharField(help_text="Required element (목/화/토/금/수)")
+
+
+class NeededElementResponseSerializer(serializers.Serializer):
+    """Serializer for needed element response."""
+
+    status = serializers.CharField()
+    data = NeededElementDataSerializer()

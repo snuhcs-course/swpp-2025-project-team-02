@@ -74,7 +74,7 @@ class FortuneAIResponse(BaseModel):
     chakra_readings: List[ChakraReading] = Field(description="Interpretations of today's collected chakras")
     daily_guidance: DailyGuidance = Field(description="Practical guidance for tomorrow")
     special_message: str = Field(description="Personalized encouraging message")
-    need_element: ElementType = Field(
+    needed_element: ElementType = Field(
         description="하루의 element 기운과 유저의 기운(element) 조화를 이루기 위해 유저에게 필요한 element (목/화/토/금/수)"
     )
 
@@ -471,7 +471,7 @@ class FortuneService:
                     key_advice="오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
                 ),
                 special_message="당신의 내일이 밝고 희망찬 날이 되기를 기원합니다.",
-                need_element=ElementType.WOOD
+                needed_element=ElementType.WOOD
             )
 
     def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
@@ -501,7 +501,7 @@ class FortuneService:
                 key_advice=content[-100:] if len(content) > 100 else "오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
             ),
             special_message="AI가 생성한 맞춤형 운세입니다.",
-            need_element=ElementType.WOOD
+            needed_element=ElementType.WOOD
         )
 
     ### public methods ###
