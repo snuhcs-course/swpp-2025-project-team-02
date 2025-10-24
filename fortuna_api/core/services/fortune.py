@@ -7,6 +7,7 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
+from enum import Enum
 from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
@@ -27,6 +28,14 @@ import numpy as np
 # TODO - move to global utils
 
 T = TypeVar("T", bound=BaseModel)
+
+class ElementType(str, Enum):
+    """Simple element type for AI responses (목화토금수)"""
+    WOOD = "목"
+    FIRE = "화"
+    EARTH = "토"
+    METAL = "금"
+    WATER = "수"
 
 class ErrorInfo(BaseModel):
     code: str
@@ -65,6 +74,9 @@ class FortuneAIResponse(BaseModel):
     chakra_readings: List[ChakraReading] = Field(description="Interpretations of today's collected chakras")
     daily_guidance: DailyGuidance = Field(description="Practical guidance for tomorrow")
     special_message: str = Field(description="Personalized encouraging message")
+    need_element: ElementType = Field(
+        description="하루의 element 기운과 유저의 기운(element) 조화를 이루기 위해 유저에게 필요한 element (목/화/토/금/수)"
+    )
 
 class TomorrowGapja(BaseModel):
     code: int = Field(description="Gapja code")
@@ -458,7 +470,8 @@ class FortuneService:
                     activities_to_avoid=["큰 결정", "논쟁"],
                     key_advice="오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
                 ),
-                special_message="당신의 내일이 밝고 희망찬 날이 되기를 기원합니다."
+                special_message="당신의 내일이 밝고 희망찬 날이 되기를 기원합니다.",
+                need_element=ElementType.WOOD
             )
 
     def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
@@ -487,7 +500,8 @@ class FortuneService:
                 activities_to_avoid=["큰 결정", "논쟁"],
                 key_advice=content[-100:] if len(content) > 100 else "오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
             ),
-            special_message="AI가 생성한 맞춤형 운세입니다."
+            special_message="AI가 생성한 맞춤형 운세입니다.",
+            need_element=ElementType.WOOD
         )
 
     ### public methods ###
