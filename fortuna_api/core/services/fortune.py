@@ -47,33 +47,33 @@ class Response(BaseModel, Generic[T]):
     error: Optional[ErrorInfo] = None
 
 class ChakraReading(BaseModel):
-    """Individual Chakra reading based on photo and location."""
-    chakra_type: str = Field(description="Type of chakra energy detected")
-    strength: int = Field(description="Strength of chakra from 1-100")
-    message: str = Field(description="Interpretation of this chakra")
-    location_significance: str = Field(description="Meaning of the location where photo was taken")
+    """사용자가 촬영한 사진과 그 위치를 기반으로 감지된 오늘의 에너지(차크라) 판독 결과. 하루 운세와 연결하여 해석한다."""
+    chakra_type: str = Field(description="감지된 에너지의 주요 유형 (예: '안정', '활력', '창의성')")
+    strength: int = Field(description="에너지의 강도 (1-100 사이의 정수)")
+    message: str = Field(description="감지된 에너지에 대한 명리학적 해석. 오늘의 운세와 연결하여 1-2 문장으로 설명한다.")
+    location_significance: str = Field(description="사진이 촬영된 장소가 오늘의 운세에 갖는 의미를 간략하게 설명한다.")
 
 
 class DailyGuidance(BaseModel):
-    """Actionable guidance for the next day."""
-    best_time: str = Field(description="Best time period for important activities (e.g., '오전 9-11시')")
-    lucky_direction: str = Field(description="Lucky direction based on Five Elements")
-    lucky_color: str = Field(description="Lucky color for tomorrow")
-    activities_to_embrace: List[str] = Field(description="3-5 recommended activities")
-    activities_to_avoid: List[str] = Field(description="2-3 activities to be cautious about")
-    key_advice: str = Field(description="One key piece of advice for tomorrow")
+    """내일 하루의 운을 좋게 만들기 위한 구체적이고 실용적인 행동 지침(개운법)."""
+    best_time: str = Field(description="하루 중 가장 기운이 좋은 시간대를 십이시진(十二時辰) 원리를 응용하여 '오전/오후 O-O시' 형태로 제시한다.")
+    lucky_direction: str = Field(description="오행 이론에 기반하여 내일의 운을 좋게 하는 행운의 방향 (예: 동쪽, 남쪽).")
+    lucky_color: str = Field(description="사용자의 오행과 내일의 오행을 조화롭게 만드는 행운의 색상.")
+    activities_to_embrace: List[str] = Field(description="오늘의 긍정적인 기운을 증폭시키거나 부족한 기운을 보충할 수 있는 추천 활동 3-5가지 리스트.")
+    activities_to_avoid: List[str] = Field(description="오늘의 기운에 따라 충돌을 일으키거나 에너지를 뺏길 수 있어 주의해야 할 활동 2-3가지 리스트.")
+    key_advice: str = Field(description="내일 하루를 위해 가장 마음에 새겨야 할 핵심 조언 한 문장.")
 
 
 class FortuneAIResponse(BaseModel):
-    """Complete fortune-telling response structure."""
-    tomorrow_date: str = Field(description="Tomorrow's date in YYYY-MM-DD format")
-    saju_compatibility: str = Field(description="Compatibility between user's day pillar and tomorrow's")
-    overall_fortune: int = Field(description="Overall fortune score from 1-100")
-    fortune_summary: str = Field(description="2-3 sentence summary of tomorrow's fortune")
-    element_balance: str = Field(description="Description of Five Elements balance for tomorrow")
-    chakra_readings: List[ChakraReading] = Field(description="Interpretations of today's collected chakras")
-    daily_guidance: DailyGuidance = Field(description="Practical guidance for tomorrow")
-    special_message: str = Field(description="Personalized encouraging message")
+    """사용자의 사주와 일진을 종합적으로 분석한 하루 운세 응답 구조."""
+    tomorrow_date: str = Field(description="운세가 적용되는 날짜. 'YYYY-MM-DD' 형식.")
+    saju_compatibility: str = Field(description="사용자의 일주(日柱)와 내일의 일진(日辰) 간의 오행 관계를 기반으로 한 조화 정도를 설명하는 텍스트. (예: '당신의 나무 기운과 오늘의 물 기운은 서로 돕는 관계입니다.')")
+    overall_fortune: int = Field(description="사주와 일진의 조화 점수를 기반으로 산출된 내일의 전반적인 운세 점수 (1-100 사이의 정수).")
+    fortune_summary: str = Field(description="내일 운세의 핵심적인 흐름과 가장 중요한 포인트를 2-3 문장으로 요약.")
+    element_balance: str = Field(description="사용자의 일간 오행과 내일의 일진 오행 간의 상생/상극 관계를 풀어서 설명한다. 이것이 하루의 에너지 균형과 주요 활동(인간관계, 재물, 업무 등)에 어떤 영향을 미치는지 십신 관계를 기능적으로 서술한다.")
+    chakra_readings: List[ChakraReading] = Field(description="사용자가 오늘 수집한 에너지(차크라)에 대한 분석 결과 리스트.")
+    daily_guidance: DailyGuidance = Field(description="내일의 운을 더 좋게 만들기 위한 실용적인 개운법 가이드.")
+    special_message: str = Field(description="분석 결과를 바탕으로 사용자에게 힘과 용기를 주는 따뜻하고 개인화된 격려 메시지.")
     needed_element: ElementType = Field(
         description="하루의 element 기운과 유저의 기운(element) 조화를 이루기 위해 유저에게 필요한 element (목/화/토/금/수)"
     )
@@ -383,40 +383,73 @@ class FortuneService:
 
         # Prepare context for AI
         context = f"""
-        당신은 한국 전통 사주 전문가입니다. 사용자의 사주 정보와 오늘 수집한 차크라(사진) 정보를 바탕으로 내일의 운세를 풀어주세요.
+        # Role & Persona
+        당신은 GenZ를 위한 사주 기반 라이프 가이드 서비스 '포르투나(Fortuna)'에서 활동하는, 40년 경력의 사주 명리학 분석가 '혜안'입니다. 당신의 역할은 사용자의 사주와 오늘의 일진을 명리학적 원리에 따라 분석하고, 오행의 균형을 통해 운을 개선하는 '개운(開運)'의 관점에서 따뜻하고 실용적인 하루 운세를 제공하는 것입니다.
 
-        사용자 사주 정보:
+        # Instructions
+        1.  **쉬운 언어 사용:** 사용자는 GenZ입니다. 겁재, 식신, 편관 등 어려운 십신 용어나 전문 한자어는 절대 사용하지 마세요. 대신 그 의미를 기능적으로 풀어서 설명해주세요. (예: "오늘은 나의 에너지를 표현하고 싶은 창의적인 기운이 강해져요." 또는 "나를 돕는 기운과 나의 힘을 빼는 기운이 조화를 이루네요.")
+        2.  **오행 중심 해석:** 사용자의 일간 오행과 오늘의 일진 오행 간의 관계를 **아래 [오행의 핵심 원리] 섹션을 참조하여** '상생(서로 돕는 관계)'과 '상극(서로 견제하는 관계)'으로 설명해주세요. (예: "당신의 '나무' 기운에 오늘의 '물' 기운이 더해져, 마치 나무가 물을 만나 쑥쑥 자라나는 것처럼 성장과 활력이 넘치는 하루가 될 거예요.")
+        3.  **십신 관계 반영 (기능적 설명):** 사용자의 일간(日干)과 오늘의 천간(天干)이 만나 형성되는 관계(십신)를 바탕으로 하루의 주요 이슈(인간관계, 재물, 업무 등)를 예측해주세요. 아래 예시처럼 기능적으로 설명합니다.
+            *   나와 같은 기운(비견/겁재): 주변 사람들과의 협력 또는 경쟁 이슈, 주체성 강화
+            *   내가 생하는 기운(식신/상관): 나의 재능, 창의력, 표현력 발휘, 에너지 소모
+            *   내가 극하는 기운(정재/편재): 재물, 성취, 결과물, 통제력에 대한 이슈
+            *   나를 극하는 기운(정관/편관): 직장, 책임감, 스트레스, 명예, 규칙에 대한 이슈
+            *   나를 생하는 기운(정인/편인): 학업, 문서, 계약, 주변의 도움, 생각과 고민
+        4.  **'개운' 관점의 조언:** **[오행의 핵심 원리]에 따라**, 부족한 기운은 상생 관계로 보충하고, 과한 기운은 상극 관계로 조절하는 '개운법'을 DailyGuidance에 구체적으로 제시해주세요.
+        5.  **엄격한 출력 형식:** 반드시 아래에 명시된 Output Schema에 맞춰 JSON 형식으로만 응답해야 합니다. 다른 설명은 추가하지 마세요.
+
+        ---
+        # 오행의 핵심 원리 (Core Principles of Five Elements)
+
+        ### [상생(相生): 서로 돕고 살려주는 순환의 관계]
+        *   **목생화(木生火):** 나무는 불을 일으키는 땔감이 됩니다. (나무 -> 불)
+        *   **화생토(火生土):** 불이 타고 남은 재는 흙으로 돌아갑니다. (불 -> 흙)
+        *   **토생금(土生金):** 흙 속에서 금속과 광물이 생겨납니다. (흙 -> 금속)
+        *   **금생수(金生水):** 금속 표면에 물방울이 맺히거나, 바위에서 물이 솟아납니다. (금속 -> 물)
+        *   **수생목(水生木):** 물은 나무를 자라게 하는 생명의 근원입니다. (물 -> 나무)
+
+        ### [상극(相剋): 서로 견제하고 조절하는 균형의 관계]
+        *   **목극토(木剋土):** 나무는 뿌리로 흙을 파고들며 양분을 흡수합니다. (나무가 흙을 제어)
+        *   **토극수(土剋水):** 흙은 둑이 되어 물의 흐름을 막거나 가둡니다. (흙이 물을 제어)
+        *   **수극화(水剋火):** 물은 불을 꺼서 제어합니다. (물이 불을 제어)
+        *   **화극금(火剋金):** 불은 금속을 녹여 형태를 바꿉니다. (불이 금속을 제어)
+        *   **금극목(金剋木):** 금속은 도끼가 되어 나무를 자릅니다. (금속이 나무를 제어)
+
+        ---
+        # Input Data
+
+        [사용자 사주 정보]
         - 년주: {user_saju.yearly.two_letters} ({user_saju.yearly.stem.element.chinese}행)
-        - 월주: {user_saju.monthly.two_letters} ({user_saju.monthly.stem.element.chinese}행)
-        - 일주: {user_saju.daily.two_letters} ({user_day_element.chinese}행)
+        - 월주: {user_saju.monthly.two_letters} ({user_saju.monthly.stem.element.chinese}행
+        - 일주: {user_saju.daily.two_letters} (당신의 대표 오행: {user_day_element.chinese}행)
         - 시주: {user_saju.hourly.two_letters} ({user_saju.hourly.stem.element.chinese}행)
 
-        내일 날짜: {tomorrow_date.strftime('%Y년 %m월 %d일')}
-        내일의 일진: {tomorrow_day_ganji.two_letters} ({tomorrow_day_element.chinese}행)
+        [분석 날짜 정보]
+        - 분석 날짜: {tomorrow_date.strftime('%Y년 %m월 %d일')}
+        - 해당 날짜의 일진: {tomorrow_day_ganji.two_letters} (오늘의 대표 오행: {tomorrow_day_element.chinese}행)
 
-        사주 궁합:
-        - 점수: {compatibility['score']}/100
-        - 관계: {compatibility['element_relation']}
-        - 상세: {compatibility['relation_detail']}
-        - 사용자 오행: {compatibility['user_element']}행 ({compatibility['user_element_color']})
-        - 내일 오행: {compatibility['tomorrow_element']}행 ({compatibility['tomorrow_element_color']})
-
-        오늘 수집된 차크라 정보:
+        [사주와 일진의 조화 분석]
+        - 조화 점수: {compatibility['score']}/100
+        - 오행 관계: {compatibility['element_relation']} (예: 상생, 상극, 비화)
+        - 관계 상세: {compatibility['relation_detail']} (예: 수생목, 화극금)
+        - 당신의 오행: {compatibility['user_element']} ({compatibility['user_element_color']} 기운)
+        - 해당 날짜의 오행: {compatibility['tomorrow_element']} ({compatibility['tomorrow_element_color']} 기운)
+        - 한 줄 요약: {compatibility['message']}
         """
 
-        for i, photo in enumerate(photo_contexts, 1):
-            if photo['metadata']['location']:
-                context += f"""
-        차크라 {i}:
-        - 시간: {photo['metadata']['timestamp']}
-        - 위치: 위도 {photo['metadata']['location']['latitude']}, 경도 {photo['metadata']['location']['longitude']}
-        """
-            else:
-                context += f"""
-        차크라 {i}:
-        - 시간: {photo['metadata']['timestamp']}
-        - 위치: 정보 없음
-        """
+        # for i, photo in enumerate(photo_contexts, 1):
+        #     if photo['metadata']['location']:
+        #         context += f"""
+        # 차크라 {i}:
+        # - 시간: {photo['metadata']['timestamp']}
+        # - 위치: 위도 {photo['metadata']['location']['latitude']}, 경도 {photo['metadata']['location']['longitude']}
+        # """
+        #     else:
+        #         context += f"""
+        # 차크라 {i}:
+        # - 시간: {photo['metadata']['timestamp']}
+        # - 위치: 정보 없음
+        # """
 
         context += """
 
@@ -430,20 +463,18 @@ class FortuneService:
             if not self.client:
                 raise ValueError("OpenAI client not initialized")
             
-            response = self.client.chat.completions.create(
+            response = self.client.chat.completions.parse(
                 model="gpt-5-nano",
                 messages=[
                     {"role": "system", "content": context},
-                    {"role": "user", "content": "내일의 운세를 자세히 풀어주세요."}
-                ]
+                    {"role": "user", "content": "운세를 자세히 풀어주세요."}
+                ],
+                response_format=FortuneAIResponse
             )
 
-            # Parse the response content into a structured format
-            content = response.choices[0].message.content
-
-            # For now, return a basic structured response
-            # TODO: Implement proper JSON parsing or structured output
-            return self._parse_fortune_response(content, tomorrow_date, compatibility)
+            # Get parsed response (already a FortuneAIResponse object)
+            parsed_fortune = response.choices[0].message.parsed
+            return parsed_fortune
 
         except Exception as e:
             logger.error(f"Failed to generate fortune with AI: {e}")
