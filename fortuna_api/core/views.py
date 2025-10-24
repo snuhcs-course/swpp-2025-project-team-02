@@ -30,6 +30,7 @@ from .serializers import (
     FortuneRequestSerializer,
     FortuneResponseSerializer,
     APIResponseSerializer,
+    NeededElementResponseSerializer,
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
@@ -360,6 +361,91 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             'data': {
                 'collections': list(collections),
                 'total_count': total_count
+            }
+        }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Get Needed Element",
+        description="Get the needed element (목/화/토/금/수) for the user based on tomorrow's fortune",
+        parameters=[
+            OpenApiParameter(
+                name='date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Date for which to get needed element (YYYY-MM-DD). Defaults to today.',
+                required=False
+            )
+        ],
+        responses={
+            200: NeededElementResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='needed-element')
+    def needed_element(self, request):
+        """
+        Get the needed element for harmonizing user's energy with tomorrow's energy.
+        Returns one of: 목, 화, 토, 금, 수
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get date parameter (defaults to today)
+        date_param = request.query_params.get('date')
+        if date_param:
+            try:
+                today_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            today_date = datetime.now().date()
+
+        # Calculate tomorrow's date
+        tomorrow_date = today_date + timedelta(days=1)
+
+        # Try to get FortuneResult for tomorrow
+        try:
+            fortune_result = FortuneResult.objects.get(
+                user=user,
+                for_date=tomorrow_date
+            )
+
+            # Extract needed_element from fortune_data
+            fortune_data = fortune_result.fortune_data
+            if fortune_data and 'needed_element' in fortune_data:
+                needed_element = fortune_data['needed_element']
+            else:
+                # Default to "목" if needed_element not found
+                needed_element = "목"
+
+        except FortuneResult.DoesNotExist:
+            # Default to "목" if FortuneResult doesn't exist
+            needed_element = "목"
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'date': today_date.isoformat(),
+                'needed_element': needed_element
             }
         }, status=status.HTTP_200_OK)
 
