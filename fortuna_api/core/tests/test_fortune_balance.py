@@ -3,6 +3,7 @@ Tests for fortune balance calculation (five elements entropy).
 """
 
 from datetime import date, datetime
+from unittest.mock import patch, Mock
 from django.test import TestCase
 from core.services.fortune import FortuneService
 from user.models import User
@@ -13,7 +14,9 @@ class TestFortuneBalance(TestCase):
 
     def setUp(self):
         """Set up test user with complete saju data."""
-        self.service = FortuneService()
+        # Patch OpenAI to avoid API calls in tests
+        with patch('core.services.fortune.openai'):
+            self.service = FortuneService()
 
         self.user = User.objects.create_user(
             email="balance_test@example.com",
@@ -152,8 +155,38 @@ class TestFortuneBalance(TestCase):
         msg_low = self.service._interpret_balance_score(30)
         self.assertIn("편중", msg_low)
 
-    def test_generate_fortune_includes_balance(self):
+    @patch('core.services.fortune.FortuneService.generate_fortune_with_ai')
+    def test_generate_fortune_includes_balance(self, mock_generate_ai):
         """Test that generate_fortune includes fortune_score."""
+        from core.services.fortune import FortuneAIResponse, ChakraReading, DailyGuidance, ElementType
+
+        # Mock AI response
+        mock_generate_ai.return_value = FortuneAIResponse(
+            tomorrow_date="2024-12-26",
+            saju_compatibility="좋은 궁합",
+            overall_fortune=85,
+            fortune_summary="좋은 날입니다",
+            element_balance="균형잡힌 오행",
+            chakra_readings=[
+                ChakraReading(
+                    chakra_type="fire",
+                    strength=80,
+                    message="강한 에너지",
+                    location_significance="중요한 장소"
+                )
+            ],
+            daily_guidance=DailyGuidance(
+                best_time="오전",
+                lucky_direction="동쪽",
+                lucky_color="청색",
+                activities_to_embrace=["운동", "공부"],
+                activities_to_avoid=["논쟁"],
+                key_advice="긍정적으로"
+            ),
+            special_message="좋은 하루",
+            needed_element=ElementType.WOOD
+        )
+
         test_date = datetime(2024, 12, 25, 12, 0)
 
         result = self.service.generate_fortune(self.user, test_date)

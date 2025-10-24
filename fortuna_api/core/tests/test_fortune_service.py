@@ -295,6 +295,7 @@ class TestFortuneService(TestCase):
             'tomorrow_ganji': '갑자'
         }
         mock_photo.return_value = [{'filename': 'test.jpg'}]
+        from core.services.fortune import ElementType
         mock_fortune = FortuneAIResponse(
             tomorrow_date="2024-01-02",
             saju_compatibility="좋음",
@@ -310,7 +311,8 @@ class TestFortuneService(TestCase):
                 activities_to_avoid=["논쟁"],
                 key_advice="화이팅"
             ),
-            special_message="행운"
+            special_message="행운",
+            needed_element=ElementType.WOOD
         )
         mock_ai.return_value = mock_fortune
 
