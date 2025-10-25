@@ -16,7 +16,7 @@ import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.example.fortuna_android.common.samplerender.arcore.BackgroundRenderer
-import com.example.fortuna_android.render.LabelRender
+import com.example.fortuna_android.render.ObjectRender
 import com.example.fortuna_android.render.PointCloudRender
 import com.google.ar.core.exceptions.CameraNotAvailableException
 import com.google.ar.core.exceptions.NotYetAvailableException
@@ -44,7 +44,7 @@ class ARRenderer(private val fragment: ARFragment) :
     private val displayRotationHelper = DisplayRotationHelper(fragment.requireActivity())
     private lateinit var backgroundRenderer: BackgroundRenderer
     private val pointCloudRender = PointCloudRender()
-    private val labelRenderer = LabelRender()
+    private val objectRenderer = ObjectRender()
 
     private val viewMatrix = FloatArray(16)
     private val projectionMatrix = FloatArray(16)
@@ -58,6 +58,17 @@ class ARRenderer(private val fragment: ARFragment) :
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
     private val elementMapper = ElementMapper(fragment.requireContext())
+
+    // AR Game: needed element from API (null = show all elements)
+    private var neededElement: ElementMapper.Element? = null
+    private var collectedCount = 0
+
+    // Screen dimensions for projection
+    private var screenWidth = 0f
+    private var screenHeight = 0f
+
+    // Pending tap to process on next frame
+    private var pendingTap: Pair<Float, Float>? = null
 
     data class ARLabeledAnchor(val anchor: Anchor, val element: ElementMapper.Element)
 
@@ -87,16 +98,149 @@ class ARRenderer(private val fragment: ARFragment) :
         Log.d(TAG, "AR anchors cleared")
     }
 
+    /**
+     * Set the needed element for AR Game mode
+     * Only spheres matching this element will be displayed
+     * Pass null to show all elements
+     */
+    fun setNeededElement(element: ElementMapper.Element?) {
+        neededElement = element
+        collectedCount = 0
+        Log.i(TAG, "AR Game: Needed element set to ${element?.displayName ?: "ALL"}")
+    }
+
+    /**
+     * Get the current collection count for game progress
+     */
+    fun getCollectedCount(): Int = collectedCount
+
+    /**
+     * Queue a tap to be processed on the next render frame
+     * This avoids GL context issues by deferring to the render thread
+     */
+    fun handleTap(x: Float, y: Float) {
+        Log.d(TAG, "Tap queued at ($x, $y)")
+        pendingTap = Pair(x, y)
+    }
+
+    /**
+     * Process a queued tap (called from onDrawFrame on GL thread)
+     * Returns the collected anchor or null
+     */
+    private fun processTap(x: Float, y: Float): ARLabeledAnchor? {
+        // Screen-space distance threshold (in pixels)
+        val tapThreshold = 150f // pixels
+
+        var closestAnchor: ARLabeledAnchor? = null
+        var closestDistance = Float.MAX_VALUE
+
+        // Check all anchors and find the closest one in screen space
+        val anchorCount = synchronized(arLabeledAnchors) {
+            arLabeledAnchors.size
+        }
+        Log.d(TAG, "Processing tap at ($x, $y), checking $anchorCount anchors (needed element: ${neededElement?.displayName ?: "ALL"})")
+
+        synchronized(arLabeledAnchors) {
+            for (labeledAnchor in arLabeledAnchors) {
+                val anchor = labeledAnchor.anchor
+                if (anchor.trackingState != TrackingState.TRACKING) continue
+
+                // Skip if not the needed element (if filter is set)
+                if (neededElement != null && labeledAnchor.element != neededElement) {
+                    continue
+                }
+
+                // Project anchor position to screen coordinates
+                val anchorPose = anchor.pose
+                val worldPos = floatArrayOf(anchorPose.tx(), anchorPose.ty(), anchorPose.tz(), 1f)
+                val screenPos = projectToScreen(worldPos, viewMatrix, projectionMatrix)
+
+                if (screenPos != null) {
+                    // Calculate 2D distance on screen
+                    val dx = screenPos[0] - x
+                    val dy = screenPos[1] - y
+                    val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+
+                    Log.d(TAG, "${labeledAnchor.element.displayName} sphere at (${screenPos[0].toInt()}, ${screenPos[1].toInt()}), distance: ${distance.toInt()}px")
+
+                    if (distance < closestDistance && distance < tapThreshold) {
+                        closestDistance = distance
+                        closestAnchor = labeledAnchor
+                    }
+                } else {
+                    Log.d(TAG, "${labeledAnchor.element.displayName} sphere not on screen")
+                }
+            }
+        }
+
+        // If we found a close enough anchor, collect it
+        if (closestAnchor != null) {
+            synchronized(arLabeledAnchors) {
+                arLabeledAnchors.remove(closestAnchor)
+            }
+            collectedCount++
+            Log.i(TAG, "🎮 Collected ${closestAnchor.element.displayName} sphere! Total: $collectedCount (distance: ${closestDistance.toInt()} px)")
+            return closestAnchor
+        }
+
+        if (closestDistance == Float.MAX_VALUE) {
+            Log.w(TAG, "No spheres found on screen")
+        } else {
+            Log.d(TAG, "No sphere tapped (closest was ${closestDistance.toInt()} px, threshold: ${tapThreshold.toInt()} px)")
+        }
+        return null
+    }
+
+    /**
+     * Project a 3D world position to 2D screen coordinates
+     * Returns [x, y] in screen pixels, or null if behind camera
+     */
+    private fun projectToScreen(worldPos: FloatArray, viewMat: FloatArray, projMat: FloatArray): FloatArray? {
+        // Check if screen dimensions are set
+        if (screenWidth <= 0f || screenHeight <= 0f) {
+            Log.w(TAG, "Screen dimensions not set yet")
+            return null
+        }
+
+        val viewPos = FloatArray(4)
+        val clipPos = FloatArray(4)
+
+        // World to view space
+        Matrix.multiplyMV(viewPos, 0, viewMat, 0, worldPos, 0)
+
+        // View to clip space
+        Matrix.multiplyMV(clipPos, 0, projMat, 0, viewPos, 0)
+
+        // Check if behind camera
+        if (clipPos[3] <= 0f) return null
+
+        // Perspective divide
+        val ndcX = clipPos[0] / clipPos[3]
+        val ndcY = clipPos[1] / clipPos[3]
+
+        // Check if outside screen bounds
+        if (ndcX < -1f || ndcX > 1f || ndcY < -1f || ndcY > 1f) return null
+
+        // NDC to screen space
+        val screenX = (ndcX + 1f) * 0.5f * screenWidth
+        val screenY = (1f - ndcY) * 0.5f * screenHeight // Flip Y
+
+        return floatArrayOf(screenX, screenY)
+    }
+
     override fun onSurfaceCreated(render: SampleRender) {
         backgroundRenderer = BackgroundRenderer(render).apply {
             setUseDepthVisualization(render, false)
         }
         pointCloudRender.onSurfaceCreated(render)
-        labelRenderer.onSurfaceCreated(render)
+        objectRenderer.onSurfaceCreated(render)
     }
 
     override fun onSurfaceChanged(render: SampleRender?, width: Int, height: Int) {
         displayRotationHelper.onSurfaceChanged(width, height)
+        screenWidth = width.toFloat()
+        screenHeight = height.toFloat()
+        Log.i(TAG, "Screen dimensions: ${screenWidth}x${screenHeight}")
     }
 
     private var objectResults: List<DetectedObjectResult>? = null
@@ -149,6 +293,20 @@ class ARRenderer(private val fragment: ARFragment) :
         // Draw point cloud
         frame.acquirePointCloud().use { pointCloud ->
             pointCloudRender.drawPointCloud(render, pointCloud, viewProjectionMatrix)
+        }
+
+        // Process pending tap (if any)
+        val tap = pendingTap
+        if (tap != null) {
+            pendingTap = null
+            val collectedAnchor = processTap(tap.first, tap.second)
+
+            // Notify fragment on main thread
+            if (collectedAnchor != null) {
+                fragment.view?.post {
+                    fragment.onSphereCollected(collectedCount)
+                }
+            }
         }
 
         // Process object detection if scan button was pressed
@@ -230,7 +388,7 @@ class ARRenderer(private val fragment: ARFragment) :
             }
         }
 
-        // Draw text labels at their anchor positions - create a safe copy to avoid concurrent modification
+        // Draw 3D sphere objects at their anchor positions - create a safe copy to avoid concurrent modification
         val anchorsCopy = synchronized(arLabeledAnchors) {
             arLabeledAnchors.toList()
         }
@@ -239,14 +397,23 @@ class ARRenderer(private val fragment: ARFragment) :
             val anchor = arLabeledAnchor.anchor
             if (anchor.trackingState != TrackingState.TRACKING) continue
 
-            // Draw text label for all elements
-            labelRenderer.draw(
-                render,
-                viewProjectionMatrix,
-                anchor.pose,
-                camera.pose,
-                arLabeledAnchor.element.displayName
-            )
+            // AR Game: Filter to show only needed element (if set)
+            val shouldShow = if (neededElement != null) {
+                arLabeledAnchor.element == neededElement
+            } else {
+                true // Show all elements if no filter is set
+            }
+
+            if (shouldShow) {
+                // Draw 3D sphere object for each element
+                objectRenderer.draw(
+                    render,
+                    viewMatrix,
+                    projectionMatrix,
+                    anchor.pose,
+                    arLabeledAnchor.element
+                )
+            }
         }
     }
 

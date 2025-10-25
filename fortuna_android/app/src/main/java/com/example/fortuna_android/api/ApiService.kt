@@ -53,4 +53,9 @@ interface ApiService {
 
     @DELETE("api/user/delete/")
     suspend fun deleteAccount(): Response<Unit>
+
+    @GET("api/core/chakra/needed-element/")
+    suspend fun getNeededElement(
+        @Query("date") date: String? = null
+    ): Response<NeededElementResponse>
 }

@@ -281,3 +281,15 @@ data class ElementDistribution(
     val count: Int,
     val percentage: Double
 )
+
+// GET /api/core/chakra/needed-element/
+data class NeededElementResponse(
+    val status: String,
+    val data: NeededElementData
+)
+
+data class NeededElementData(
+    val date: String,
+    @SerializedName("needed_element")
+    val neededElement: String  // Korean: 목/화/토/금/수
+)
