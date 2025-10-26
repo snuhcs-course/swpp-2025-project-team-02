@@ -30,6 +30,15 @@ class TestImageAPIEndpoints(APITestCase):
             email='test@example.com',
             password='testpass123'
         )
+        # Set saju data separately
+        self.user.birth_date_solar = '1990-01-01'
+        self.user.birth_time_units = '자시'
+        self.user.yearly_ganji = '갑자'
+        self.user.monthly_ganji = '을축'
+        self.user.daily_ganji = '병인'  # 병(fire)
+        self.user.hourly_ganji = '정묘'
+        self.user.save()
+
         self.refresh = RefreshToken.for_user(self.user)
         self.client.credentials(
             HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}'
@@ -138,25 +147,33 @@ class TestImageAPIEndpoints(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Invalid date format', response.data['message'])
 
-    def test_get_needed_element_with_fortune_result(self):
-        """Test getting needed element when FortuneResult exists with needed_element."""
-        from core.models import FortuneResult
+    @patch('core.views.fortune_service.calculate_fortune_balance')
+    def test_get_needed_element_with_fortune_result(self, mock_balance):
+        """Test getting needed element - uses calculate_fortune_balance."""
+        from core.services.fortune import FortuneScore, ElementDistribution
 
-        # Create a fortune result for tomorrow
-        today = datetime(2024, 1, 1).date()
-        tomorrow = today + timedelta(days=1)
-
-        FortuneResult.objects.create(
-            user=self.user,
-            for_date=tomorrow,
-            status='completed',
-            gapja_code=1,
-            gapja_name='갑자',
-            gapja_element='목',
-            fortune_data={
-                'needed_element': '화',
-                'overall_fortune': 85
-            }
+        # Mock fortune balance to return specific element distribution
+        # Make '화' have the minimum count
+        mock_balance.return_value = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": None,
+                "월운": None,
+                "일운": None,
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=1, percentage=6.7),  # Minimum
+                "토": ElementDistribution(count=4, percentage=26.7),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=4, percentage=26.7)
+            },
+            interpretation="Test interpretation"
         )
 
         url = reverse('core:needed_element')
@@ -167,24 +184,33 @@ class TestImageAPIEndpoints(APITestCase):
         self.assertEqual(response.data['data']['date'], '2024-01-01')
         self.assertEqual(response.data['data']['needed_element'], '화')
 
-    def test_get_needed_element_without_needed_element_field(self):
-        """Test getting needed element when FortuneResult exists but no needed_element field."""
-        from core.models import FortuneResult
+    @patch('core.views.fortune_service.calculate_fortune_balance')
+    def test_get_needed_element_with_tie_breaker(self, mock_balance):
+        """Test getting needed element when multiple elements have same min count - uses 상생 tie-breaker."""
+        from core.services.fortune import FortuneScore, ElementDistribution
 
-        today = datetime(2024, 1, 1).date()
-        tomorrow = today + timedelta(days=1)
-
-        FortuneResult.objects.create(
-            user=self.user,
-            for_date=tomorrow,
-            status='completed',
-            gapja_code=1,
-            gapja_name='갑자',
-            gapja_element='목',
-            fortune_data={
-                'overall_fortune': 85
-                # needed_element field is missing
-            }
+        # Mock fortune balance where '목' and '화' both have minimum count (2)
+        # User's day stem is 병(fire), so 목(wood) empowers 화(fire) - should pick 목
+        mock_balance.return_value = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": None,
+                "월운": None,
+                "일운": None,
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=2, percentage=13.3),  # Minimum (tie)
+                "화": ElementDistribution(count=2, percentage=13.3),  # Minimum (tie)
+                "토": ElementDistribution(count=4, percentage=26.7),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=4, percentage=26.7)
+            },
+            interpretation="Test interpretation"
         )
 
         url = reverse('core:needed_element')
@@ -192,20 +218,74 @@ class TestImageAPIEndpoints(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'success')
-        self.assertEqual(response.data['data']['needed_element'], '목')  # Default value
+        # User's daily_ganji=2 is 병인, stem is 병(fire)
+        # 목생화 (wood empowers fire), so should pick 목
+        self.assertEqual(response.data['data']['needed_element'], '목')
 
-    def test_get_needed_element_without_fortune_result(self):
-        """Test getting needed element when FortuneResult doesn't exist."""
+    @patch('core.views.fortune_service.calculate_fortune_balance')
+    def test_get_needed_element_without_fortune_result(self, mock_balance):
+        """Test getting needed element - always uses calculate_fortune_balance."""
+        from core.services.fortune import FortuneScore, ElementDistribution
+
+        # Mock fortune balance to return '금' as minimum
+        mock_balance.return_value = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": None,
+                "월운": None,
+                "일운": None,
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=4, percentage=26.7),
+                "토": ElementDistribution(count=3, percentage=20.0),
+                "금": ElementDistribution(count=1, percentage=6.7),  # Minimum
+                "수": ElementDistribution(count=4, percentage=26.7)
+            },
+            interpretation="Test interpretation"
+        )
+
         url = reverse('core:needed_element')
         response = self.client.get(url, {'date': '2024-01-01'})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'success')
         self.assertEqual(response.data['data']['date'], '2024-01-01')
-        self.assertEqual(response.data['data']['needed_element'], '목')  # Default value
+        self.assertEqual(response.data['data']['needed_element'], '금')
 
-    def test_get_needed_element_default_date(self):
+    @patch('core.views.fortune_service.calculate_fortune_balance')
+    def test_get_needed_element_default_date(self, mock_balance):
         """Test getting needed element without date parameter (uses today)."""
+        from core.services.fortune import FortuneScore, ElementDistribution
+
+        # Mock fortune balance
+        mock_balance.return_value = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": None,
+                "월운": None,
+                "일운": None,
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=4, percentage=26.7),
+                "토": ElementDistribution(count=3, percentage=20.0),
+                "금": ElementDistribution(count=2, percentage=13.3),  # Minimum
+                "수": ElementDistribution(count=3, percentage=20.0)
+            },
+            interpretation="Test interpretation"
+        )
+
         url = reverse('core:needed_element')
         response = self.client.get(url)
 
@@ -216,6 +296,7 @@ class TestImageAPIEndpoints(APITestCase):
         # Should use today's date
         today = datetime.now().date()
         self.assertEqual(response.data['data']['date'], today.isoformat())
+        self.assertEqual(response.data['data']['needed_element'], '금')
 
     def test_get_needed_element_invalid_date(self):
         """Test getting needed element with invalid date format."""
@@ -354,6 +435,15 @@ class TestFortuneAPIEndpoints(APITestCase):
             email='test@example.com',
             password='testpass123'
         )
+        # Set saju data separately
+        self.user.birth_date_solar = '1990-01-01'
+        self.user.birth_time_units = '자시'
+        self.user.yearly_ganji = '갑자'
+        self.user.monthly_ganji = '을축'
+        self.user.daily_ganji = '병인'  # 병(fire)
+        self.user.hourly_ganji = '정묘'
+        self.user.save()
+
         self.refresh = RefreshToken.for_user(self.user)
         self.client.credentials(
             HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}'
@@ -476,6 +566,15 @@ class TestAPIIntegration(APITestCase):
             email='test@example.com',
             password='testpass123'
         )
+        # Set saju data separately
+        self.user.birth_date_solar = '1990-01-01'
+        self.user.birth_time_units = '자시'
+        self.user.yearly_ganji = '갑자'
+        self.user.monthly_ganji = '을축'
+        self.user.daily_ganji = '병인'  # 병(fire)
+        self.user.hourly_ganji = '정묘'
+        self.user.save()
+
         self.refresh = RefreshToken.for_user(self.user)
         self.client.credentials(
             HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}'
