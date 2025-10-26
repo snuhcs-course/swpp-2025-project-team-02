@@ -3,6 +3,7 @@
 #include <jni.h>
 #include <string>
 #include <vector>
+#include <chrono>
 #include "llama.h"
 #include "common.h"
 #include "mtmd/mtmd.h"
@@ -198,6 +199,13 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         return -1;
     }
 
+    // Log detailed eval_chunks parameters
+    size_t n_chunks = mtmd_input_chunks_size(chunks);
+    LOGi("⚡ eval_chunks starting: n_batch=%d, n_chunks=%zu, n_past=%d", n_batch, n_chunks, n_past);
+
+    // Measure eval time
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     llama_pos new_n_past = 0;
 
     // Use mtmd_helper to evaluate all chunks (text + image)
@@ -212,11 +220,16 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         &new_n_past      // output: new position
     );
 
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
     if (ret != 0) {
-        LOGe("mtmd_helper_eval_chunks failed with code %d", ret);
+        LOGe("mtmd_helper_eval_chunks failed with code %d after %lld ms", ret, duration.count());
         return -1;
     }
 
-    LOGi("Chunks evaluated successfully, new n_past: %d", (int)new_n_past);
+    LOGi("✅ eval_chunks completed: new_n_past=%d, duration=%lld ms (%.2f tok/s)",
+         (int)new_n_past, duration.count(),
+         duration.count() > 0 ? (new_n_past * 1000.0 / duration.count()) : 0.0);
     return static_cast<jlong>(new_n_past);
 }
