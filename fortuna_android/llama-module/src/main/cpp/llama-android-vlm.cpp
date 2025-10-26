@@ -185,7 +185,6 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         jlong llama_ctx_ptr,
         jlong chunks_ptr,
         jint n_past,
-        jint seq_id,
         jint n_batch) {
 
     auto *mtmd_ctx = reinterpret_cast<mtmd_context *>(mtmd_ctx_ptr);
@@ -205,17 +204,17 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         llama_ctx,
         chunks,
         n_past,          // n_past
-        seq_id,          // seq_id (now parameterized for parallel processing)
+        0,               // seq_id
         n_batch,         // n_batch
         true,            // logits_last
         &new_n_past      // output: new position
     );
 
     if (ret != 0) {
-        LOGe("mtmd_helper_eval_chunks failed with code %d (seq_id=%d)", ret, seq_id);
+        LOGe("mtmd_helper_eval_chunks failed with code %d", ret);
         return -1;
     }
 
-    LOGi("Chunks evaluated successfully (seq_id=%d), new n_past: %d", seq_id, (int)new_n_past);
+    LOGi("Chunks evaluated successfully, new n_past: %d", (int)new_n_past);
     return static_cast<jlong>(new_n_past);
 }

@@ -4,13 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.*
@@ -134,93 +131,6 @@ class SmolVLMManagerTest {
 
     // NOTE: Multiple consecutive inferences are not supported by current VLM implementation
     // Each inference requires a fresh model state (setup/teardown cycle)
-
-    @Test
-    fun testParallelInferenceWithSeqIds() = runBlocking {
-        // Initialize model
-        withTimeout(60000) {
-            vlmManager.initialize()
-        }
-
-        assertTrue("Model must be loaded", vlmManager.isLoaded())
-
-        // Create 3 different colored test images
-        val redBitmap = createTestBitmap(96, 96, Color.RED)
-        val greenBitmap = createTestBitmap(96, 96, Color.GREEN)
-        val blueBitmap = createTestBitmap(96, 96, Color.BLUE)
-
-        val prompt = "What color?"
-
-        println("\n=== Testing Sequential Inference (seq_id=0 for each) ===")
-        println("Note: Each image is independent inference, using seq_id=0 for all")
-        val startTime = System.currentTimeMillis()
-
-        // Mutex to ensure sequential execution (eval_chunks is NOT thread-safe)
-        val vlmMutex = Mutex()
-
-        try {
-            // Launch 3 async tasks, all using seq_id=0 (each image is independent)
-            // Mutex ensures they execute sequentially despite being async
-            val results = withTimeout(120000) { // 120 second timeout (3 images x ~40s each)
-                listOf(
-                    async {
-                        vlmMutex.withLock {
-                            val tokens = mutableListOf<String>()
-                            vlmManager.analyzeImage(redBitmap, prompt, seqId = 0)
-                                .take(10)
-                                .collect { tokens.add(it) }
-                            "Image 1 (RED)" to tokens.joinToString("")
-                        }
-                    },
-                    async {
-                        vlmMutex.withLock {
-                            val tokens = mutableListOf<String>()
-                            vlmManager.analyzeImage(greenBitmap, prompt, seqId = 0)  // seq_id=0 (not 1)
-                                .take(10)
-                                .collect { tokens.add(it) }
-                            "Image 2 (GREEN)" to tokens.joinToString("")
-                        }
-                    },
-                    async {
-                        vlmMutex.withLock {
-                            val tokens = mutableListOf<String>()
-                            vlmManager.analyzeImage(blueBitmap, prompt, seqId = 0)  // seq_id=0 (not 2)
-                                .take(10)
-                                .collect { tokens.add(it) }
-                            "Image 3 (BLUE)" to tokens.joinToString("")
-                        }
-                    }
-                ).map { it.await() }
-            }
-
-            val totalTime = System.currentTimeMillis() - startTime
-
-            println("\n=== Parallel Inference Results ===")
-            println("Total time: ${totalTime}ms (${totalTime / 3}ms average per image)")
-            results.forEachIndexed { index, (seqId, response) ->
-                println("\n[$seqId]")
-                println("  Response: '$response'")
-                assertTrue("$seqId should generate response", response.isNotBlank())
-            }
-
-            // All 3 should complete successfully
-            assertEquals("Should have 3 results", 3, results.size)
-            results.forEach { (seqId, response) ->
-                assertFalse("$seqId response should not be empty", response.isBlank())
-            }
-
-            println("\n✅ Parallel inference test passed!")
-            println("seq_id feature is working correctly for batch processing")
-
-        } catch (e: Exception) {
-            fail("Parallel inference failed: ${e.message}\n${e.stackTraceToString()}")
-        } finally {
-            // Clean up bitmaps
-            redBitmap.recycle()
-            greenBitmap.recycle()
-            blueBitmap.recycle()
-        }
-    }
 
     @Test
     fun testModelUnload() = runBlocking {
