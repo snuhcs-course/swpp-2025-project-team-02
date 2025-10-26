@@ -103,6 +103,27 @@
         tools:text="VLM analysis result will appear here..."
         tools:visibility="visible" />
 
+    <!-- Celebration Overlay -->
+    <FrameLayout
+        android:id="@+id/celebrationOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:clickable="false">
+
+        <!-- Celebration Icon -->
+        <TextView
+            android:id="@+id/celebrationIcon"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:text="✨"
+            android:textSize="80sp"
+            android:gravity="center"
+            android:alpha="0" />
+
+    </FrameLayout>
+
     <!-- UI Controls -->
     <LinearLayout
         android:layout_width="match_parent"

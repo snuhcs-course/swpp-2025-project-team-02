@@ -1,5 +1,7 @@
 package com.example.fortuna_android.ui
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.graphics.drawable.GradientDrawable
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -9,6 +11,8 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import androidx.core.view.GestureDetectorCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -425,8 +429,67 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         // Update UI with new count
         updateCollectionProgress()
 
+        // Show celebration animation
+        showCelebrationAnimation()
+
         // Show feedback to user
         CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+    }
+
+    /**
+     * Show celebration animation when element is collected
+     */
+    private fun showCelebrationAnimation() {
+        view?.post {
+            _binding?.let { binding ->
+                // Make overlay visible
+                binding.celebrationOverlay.visibility = View.VISIBLE
+
+                // Reset initial state
+                binding.celebrationIcon.apply {
+                    alpha = 0f
+                    scaleX = 0f
+                    scaleY = 0f
+                    rotation = 0f
+                }
+
+                // Animate celebration icon - pop and rotate
+                val iconScaleX = ObjectAnimator.ofFloat(binding.celebrationIcon, "scaleX", 0f, 1.2f, 1f)
+                val iconScaleY = ObjectAnimator.ofFloat(binding.celebrationIcon, "scaleY", 0f, 1.2f, 1f)
+                val iconFadeIn = ObjectAnimator.ofFloat(binding.celebrationIcon, "alpha", 0f, 1f)
+                val iconRotate = ObjectAnimator.ofFloat(binding.celebrationIcon, "rotation", 0f, 360f)
+
+                val iconAnimatorSet = AnimatorSet()
+                iconAnimatorSet.playTogether(iconScaleX, iconScaleY, iconFadeIn, iconRotate)
+                iconAnimatorSet.duration = 500
+                iconAnimatorSet.interpolator = OvershootInterpolator()
+
+                // Start animation
+                iconAnimatorSet.start()
+
+                // Hide celebration after 1 second
+                binding.celebrationOverlay.postDelayed({
+                    hideCelebrationAnimation()
+                }, 1000)
+            }
+        }
+    }
+
+    /**
+     * Hide celebration animation with fade out
+     */
+    private fun hideCelebrationAnimation() {
+        _binding?.let { binding ->
+            val fadeOut = ObjectAnimator.ofFloat(binding.celebrationOverlay, "alpha", 1f, 0f)
+            fadeOut.duration = 300
+            fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    _binding?.celebrationOverlay?.visibility = View.GONE
+                    _binding?.celebrationOverlay?.alpha = 1f // Reset alpha for next time
+                }
+            })
+            fadeOut.start()
+        }
     }
 
 
