@@ -128,7 +128,7 @@ Java_android_llama_cpp_LLamaAndroid_new_1context(JNIEnv *env, jobject, jlong jmo
 
     llama_context_params ctx_params = llama_context_default_params();
 
-    ctx_params.n_ctx           = 2048;
+    ctx_params.n_ctx           = 1024;  // Reduced for VLM (don't need long context)
     ctx_params.n_threads       = n_threads;
     ctx_params.n_threads_batch = n_threads;
 
@@ -160,6 +160,16 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_android_llama_cpp_LLamaAndroid_free_1context(JNIEnv *, jobject, jlong context) {
     llama_free(reinterpret_cast<llama_context *>(context));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_android_llama_cpp_LLamaAndroid_kv_1cache_1clear(JNIEnv *, jobject, jlong context_ptr) {
+    auto *context = reinterpret_cast<llama_context *>(context_ptr);
+    if (context) {
+        llama_memory_clear(llama_get_memory(context), false);
+        LOGi("KV cache cleared");
+    }
 }
 
 extern "C"
@@ -388,9 +398,9 @@ Java_android_llama_cpp_LLamaAndroid_completion_1init(
         LOGe("error: n_kv_req > n_ctx, the required KV cache size is not big enough");
     }
 
-    for (auto id : tokens_list) {
-        LOGi("token: `%s`-> %d ", common_token_to_piece(context, id).c_str(), id);
-    }
+//    for (auto id : tokens_list) {
+//        LOGi("token: `%s`-> %d ", common_token_to_piece(context, id).c_str(), id);
+//    }
 
     common_batch_clear(*batch);
 
@@ -462,10 +472,4 @@ Java_android_llama_cpp_LLamaAndroid_completion_1loop(
     }
 
     return new_token;
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_android_llama_cpp_LLamaAndroid_kv_1cache_1clear(JNIEnv *, jobject, jlong context) {
-    llama_memory_clear(llama_get_memory(reinterpret_cast<llama_context *>(context)), true);
 }

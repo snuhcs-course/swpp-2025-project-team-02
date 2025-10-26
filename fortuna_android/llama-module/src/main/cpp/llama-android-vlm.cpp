@@ -206,6 +206,7 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
     // Log detailed eval_chunks parameters
     size_t n_chunks = mtmd_input_chunks_size(chunks);
     LOGi("⚡ eval_chunks starting: n_batch=%d, n_chunks=%zu, n_past=%d", n_batch, n_chunks, n_past);
+    LOGi("📝 Note: n_chunks is determined by tokenization (image + text), cannot be manually increased");
 
     // Measure eval time
     auto start_time = std::chrono::high_resolution_clock::now();
