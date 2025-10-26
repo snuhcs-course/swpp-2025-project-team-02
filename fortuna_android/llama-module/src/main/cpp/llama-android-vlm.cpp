@@ -31,17 +31,20 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
     params.n_threads = std::max(1, std::min(4, (int) sysconf(_SC_NPROCESSORS_ONLN) - 1));
     params.verbosity = GGML_LOG_LEVEL_ERROR;
 
+    LOGi("🚀 GPU acceleration requested: use_gpu=%d, n_threads=%d", params.use_gpu, params.n_threads);
+    LOGi("📱 Device will use best available backend (GPU -> CPU fallback)");
+
     mtmd_context *ctx = mtmd_init_from_file(path, text_model, params);
 
     env->ReleaseStringUTFChars(mmproj_path, path);
 
     if (!ctx) {
-        LOGe("Failed to load mmproj");
+        LOGe("❌ Failed to load mmproj");
         env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), "Failed to load mmproj");
         return 0;
     }
 
-    LOGi("Mmproj loaded successfully");
+    LOGi("✅ Mmproj loaded successfully - check above logs for backend type");
     return reinterpret_cast<jlong>(ctx);
 }
 

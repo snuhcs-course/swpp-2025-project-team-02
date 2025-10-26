@@ -3,6 +3,31 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Setup OpenCL headers before building
+tasks.register<Exec>("setupOpenCL") {
+    description = "Install OpenCL headers for GPU acceleration"
+    group = "build setup"
+
+    val setupScript = file("../scripts/setup-opencl.sh")
+
+    commandLine("bash", setupScript.absolutePath)
+
+    // Only run if script exists
+    onlyIf { setupScript.exists() }
+
+    // Don't fail the build if setup fails
+    isIgnoreExitValue = true
+
+    doFirst {
+        println("🔧 Running OpenCL setup for GPU acceleration...")
+    }
+}
+
+// Run setup before CMake configuration
+tasks.matching { it.name.startsWith("externalNativeBuild") }.configureEach {
+    dependsOn("setupOpenCL")
+}
+
 android {
     namespace = "android.llama.cpp"
     compileSdk = 36
@@ -22,6 +47,10 @@ android {
                 arguments += "-DLLAMA_BUILD_COMMON=ON"
                 arguments += "-DGGML_LLAMAFILE=OFF"
                 arguments += "-DCMAKE_BUILD_TYPE=Release"
+                // GPU acceleration with OpenCL (Adreno optimized)
+                arguments += "-DGGML_OPENCL=ON"
+                arguments += "-DGGML_OPENCL_USE_ADRENO_KERNELS=ON"
+                arguments += "-DGGML_OPENCL_EMBED_KERNELS=ON"
                 // 16KB page size support
                 arguments += "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
                 arguments += "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384"

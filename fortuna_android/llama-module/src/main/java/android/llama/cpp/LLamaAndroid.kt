@@ -20,6 +20,14 @@ class LLamaAndroid {
         thread(start = false, name = "Llm-RunLoop") {
             Log.d(tag, "Dedicated thread for native code: ${Thread.currentThread().name}")
 
+            // Load OpenCL library first for GPU acceleration
+            try {
+                System.loadLibrary("OpenCL")
+                Log.d(tag, "✅ OpenCL library loaded - GPU acceleration available")
+            } catch (e: UnsatisfiedLinkError) {
+                Log.w(tag, "⚠️ OpenCL library not found - will use CPU fallback")
+            }
+
             // No-op if called more than once.
             System.loadLibrary("llama-android")
 
