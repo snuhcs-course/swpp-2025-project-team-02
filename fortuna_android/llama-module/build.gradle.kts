@@ -55,8 +55,6 @@ android {
     namespace = "android.llama.cpp"
     compileSdk = 36
 
-    ndkVersion = "29.0.14206865"
-
     defaultConfig {
         minSdk = 28
 
@@ -82,10 +80,11 @@ android {
                 arguments += "-DOpenCL_LIBRARY=${openclLib}"
 
                 // Detect NDK path dynamically for OpenCL headers
-                val ndkPath = System.getenv("ANDROID_NDK")
-                    ?: System.getenv("ANDROID_HOME")?.let { "$it/ndk/29.0.14206865" }
-                    ?: System.getenv("ANDROID_SDK_ROOT")?.let { "$it/ndk/29.0.14206865" }
-                    ?: "${System.getProperty("user.home")}/Library/Android/sdk/ndk/29.0.14206865"
+                val ndkPath = android.ndkDirectory.absolutePath
+                    ?: System.getenv("ANDROID_NDK")
+                    ?: System.getenv("ANDROID_HOME")?.let { "$it/ndk-bundle" }
+                    ?: System.getenv("ANDROID_SDK_ROOT")?.let { "$it/ndk-bundle" }
+                    ?: "${System.getProperty("user.home")}/Library/Android/sdk/ndk-bundle"
 
                 // Detect host architecture for prebuilt path
                 val hostArch = when {
