@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+import logging
 
 from user.permissions import DevelopmentOrAuthenticated
 from .models import ChakraImage, FortuneResult
@@ -36,6 +37,9 @@ from .services.fortune import FortuneService
 # Initialize services
 image_service = ImageService()
 fortune_service = FortuneService(image_service)
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -265,6 +269,11 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 device_model='PoC'
             )
 
+            logger.info(
+                f"Chakra collected: user={user.email} (ID: {user.id}), "
+                f"type={chakra_type}, chakra_id={chakra_image.id}"
+            )
+
             response_data = {
                 'status': 'success',
                 'data': {
@@ -277,6 +286,10 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            logger.error(
+                f"Chakra collection failed: user={user.email if user else 'unknown'} (ID: {user.id if user else 'N/A'}), "
+                f"type={chakra_type}, error={str(e)}"
+            )
             return Response({
                 'status': 'error',
                 'message': f'Failed to collect chakra: {str(e)}'
