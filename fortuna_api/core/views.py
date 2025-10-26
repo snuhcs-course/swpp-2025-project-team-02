@@ -366,7 +366,8 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='needed-element')
     def needed_element(self, request):
         """
-        Get the needed element for harmonizing user's energy with tomorrow's energy.
+        Get the needed element for harmonizing user's energy with today's energy.
+        Returns the element with the smallest count from element_distribution.
         Returns one of: 목, 화, 토, 금, 수
         """
         # For development: use test user if not authenticated
@@ -401,27 +402,48 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         else:
             today_date = datetime.now().date()
 
-        # Calculate tomorrow's date
-        tomorrow_date = today_date + timedelta(days=1)
+        # Calculate fortune balance to get element distribution
+        fortune_score = fortune_service.calculate_fortune_balance(user, datetime.combine(today_date, datetime.min.time()))
 
-        # Try to get FortuneResult for tomorrow
-        try:
-            fortune_result = FortuneResult.objects.get(
-                user=user,
-                for_date=tomorrow_date
-            )
+        # Get element_distribution from fortune_score
+        element_dist = fortune_score.element_distribution
 
-            # Extract needed_element from fortune_data
-            fortune_data = fortune_result.fortune_data
-            if fortune_data and 'needed_element' in fortune_data:
-                needed_element = fortune_data['needed_element']
-            else:
-                # Default to "목" if needed_element not found
-                needed_element = "목"
+        # Find minimum count
+        min_count = min(element_dist.values(), key=lambda x: x.count).count
 
-        except FortuneResult.DoesNotExist:
-            # Default to "목" if FortuneResult doesn't exist
-            needed_element = "목"
+        # Get all elements with minimum count
+        min_elements = [elem for elem, dist in element_dist.items() if dist.count == min_count]
+
+        # If only one element with min count, use it
+        if len(min_elements) == 1:
+            needed_element = min_elements[0]
+        else:
+            # Multiple elements with same min count - prioritize by 상생 relation with user's day stem
+            user_saju = user.saju()
+            user_day_element = user_saju.daily.stem.element
+
+            # Map element names to FiveElements objects
+            from core.utils.saju_concepts import FiveElements
+            element_map = {
+                "목": FiveElements.WOOD,
+                "화": FiveElements.FIRE,
+                "토": FiveElements.EARTH,
+                "금": FiveElements.METAL,
+                "수": FiveElements.WATER
+            }
+
+            # Find element that empowers (생) user's day element
+            # 상생: 수생목, 목생화, 화생토, 토생금, 금생수
+            needed_element = None
+            for elem_name in min_elements:
+                elem_obj = element_map[elem_name]
+                if elem_obj.empowers(user_day_element):
+                    needed_element = elem_name
+                    break
+
+            # If no element empowers user (shouldn't happen but failsafe), use first one
+            if not needed_element:
+                needed_element = min_elements[0]
 
         return Response({
             'status': 'success',
