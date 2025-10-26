@@ -196,37 +196,6 @@ class SmolVLMManager(private val context: Context) {
     }
 
     /**
-     * Classify an object into one of the five elements (fire/water/land/metal/wood)
-     * Optimized for speed with 128x128 resizing and single-word output
-     * @param bitmap Cropped image of the detected object
-     * @return Flow of classification result (single word: fire, water, land, metal, or wood)
-     */
-    fun classifyElement(bitmap: Bitmap): Flow<String> {
-        if (!isModelLoaded || !isMmprojLoaded) {
-            throw IllegalStateException("Model not loaded. Call initialize() first.")
-        }
-
-        // Log original image size
-        Log.i(tag, "📸 Classifying element - original size: ${bitmap.width}x${bitmap.height}")
-
-        // Resize to 128x128 for fastest VLM processing
-        val resizedBitmap = resizeImageForVLM(bitmap, 128)
-        Log.i(tag, "📸 Resized for classification: ${resizedBitmap.width}x${resizedBitmap.height}")
-
-        // Specialized prompt for single-word classification
-        val classificationPrompt = buildElementClassificationPrompt()
-        return llamaAndroid.sendWithImage(classificationPrompt, resizedBitmap)
-    }
-
-    /**
-     * Build specialized prompt for element classification
-     * Optimized to get single-word output only
-     */
-    private fun buildElementClassificationPrompt(): String {
-        return "$IMAGE_MARKER\nClassify this object as one of: fire, water, land, metal, wood. Answer with ONE word only:"
-    }
-
-    /**
      * Generate text from a prompt (text-only mode)
      */
     fun generateText(prompt: String): Flow<String> {

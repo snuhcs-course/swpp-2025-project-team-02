@@ -13,7 +13,6 @@ import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
-import com.example.fortuna_android.classification.lastRotatedBitmap
 import com.example.fortuna_android.classification.utils.VLM_PROMPT
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
@@ -29,7 +28,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import java.util.Collections
 
 /**
@@ -365,73 +363,52 @@ class ARRenderer(private val fragment: ARFragment) :
             }
         }
 
-        // Process object detection results with VLM classification
+        // Process object detection results
         val objects = objectResults
         if (objects != null) {
             objectResults = null
-            Log.i(TAG, "=== OBJECT DETECTION RESULTS (VLM Classification) ===")
+            Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
-            // Get the rotated bitmap from the detector
-            val rotatedBitmap = currentAnalyzer.lastRotatedBitmap
-            if (rotatedBitmap == null) {
-                Log.e(TAG, "❌ Rotated bitmap not available for VLM classification")
-                fragment.view?.post {
-                    fragment.onObjectDetectionCompleted(0, objects.size)
-                }
-                return
+            // Map detected objects to element categories
+            val elementResults = objects.map { obj ->
+                val element = elementMapper.mapLabelToElement(obj.label)
+                Log.i(TAG, "Object '${obj.label}' mapped to element: ${element.displayName}")
+                obj to element
             }
 
-            // Process each object with VLM classification on IO thread
-            launch(Dispatchers.IO) {
-                val anchors = mutableListOf<ARLabeledAnchor>()
+            elementResults.forEachIndexed { index, (obj, element) ->
+                val (atX, atY) = obj.centerCoordinate
+                Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
+            }
 
-                objects.forEachIndexed { index, obj ->
-                    try {
-                        Log.i(TAG, "[$index] Processing '${obj.label}' at (${obj.centerCoordinate.first}, ${obj.centerCoordinate.second})")
+            val anchors = elementResults.mapNotNull { (obj, element) ->
+                val (atX, atY) = obj.centerCoordinate
+                Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
 
-                        // Crop bitmap using bounding box
-                        val croppedBitmap = ImageUtils.cropBitmap(rotatedBitmap, obj.boundingBox)
-                        Log.d(TAG, "[$index] Cropped to ${croppedBitmap.width}x${croppedBitmap.height}")
-
-                        // Classify with VLM (collect all tokens into single result)
-                        val vlmResult = StringBuilder()
-                        vlmManager.classifyElement(croppedBitmap)
-                            .catch { e ->
-                                Log.e(TAG, "[$index] VLM classification error", e)
-                            }
-                            .collect { token ->
-                                vlmResult.append(token)
-                            }
-
-                        // Parse VLM result to Element
-                        val element = parseVLMResultToElement(vlmResult.toString())
-                        Log.i(TAG, "[$index] VLM classified '${obj.label}' as: ${element.displayName} (raw: '$vlmResult')")
-
-                        // Create anchor on main thread
-                        val (atX, atY) = obj.centerCoordinate
-                        val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                        if (anchor != null) {
-                            Log.i(TAG, "[$index] ✅ Created anchor for '${element.displayName}' at pose: ${anchor.pose}")
-                            anchors.add(ARLabeledAnchor(anchor, element))
-                        } else {
-                            Log.w(TAG, "[$index] ❌ Failed to create anchor at ($atX, $atY)")
-                        }
-
-                    } catch (e: Exception) {
-                        Log.e(TAG, "[$index] Error processing object", e)
-                    }
+                val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                if (anchor != null) {
+                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
+                    ARLabeledAnchor(anchor, element)
+                } else {
+                    Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
+                    null
                 }
+            }
 
-                // Thread-safe way to add anchors
-                synchronized(arLabeledAnchors) {
-                    arLabeledAnchors.addAll(anchors)
-                }
+            // Thread-safe way to add anchors
+            synchronized(arLabeledAnchors) {
+                arLabeledAnchors.addAll(anchors)
+            }
 
-                // Notify fragment about detection results on main thread
-                fragment.view?.post {
-                    fragment.onObjectDetectionCompleted(anchors.size, objects.size)
-                }
+            // Notify fragment about detection results on main thread
+            fragment.view?.post {
+                fragment.onObjectDetectionCompleted(anchors.size, objects.size)
+            }
+
+            // Trigger VLM analysis if model is loaded and not currently analyzing
+            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
+                analyzeCameraImageWithVLM(frame)
             }
         }
 
@@ -503,28 +480,6 @@ class ARRenderer(private val fragment: ARFragment) :
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create anchor", e)
             null
-        }
-    }
-
-    /**
-     * Parse VLM classification result to Element enum
-     * VLM returns one word: fire/water/land/metal/wood
-     * Map "land" to EARTH since that's what we use in our enum
-     */
-    private fun parseVLMResultToElement(vlmResult: String): ElementMapper.Element {
-        val normalized = vlmResult.trim().lowercase()
-        Log.d(TAG, "Parsing VLM result: '$normalized'")
-
-        return when {
-            normalized.contains("fire") -> ElementMapper.Element.FIRE
-            normalized.contains("water") -> ElementMapper.Element.WATER
-            normalized.contains("land") || normalized.contains("earth") -> ElementMapper.Element.EARTH
-            normalized.contains("metal") -> ElementMapper.Element.METAL
-            normalized.contains("wood") -> ElementMapper.Element.WOOD
-            else -> {
-                Log.w(TAG, "Unknown VLM result: '$normalized', defaulting to OTHERS")
-                ElementMapper.Element.OTHERS
-            }
         }
     }
 
