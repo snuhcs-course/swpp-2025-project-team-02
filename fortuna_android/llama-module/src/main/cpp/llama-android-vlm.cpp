@@ -29,12 +29,12 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
 
     struct mtmd_context_params params = mtmd_context_params_default();
     params.use_gpu = true;
-    // Vision encoder: fixed 2 threads (low parallelization efficiency)
-    params.n_threads = 2;
+    // Vision encoder: 4 threads (balanced for performance)
+    params.n_threads = 4;
     params.verbosity = GGML_LOG_LEVEL_ERROR;
 
     int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
-    LOGi("🚀 Vision encoder: use_gpu=%d, cores_available=%d, threads=%d (fixed for efficiency)", params.use_gpu, total_cores, params.n_threads);
+    LOGi("🚀 Vision encoder: use_gpu=%d, cores_available=%d, threads=%d (balanced)", params.use_gpu, total_cores, params.n_threads);
     LOGi("📱 Device will use best available backend (GPU -> CPU fallback)");
 
     mtmd_context *ctx = mtmd_init_from_file(path, text_model, params);
