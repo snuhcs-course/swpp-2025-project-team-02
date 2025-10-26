@@ -160,9 +160,38 @@ data class UserProfile(
     @SerializedName("hourly_ganji") val hourlyGanji: String?,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("last_login") val lastLogin: String?,
-    @SerializedName("collected_elements") val collectedElements: CollectedElements?
+    @SerializedName("collection_status") val collectionStatus: CollectionStatus?
 )
 
+data class CollectionStatus(
+    @SerializedName("collections") val collections: List<CollectionItem>,
+    @SerializedName("total_count") val totalCount: Int
+) {
+    /**
+     * Get count for a specific chakra type
+     * Returns 0 if not found
+     */
+    fun getCount(chakraType: String): Int {
+        return collections.find { it.chakraType.equals(chakraType, ignoreCase = true) }?.count ?: 0
+    }
+
+    /**
+     * Helper properties for easy access to element counts
+     */
+    val wood: Int get() = getCount("wood")
+    val fire: Int get() = getCount("fire")
+    val earth: Int get() = getCount("earth")
+    val metal: Int get() = getCount("metal")
+    val water: Int get() = getCount("water")
+}
+
+data class CollectionItem(
+    @SerializedName("chakra_type") val chakraType: String,
+    @SerializedName("count") val count: Int
+)
+
+// Deprecated - keeping for backward compatibility with old API responses
+@Deprecated("Use CollectionStatus instead")
 data class CollectedElements(
     @SerializedName("wood") val wood: Int = 0,    // 木 (green) - wood
     @SerializedName("fire") val fire: Int = 0,    // 火 (red) - fire

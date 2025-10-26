@@ -16,11 +16,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.MainActivity
-import com.example.fortuna_android.api.CollectElementRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.databinding.FragmentArBinding
 import com.example.fortuna_android.util.CustomToast
+import com.example.fortuna_android.util.PendingCollectionManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -261,16 +261,16 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                 val response = RetrofitClient.instance.getUserProfile()
                 if (response.isSuccessful && response.body() != null) {
                     val profile = response.body()!!
-                    val collectedElements = profile.collectedElements
+                    val collectionStatus = profile.collectionStatus
 
                     // Get count for the needed element
                     neededElement?.let { element ->
                         val count = when (element) {
-                            ElementMapper.Element.WOOD -> collectedElements?.wood ?: 0
-                            ElementMapper.Element.FIRE -> collectedElements?.fire ?: 0
-                            ElementMapper.Element.EARTH -> collectedElements?.earth ?: 0
-                            ElementMapper.Element.METAL -> collectedElements?.metal ?: 0
-                            ElementMapper.Element.WATER -> collectedElements?.water ?: 0
+                            ElementMapper.Element.WOOD -> collectionStatus?.wood ?: 0
+                            ElementMapper.Element.FIRE -> collectionStatus?.fire ?: 0
+                            ElementMapper.Element.EARTH -> collectionStatus?.earth ?: 0
+                            ElementMapper.Element.METAL -> collectionStatus?.metal ?: 0
+                            ElementMapper.Element.WATER -> collectionStatus?.water ?: 0
                             ElementMapper.Element.OTHERS -> 0
                         }
                         serverCollectedCount = count
@@ -316,15 +316,22 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     /**
-     * Handle quest completion - save 1 element to backend then close AR
+     * Handle quest completion - save to SharedPreferences then close AR
+     * The actual POST request will be handled by HomeFragment after AR session closes
      */
     private fun onQuestComplete() {
         CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
         Log.i(TAG, "Daily energy quest completed!")
 
-        // Save 1 element to backend (count=1 to avoid 404)
+        // Save pending collection to SharedPreferences
         neededElement?.let { element ->
-            saveCompletedQuest(element)
+            if (element != ElementMapper.Element.OTHERS) {
+                val englishElement = ElementMapper.toEnglish(element)
+                PendingCollectionManager.savePendingCollection(requireContext(), englishElement, 1)
+                Log.i(TAG, "Pending collection saved to SharedPreferences: $englishElement")
+            } else {
+                Log.w(TAG, "OTHERS element not supported by backend, skipping")
+            }
         }
 
         // Close AR after a short delay to let user see the completion message
@@ -333,7 +340,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                 Log.i(TAG, "Closing AR view after quest completion")
                 findNavController().popBackStack()
             }
-        }, 2000) // 2 second delay
+        }, 1500) // 1.5 second delay (reduced from 2s since we're not waiting for API)
     }
 
     /**
@@ -377,58 +384,6 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
     }
 
-    /**
-     * Save completed quest to backend - only called when 5/5 is reached
-     * Sends chakra_type in English format (fire/water/earth/metal/wood)
-     */
-    private fun saveCompletedQuest(element: ElementMapper.Element) {
-        // Skip API call for OTHERS element since backend doesn't support it
-        if (element == ElementMapper.Element.OTHERS) {
-            Log.w(TAG, "Skipping API call for OTHERS element - not supported by backend")
-            return
-        }
-
-        Log.d(TAG, "==== Saving completed quest ====")
-
-        lifecycleScope.launch {
-            try {
-                val englishElement = ElementMapper.toEnglish(element)
-                val request = CollectElementRequest(
-                    chakraType = englishElement
-                )
-
-                Log.i(TAG, "Calling collectElement API...")
-                Log.i(TAG, "Request body: chakra_type=$englishElement")
-                val response = RetrofitClient.instance.collectElement(request)
-
-                Log.d(TAG, "Response code: ${response.code()}")
-                Log.d(TAG, "Response success: ${response.isSuccessful}")
-
-                if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!
-                    Log.i(TAG, "Quest saved successfully!")
-                    Log.d(TAG, "Response body status: ${body.status}")
-                    Log.d(TAG, "Response body message: ${body.data.message}")
-
-                    val totalCollected = body.data.collectedElements
-                    Log.d(TAG, "Total collected elements:")
-                    Log.d(TAG, "  - wood: ${totalCollected.wood}")
-                    Log.d(TAG, "  - fire: ${totalCollected.fire}")
-                    Log.d(TAG, "  - earth: ${totalCollected.earth}")
-                    Log.d(TAG, "  - metal: ${totalCollected.metal}")
-                    Log.d(TAG, "  - water: ${totalCollected.water}")
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "Failed to save quest: ${response.code()}")
-                    Log.e(TAG, "Error message: ${response.message()}")
-                    Log.e(TAG, "Error body: $errorBody")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error saving quest", e)
-                e.printStackTrace()
-            }
-        }
-    }
 
     override fun onDestroyView() {
         super.onDestroyView()

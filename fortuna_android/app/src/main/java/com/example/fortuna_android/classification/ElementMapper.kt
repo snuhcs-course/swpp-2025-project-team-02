@@ -58,7 +58,7 @@ class ElementMapper(private val context: Context) {
                 Element.EARTH -> "earth"
                 Element.METAL -> "metal"
                 Element.WATER -> "water"
-                Element.OTHERS -> "others"
+                Element.OTHERS -> "wood"
             }
         }
 

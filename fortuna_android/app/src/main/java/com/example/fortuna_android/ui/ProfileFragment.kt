@@ -320,7 +320,7 @@ class ProfileFragment : Fragment() {
      */
     private fun updateCollectedElements(profile: UserProfile) {
         val binding = _binding ?: return
-        val collectedElements = profile.collectedElements
+        val collectionStatus = profile.collectionStatus
 
         // Element colors matching SajuPaljaView
         val woodColor = Color.parseColor("#0BEFA0")   // Green
@@ -332,39 +332,39 @@ class ProfileFragment : Fragment() {
         // Update badge 1: 목 (Wood) - Green
         updateElementBadge(
             badge = binding.elementBadge1,
-            count = collectedElements?.wood ?: 0,
+            count = collectionStatus?.wood ?: 0,
             color = woodColor
         )
 
         // Update badge 2: 화 (Fire) - Red
         updateElementBadge(
             badge = binding.elementBadge2,
-            count = collectedElements?.fire ?: 0,
+            count = collectionStatus?.fire ?: 0,
             color = fireColor
         )
 
         // Update badge 3: 토 (Earth) - Orange
         updateElementBadge(
             badge = binding.elementBadge3,
-            count = collectedElements?.earth ?: 0,
+            count = collectionStatus?.earth ?: 0,
             color = earthColor
         )
 
         // Update badge 4: 금 (Metal) - Gray
         updateElementBadge(
             badge = binding.elementBadge4,
-            count = collectedElements?.metal ?: 0,
+            count = collectionStatus?.metal ?: 0,
             color = metalColor
         )
 
         // Update badge 5: 수 (Water) - Blue
         updateElementBadge(
             badge = binding.elementBadge5,
-            count = collectedElements?.water ?: 0,
+            count = collectionStatus?.water ?: 0,
             color = waterColor
         )
 
-        Log.d(TAG, "Collected elements updated: 목=${collectedElements?.wood}, 화=${collectedElements?.fire}, 토=${collectedElements?.earth}, 금=${collectedElements?.metal}, 수=${collectedElements?.water}")
+        Log.d(TAG, "Collected elements updated: 목=${collectionStatus?.wood}, 화=${collectionStatus?.fire}, 토=${collectionStatus?.earth}, 금=${collectionStatus?.metal}, 수=${collectionStatus?.water}")
     }
 
     /**
