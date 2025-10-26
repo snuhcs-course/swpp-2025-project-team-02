@@ -48,6 +48,21 @@ class ElementMapper(private val context: Context) {
         }
 
         /**
+         * Convert Element enum to English name (for API)
+         * API expects: fire/water/earth/metal/wood
+         */
+        fun toEnglish(element: Element): String {
+            return when (element) {
+                Element.WOOD -> "wood"
+                Element.FIRE -> "fire"
+                Element.EARTH -> "earth"
+                Element.METAL -> "metal"
+                Element.WATER -> "water"
+                Element.OTHERS -> "others"
+            }
+        }
+
+        /**
          * Get the color code for an element (for UI display)
          */
         fun getElementColor(element: Element): Int {

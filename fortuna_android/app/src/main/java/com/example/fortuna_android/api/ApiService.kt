@@ -59,8 +59,11 @@ interface ApiService {
         @Query("date") date: String? = null
     ): Response<NeededElementResponse>
 
-    @POST("api/core/chakra/collect-element/")
+    @POST("api/chakra/collect")
     suspend fun collectElement(
         @Body request: CollectElementRequest
     ): Response<CollectElementResponse>
+
+    @GET("api/chakra/collection-status")
+    suspend fun getCollectionStatus(): Response<CollectionStatusResponse>
 }

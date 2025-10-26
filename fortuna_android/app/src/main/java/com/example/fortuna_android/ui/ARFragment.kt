@@ -48,6 +48,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     private lateinit var gestureDetector: GestureDetectorCompat
     private var neededElement: ElementMapper.Element? = null
     private var serverCollectedCount: Int = 0  // Track server-based collection count
+    private var localCollectedCount: Int = 0  // Track local collection count during AR session
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -273,6 +274,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                             ElementMapper.Element.OTHERS -> 0
                         }
                         serverCollectedCount = count
+                        localCollectedCount = count  // Initialize local count from server
                         updateCollectionProgress()
                         Log.d(TAG, "Server collection count loaded: $count for ${element.displayName}")
                     }
@@ -302,24 +304,36 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     /**
-     * Update collection progress display based on server count
+     * Update collection progress display based on local count
      */
     private fun updateCollectionProgress() {
-        binding.collectionProgressText.text = "$serverCollectedCount / $TARGET_COLLECTION_COUNT collected"
+        binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT collected"
 
         // Check if quest is complete
-        if (serverCollectedCount >= TARGET_COLLECTION_COUNT) {
+        if (localCollectedCount >= TARGET_COLLECTION_COUNT) {
             onQuestComplete()
         }
     }
 
     /**
-     * Handle quest completion
+     * Handle quest completion - save 1 element to backend then close AR
      */
     private fun onQuestComplete() {
         CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
         Log.i(TAG, "Daily energy quest completed!")
-        // TODO: Call API to save completion, give rewards, etc.
+
+        // Save 1 element to backend (count=1 to avoid 404)
+        neededElement?.let { element ->
+            saveCompletedQuest(element)
+        }
+
+        // Close AR after a short delay to let user see the completion message
+        view?.postDelayed({
+            if (isAdded) {
+                Log.i(TAG, "Closing AR view after quest completion")
+                findNavController().popBackStack()
+            }
+        }, 2000) // 2 second delay
     }
 
     /**
@@ -348,60 +362,70 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
     /**
      * Called from renderer when a sphere is successfully collected
-     * Note: count parameter is the local renderer count, but we use server count for display
+     * Only updates local count - API call happens when quest is complete (5/5)
      */
     fun onSphereCollected(count: Int) {
-        Log.i(TAG, "Sphere collected! Local count: $count, Server count: $serverCollectedCount")
+        Log.i(TAG, "Sphere collected! Local count: $count")
 
-        // Save collected element to backend (this will update server count and UI)
-        neededElement?.let { element ->
-            saveCollectedElement(element)
-        }
+        // Increment local collection count
+        localCollectedCount++
+
+        // Update UI with new count
+        updateCollectionProgress()
+
+        // Show feedback to user
+        CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
     }
 
     /**
-     * Save collected element to backend via API and update server count
+     * Save completed quest to backend - only called when 5/5 is reached
+     * Sends chakra_type in English format (fire/water/earth/metal/wood)
      */
-    private fun saveCollectedElement(element: ElementMapper.Element) {
+    private fun saveCompletedQuest(element: ElementMapper.Element) {
+        // Skip API call for OTHERS element since backend doesn't support it
+        if (element == ElementMapper.Element.OTHERS) {
+            Log.w(TAG, "Skipping API call for OTHERS element - not supported by backend")
+            return
+        }
+
+        Log.d(TAG, "==== Saving completed quest ====")
+
         lifecycleScope.launch {
             try {
-                val koreanElement = ElementMapper.toKorean(element)
+                val englishElement = ElementMapper.toEnglish(element)
                 val request = CollectElementRequest(
-                    element = koreanElement,
-                    count = 1
+                    chakraType = englishElement
                 )
+
+                Log.i(TAG, "Calling collectElement API...")
+                Log.i(TAG, "Request body: chakra_type=$englishElement")
                 val response = RetrofitClient.instance.collectElement(request)
 
+                Log.d(TAG, "Response code: ${response.code()}")
+                Log.d(TAG, "Response success: ${response.isSuccessful}")
+
                 if (response.isSuccessful && response.body() != null) {
-                    Log.i(TAG, "Element saved successfully: $koreanElement")
-                    val totalCollected = response.body()!!.data.collectedElements
+                    val body = response.body()!!
+                    Log.i(TAG, "Quest saved successfully!")
+                    Log.d(TAG, "Response body status: ${body.status}")
+                    Log.d(TAG, "Response body message: ${body.data.message}")
 
-                    // Update server count with the latest value from API
-                    val updatedCount = when (element) {
-                        ElementMapper.Element.WOOD -> totalCollected.wood
-                        ElementMapper.Element.FIRE -> totalCollected.fire
-                        ElementMapper.Element.EARTH -> totalCollected.earth
-                        ElementMapper.Element.METAL -> totalCollected.metal
-                        ElementMapper.Element.WATER -> totalCollected.water
-                        ElementMapper.Element.OTHERS -> 0
-                    }
-                    serverCollectedCount = updatedCount
-
-                    // Update UI with new count
-                    updateCollectionProgress()
-
-                    // Show feedback to user with updated server count
-                    CustomToast.show(requireContext(), "Collected! ($updatedCount/$TARGET_COLLECTION_COUNT)")
-
-                    Log.d(TAG, "Server count updated: $updatedCount for ${element.displayName}")
-                    Log.d(TAG, "Total collected elements: 목=${totalCollected.wood}, 화=${totalCollected.fire}, 토=${totalCollected.earth}, 금=${totalCollected.metal}, 수=${totalCollected.water}")
+                    val totalCollected = body.data.collectedElements
+                    Log.d(TAG, "Total collected elements:")
+                    Log.d(TAG, "  - wood: ${totalCollected.wood}")
+                    Log.d(TAG, "  - fire: ${totalCollected.fire}")
+                    Log.d(TAG, "  - earth: ${totalCollected.earth}")
+                    Log.d(TAG, "  - metal: ${totalCollected.metal}")
+                    Log.d(TAG, "  - water: ${totalCollected.water}")
                 } else {
-                    Log.w(TAG, "Failed to save collected element: ${response.code()}")
-                    CustomToast.show(requireContext(), "Failed to save collection")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "Failed to save quest: ${response.code()}")
+                    Log.e(TAG, "Error message: ${response.message()}")
+                    Log.e(TAG, "Error body: $errorBody")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving collected element", e)
-                CustomToast.show(requireContext(), "Error saving collection")
+                Log.e(TAG, "Error saving quest", e)
+                e.printStackTrace()
             }
         }
     }
