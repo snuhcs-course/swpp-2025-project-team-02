@@ -23,6 +23,7 @@ import com.example.fortuna_android.render.ObjectRender
 import com.example.fortuna_android.render.PointCloudRender
 import com.google.ar.core.exceptions.CameraNotAvailableException
 import com.google.ar.core.exceptions.NotYetAvailableException
+import com.google.ar.core.exceptions.SessionPausedException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -267,20 +268,8 @@ class ARRenderer(private val fragment: ARFragment) :
     override fun onDrawFrame(render: SampleRender) {
         val session = activity.arCoreSessionHelper.sessionCache ?: return
 
-        try {
-            val textureId = backgroundRenderer.cameraColorTexture.textureId
-
-            // Validate texture ID is within 32-bit integer range
-            if (textureId < 0 || textureId > Int.MAX_VALUE) {
-                Log.e(TAG, "Texture ID $textureId exceeds 32-bit integer range")
-                return
-            }
-
-            session.setCameraTextureNames(intArrayOf(textureId))
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set camera texture names", e)
-            return
-        }
+        // Follow reference code pattern: set camera texture names first, then update session
+        session.setCameraTextureNames(intArrayOf(backgroundRenderer.cameraColorTexture.textureId))
 
         // Notify ARCore session that the view size changed
         displayRotationHelper.updateSessionIfNeeded(session)
@@ -290,8 +279,16 @@ class ARRenderer(private val fragment: ARFragment) :
         } catch (e: CameraNotAvailableException) {
             Log.e(TAG, "Camera not available during onDrawFrame", e)
             return
+        } catch (e: NotYetAvailableException) {
+            // Motion tracking or depth data not ready yet - this is normal during startup
+            Log.d(TAG, "ARCore data not yet available, skipping frame")
+            return
+        } catch (e: SessionPausedException) {
+            // Session is paused - skip this frame silently as it's normal during lifecycle changes
+            Log.d(TAG, "ARCore session is paused, skipping frame")
+            return
         } catch (e: Exception) {
-            Log.e(TAG, "ARCore session update failed", e)
+            Log.e(TAG, "ARCore session update failed: ${e.message}", e)
             return
         }
 
@@ -331,9 +328,8 @@ class ARRenderer(private val fragment: ARFragment) :
         // Process object detection if scan button was pressed
         if (scanButtonWasPressed) {
             scanButtonWasPressed = false
-            try {
-                val cameraImage = frame.acquireCameraImage()
-                if (cameraImage != null) {
+            val cameraImage = frame.tryAcquireCameraImage()
+            if (cameraImage != null) {
                 // Run ML model on IO thread
                 launch(Dispatchers.IO) {
                     try {
@@ -350,15 +346,8 @@ class ARRenderer(private val fragment: ARFragment) :
                         }
                     }
                 }
-                } else {
-                    // Reset scan button state if camera image not available
-                    fragment.setScanningActive(false)
-                }
-            } catch (e: NotYetAvailableException) {
-                Log.w(TAG, "Camera image not yet available", e)
-                fragment.setScanningActive(false)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to acquire camera image", e)
+            } else {
+                // Reset scan button state if camera image not available
                 fragment.setScanningActive(false)
             }
         }
@@ -556,5 +545,17 @@ class ARRenderer(private val fragment: ARFragment) :
                 isVLMAnalyzing = false
             }
         }
+    }
+
+    /**
+     * Utility method for Frame.acquireCameraImage that maps NotYetAvailableException to null.
+     * Follows the same pattern as the reference ARCore code.
+     */
+    private fun Frame.tryAcquireCameraImage() = try {
+        acquireCameraImage()
+    } catch (e: NotYetAvailableException) {
+        null
+    } catch (e: Throwable) {
+        throw e
     }
 }

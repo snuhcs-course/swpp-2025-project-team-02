@@ -26,11 +26,13 @@ import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
 import com.google.ar.core.exceptions.CameraNotAvailableException
+import com.google.ar.core.exceptions.SessionPausedException
 import com.google.ar.core.exceptions.UnavailableApkTooOldException
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException
+import android.hardware.camera2.CameraAccessException
 import kotlinx.coroutines.launch
 
 class ARFragment : Fragment(), DefaultLifecycleObserver {
@@ -95,10 +97,22 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                 is UnavailableSdkTooOldException -> "Please update this app"
                 is UnavailableDeviceNotCompatibleException -> "This device does not support AR"
                 is CameraNotAvailableException -> "Camera not available. Try restarting the app."
+                is CameraAccessException -> {
+                    when (exception.reason) {
+                        CameraAccessException.CAMERA_DISCONNECTED -> "Camera disconnected. Please restart the app."
+                        CameraAccessException.CAMERA_ERROR -> "Camera error occurred. Please restart the app."
+                        CameraAccessException.CAMERA_IN_USE -> "Camera is in use by another app."
+                        CameraAccessException.MAX_CAMERAS_IN_USE -> "Too many cameras in use."
+                        CameraAccessException.CAMERA_DISABLED -> "Camera is disabled by device policy."
+                        else -> "Camera access error: ${exception.message}"
+                    }
+                }
                 else -> "Failed to create AR session: $exception"
             }
             Log.e(TAG, message, exception)
-            CustomToast.show(requireContext(), message)
+            if (isAdded) {
+                CustomToast.show(requireContext(), message)
+            }
         }
 
         mainActivity.arCoreSessionHelper.beforeSessionResume = { session ->
@@ -113,8 +127,12 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                     if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                         depthMode = Config.DepthMode.AUTOMATIC
                         Log.d(TAG, "✅ ARCore depth mode set to AUTOMATIC")
+                    } else if (session.isDepthModeSupported(Config.DepthMode.RAW_DEPTH_ONLY)) {
+                        depthMode = Config.DepthMode.RAW_DEPTH_ONLY
+                        Log.d(TAG, "✅ ARCore depth mode set to RAW_DEPTH_ONLY")
                     } else {
-                        Log.w(TAG, "⚠️ ARCore depth mode AUTOMATIC not supported")
+                        depthMode = Config.DepthMode.DISABLED
+                        Log.w(TAG, "⚠️ ARCore depth mode not supported, using DISABLED")
                     }
                 }
 
@@ -154,19 +172,27 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     private fun setupClickListeners() {
+        val binding = _binding ?: return
+
         binding.btnBack.setOnClickListener {
             findNavController().popBackStack()
         }
 
         binding.scanButton.setOnClickListener {
-            renderer.startObjectDetection()
-            setScanningActive(true)
+            if (::renderer.isInitialized) {
+                renderer.startObjectDetection()
+                setScanningActive(true)
+            }
         }
 
         binding.clearButton.setOnClickListener {
-            renderer.clearAnchors()
-            clearVLMDescription()
-            CustomToast.show(requireContext(), "Anchors cleared")
+            if (::renderer.isInitialized) {
+                renderer.clearAnchors()
+                clearVLMDescription()
+                if (isAdded) {
+                    CustomToast.show(requireContext(), "Anchors cleared")
+                }
+            }
         }
     }
 
@@ -174,6 +200,8 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      * Toggles the scan button state based on scanning status
      */
     fun setScanningActive(active: Boolean) {
+        val binding = _binding ?: return
+
         binding.scanButton.apply {
             when (active) {
                 true -> {
@@ -198,7 +226,9 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             anchorsCreated == 0 -> "Objects detected but couldn't create anchors"
             else -> "Detected $objectsDetected objects, created $anchorsCreated anchors"
         }
-        CustomToast.show(requireContext(), message)
+        if (isAdded) {
+            CustomToast.show(requireContext(), message)
+        }
     }
 
     /**
@@ -206,6 +236,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      */
     fun onVLMAnalysisStarted() {
         view?.post {
+            val binding = _binding ?: return@post
             vlmResponseBuilder.clear()
             binding.vlmDescriptionOverlay.text = "Analyzing scene..."
             binding.vlmDescriptionOverlay.visibility = View.VISIBLE
@@ -218,6 +249,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      */
     fun updateVLMDescription(token: String) {
         view?.post {
+            val binding = _binding ?: return@post
             vlmResponseBuilder.append(token)
             binding.vlmDescriptionOverlay.text = vlmResponseBuilder.toString()
             binding.vlmDescriptionOverlay.visibility = View.VISIBLE
@@ -229,6 +261,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      */
     fun clearVLMDescription() {
         view?.post {
+            val binding = _binding ?: return@post
             vlmResponseBuilder.clear()
             binding.vlmDescriptionOverlay.visibility = View.GONE
         }
@@ -243,26 +276,33 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     override fun onResume(owner: LifecycleOwner) {
-        surfaceView?.onResume()
+        try {
+            surfaceView?.onResume()
+            Log.d(TAG, "Surface view resumed")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error resuming surface view", e)
+        }
     }
 
     override fun onPause(owner: LifecycleOwner) {
         Log.d(TAG, "ARFragment onPause - pausing AR session")
-        surfaceView?.onPause()
+        try {
+            surfaceView?.onPause()
+            Log.d(TAG, "Surface view paused in onPause")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error pausing surface view in onPause", e)
+        }
     }
 
     override fun onStop(owner: LifecycleOwner) {
         Log.d(TAG, "ARFragment onStop - stopping AR session")
-        // Ensure ARCore session is properly paused to release camera resources
-        val mainActivity = activity as? MainActivity
-        mainActivity?.arCoreSessionHelper?.let { helper ->
-            try {
-                // Remove the session helper from lifecycle to force cleanup
-                lifecycle.removeObserver(helper)
-                Log.d(TAG, "ARCore session helper removed from lifecycle")
-            } catch (e: Exception) {
-                Log.w(TAG, "Error removing ARCore session helper", e)
-            }
+        // Do not manually remove session helper - let MainActivity manage ARCore lifecycle
+        // Just ensure our surface view is properly stopped
+        try {
+            surfaceView?.onPause()
+            Log.d(TAG, "Surface view paused in onStop")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error pausing surface view in onStop", e)
         }
     }
 
@@ -278,21 +318,29 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                     neededElement = ElementMapper.fromKorean(koreanElement)
 
                     // Update UI
-                    displayNeededElement(neededElement!!)
+                    neededElement?.let { element ->
+                        displayNeededElement(element)
 
-                    // Set in renderer to filter spheres
-                    renderer.setNeededElement(neededElement)
+                        // Set in renderer to filter spheres
+                        if (::renderer.isInitialized) {
+                            renderer.setNeededElement(element)
+                        }
+                    }
 
                     Log.i(TAG, "Needed element loaded: ${neededElement?.displayName}")
                 } else {
                     Log.w(TAG, "Failed to fetch needed element: ${response.code()}")
                     // Show all elements if API fails
-                    renderer.setNeededElement(null)
+                    if (::renderer.isInitialized) {
+                        renderer.setNeededElement(null)
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching needed element", e)
                 // Show all elements if error
-                renderer.setNeededElement(null)
+                if (::renderer.isInitialized) {
+                    renderer.setNeededElement(null)
+                }
             }
         }
     }
@@ -336,6 +384,8 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      * Display the needed element in the UI banner
      */
     private fun displayNeededElement(element: ElementMapper.Element) {
+        val binding = _binding ?: return
+
         binding.apply {
             neededElementBanner.visibility = View.VISIBLE
             neededElementText.text = "Collect: ${ElementMapper.getElementDisplayText(element)}"
@@ -352,6 +402,8 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      * Update collection progress display based on local count
      */
     private fun updateCollectionProgress() {
+        val binding = _binding ?: return
+
         binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT collected"
 
         // Check if quest is complete
@@ -365,15 +417,19 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      * The actual POST request will be handled by HomeFragment after AR session closes
      */
     private fun onQuestComplete() {
-        CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
+        if (isAdded) {
+            CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
+        }
         Log.i(TAG, "Daily energy quest completed!")
 
         // Save pending collection to SharedPreferences
         neededElement?.let { element ->
             if (element != ElementMapper.Element.OTHERS) {
                 val englishElement = ElementMapper.toEnglish(element)
-                PendingCollectionManager.savePendingCollection(requireContext(), englishElement, 1)
-                Log.i(TAG, "Pending collection saved to SharedPreferences: $englishElement")
+                if (isAdded) {
+                    PendingCollectionManager.savePendingCollection(requireContext(), englishElement, 1)
+                    Log.i(TAG, "Pending collection saved to SharedPreferences: $englishElement")
+                }
             } else {
                 Log.w(TAG, "OTHERS element not supported by backend, skipping")
             }
@@ -392,12 +448,17 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
      * Setup touch detection for sphere collection
      */
     private fun setupTouchDetection() {
-        gestureDetector = GestureDetectorCompat(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+        val currentContext = context ?: return
+        val binding = _binding ?: return
+
+        gestureDetector = GestureDetectorCompat(currentContext, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapUp(e: MotionEvent): Boolean {
                 Log.d(TAG, "Touch detected at (${e.x}, ${e.y})")
 
                 // Queue tap to be processed on render thread
-                renderer.handleTap(e.x, e.y)
+                if (::renderer.isInitialized) {
+                    renderer.handleTap(e.x, e.y)
+                }
 
                 return true
             }
@@ -405,7 +466,9 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
         // Attach touch listener to surface view
         binding.surfaceview.setOnTouchListener { view, event ->
-            gestureDetector.onTouchEvent(event)
+            if (::gestureDetector.isInitialized) {
+                gestureDetector.onTouchEvent(event)
+            }
             true
         }
 
@@ -426,13 +489,31 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         updateCollectionProgress()
 
         // Show feedback to user
-        CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+        if (isAdded) {
+            CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+        }
     }
 
 
     override fun onDestroyView() {
         super.onDestroyView()
 
+        try {
+            // Remove this fragment's lifecycle observer
+            lifecycle.removeObserver(this)
+
+            // Remove renderer lifecycle observer if initialized
+            if (::renderer.isInitialized) {
+                lifecycle.removeObserver(renderer)
+            }
+
+            // Clean up surface view reference
+            surfaceView = null
+
+            Log.d(TAG, "ARFragment cleanup completed")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error during ARFragment cleanup", e)
+        }
 
         _binding = null
     }
