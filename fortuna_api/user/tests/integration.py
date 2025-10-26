@@ -604,6 +604,85 @@ class FortunaAPIIntegrationTests(APITestCase):
         self.assertEqual(user_b_profile['hourly_ganji'], expected_saju['hourly_ganji'],
                         f"유저 B 시주가 {expected_saju['hourly_ganji']}여야 합니다")
 
+    def test_profile_with_collection_status(self):
+        """
+        시나리오 9: 프로필 조회 시 chakra 수집 현황 포함 확인
+
+        사용자 스토리:
+        "사용자로서, 내 프로필을 조회할 때 chakra 수집 현황도
+         함께 확인하고 싶습니다."
+
+        단계:
+        1. Google 로그인
+        2. 초기 프로필 조회 → collection_status 확인 (비어있음)
+        3. Chakra 수집 (여러 개)
+        4. 프로필 재조회 → collection_status에 수집 현황 반영 확인
+        """
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        # 1단계: Google 로그인
+        login_response = self._mock_google_login()
+        login_data = self._assert_login_successful(login_response, is_new_user=True)
+        self._set_auth_header(login_data['access_token'])
+
+        # 2단계: 초기 프로필 조회 - collection_status 비어있음
+        initial_profile_response = self._get_profile()
+        self.assertEqual(initial_profile_response.status_code, status.HTTP_200_OK)
+
+        initial_profile = initial_profile_response.json()
+        self.assertIn('collection_status', initial_profile)
+        self.assertEqual(initial_profile['collection_status']['total_count'], 0)
+        self.assertEqual(len(initial_profile['collection_status']['collections']), 0)
+
+        # 3단계: Chakra 수집
+        user = User.objects.get(id=login_data['user_id'])
+        now = timezone.now()
+
+        # fire 타입 3개 수집
+        for _ in range(3):
+            ChakraImage.objects.create(
+                user=user,
+                image=None,
+                chakra_type='fire',
+                date=now.date(),
+                timestamp=now,
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        # water 타입 2개 수집
+        for _ in range(2):
+            ChakraImage.objects.create(
+                user=user,
+                image=None,
+                chakra_type='water',
+                date=now.date(),
+                timestamp=now,
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        # 4단계: 프로필 재조회 - collection_status 업데이트 확인
+        updated_profile_response = self._get_profile()
+        self.assertEqual(updated_profile_response.status_code, status.HTTP_200_OK)
+
+        updated_profile = updated_profile_response.json()
+        self.assertIn('collection_status', updated_profile)
+        self.assertEqual(updated_profile['collection_status']['total_count'], 5)
+
+        collections = updated_profile['collection_status']['collections']
+        self.assertEqual(len(collections), 2)
+
+        # fire와 water 타입별 count 확인
+        fire_collection = next((c for c in collections if c['chakra_type'] == 'fire'), None)
+        water_collection = next((c for c in collections if c['chakra_type'] == 'water'), None)
+
+        self.assertIsNotNone(fire_collection)
+        self.assertIsNotNone(water_collection)
+        self.assertEqual(fire_collection['count'], 3)
+        self.assertEqual(water_collection['count'], 2)
+
     def tearDown(self):
         """테스트 후 정리"""
         # 테스트 중 생성된 모든 사용자 데이터 삭제 (탈퇴한 사용자 포함)

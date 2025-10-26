@@ -650,7 +650,8 @@ class UserProfileView(APIView):
             **self._get_basic_user_info(user),
             **self._get_birth_date_info(user),
             **self._get_saju_info(user),
-            **self._get_metadata(user)
+            **self._get_metadata(user),
+            'collection_status': self._get_collection_status(user)
         }
 
     def _get_basic_user_info(self, user) -> dict:
@@ -692,6 +693,25 @@ class UserProfileView(APIView):
         return {
             'created_at': user.created_at.isoformat(),
             'last_login': self._format_date(user.last_login)
+        }
+
+    def _get_collection_status(self, user) -> dict:
+        """사용자의 chakra 수집 현황 조회"""
+        from core.models import ChakraImage
+        from django.db.models import Count
+
+        # core/views.py의 collection_status와 동일한 로직
+        collections = ChakraImage.objects.filter(
+            user=user
+        ).values('chakra_type').annotate(
+            count=Count('id')
+        ).order_by('chakra_type')
+
+        total_count = sum(item['count'] for item in collections)
+
+        return {
+            'collections': list(collections),
+            'total_count': total_count
         }
 
     @extend_schema(
