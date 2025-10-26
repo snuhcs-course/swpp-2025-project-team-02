@@ -52,6 +52,9 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     private var serverCollectedCount: Int = 0  // Track server-based collection count
     private var localCollectedCount: Int = 0  // Track local collection count during AR session
 
+    // ARCore session helper - managed by this fragment
+    private lateinit var arCoreSessionHelper: ARCoreSessionLifecycleHelper
+
     // VLM state
     private val vlmResponseBuilder = StringBuilder()
 
@@ -87,9 +90,15 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     private fun setupARCoreSession(mainActivity: MainActivity) {
+        // Create ARCore session helper for this fragment
+        // Use a more conservative approach to avoid frequent session recreation
+        arCoreSessionHelper = ARCoreSessionLifecycleHelper(requireActivity())
+
+        // Set this session helper on MainActivity for renderer access
+        mainActivity.arCoreSessionHelper = arCoreSessionHelper
 
         // Configure ARCore session
-        mainActivity.arCoreSessionHelper.exceptionCallback = { exception ->
+        arCoreSessionHelper.exceptionCallback = { exception ->
             val message = when (exception) {
                 is UnavailableArcoreNotInstalledException,
                 is UnavailableUserDeclinedInstallationException -> "Please install ARCore"
@@ -115,7 +124,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             }
         }
 
-        mainActivity.arCoreSessionHelper.beforeSessionResume = { session ->
+        arCoreSessionHelper.beforeSessionResume = { session ->
             Log.d(TAG, "ARCore session configuration starting...")
 
             try {
@@ -164,11 +173,11 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
         lifecycle.addObserver(this)
 
-        // Note: ARCore session helper is already managed by MainActivity's lifecycle
-        // Do not add it here to avoid duplicate lifecycle management
+        // Add ARCore session helper to fragment lifecycle for proper autofocus control
+        lifecycle.addObserver(arCoreSessionHelper)
 
         // Log AR session setup
-        Log.d(TAG, "ARFragment setup completed, ARCore session helper: ${mainActivity.arCoreSessionHelper}")
+        Log.d(TAG, "ARFragment setup completed, ARCore session helper: $arCoreSessionHelper")
     }
 
     private fun setupClickListeners() {
@@ -227,7 +236,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             else -> "Detected $objectsDetected objects, created $anchorsCreated anchors"
         }
         if (isAdded) {
-            CustomToast.show(requireContext(), message)
+           // CustomToast.show(requireContext(), message)
         }
     }
 
@@ -505,6 +514,11 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             // Remove renderer lifecycle observer if initialized
             if (::renderer.isInitialized) {
                 lifecycle.removeObserver(renderer)
+            }
+
+            // Remove ARCore session helper lifecycle observer if initialized
+            if (::arCoreSessionHelper.isInitialized) {
+                lifecycle.removeObserver(arCoreSessionHelper)
             }
 
             // Clean up surface view reference

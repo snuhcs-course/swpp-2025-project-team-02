@@ -32,8 +32,8 @@ class MainActivity : AppCompatActivity() {
     private val binding get() = _binding!!
     private lateinit var mGoogleSignInClient: GoogleSignInClient
 
-    // ARCore session lifecycle helper
-    val arCoreSessionHelper = ARCoreSessionLifecycleHelper(this)
+    // ARCore session lifecycle helper - moved to ARFragment for better lifecycle control
+    var arCoreSessionHelper: ARCoreSessionLifecycleHelper? = null
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "fortuna_prefs"
@@ -52,8 +52,7 @@ class MainActivity : AppCompatActivity() {
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Add ARCore session lifecycle observer
-        lifecycle.addObserver(arCoreSessionHelper)
+        // ARCore session lifecycle observer is now managed by ARFragment
 
         // edge-to-edge handling
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -246,8 +245,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        // Forward to ARCore session helper for camera permission handling
-        arCoreSessionHelper.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // Forward to ARCore session helper for camera permission handling (if available)
+        arCoreSessionHelper?.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == PERMISSION_REQUEST_CODE) {
             // Check if grantResults is empty (UI was interrupted)

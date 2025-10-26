@@ -266,7 +266,7 @@ class ARRenderer(private val fragment: ARFragment) :
     private var objectResults: List<DetectedObjectResult>? = null
 
     override fun onDrawFrame(render: SampleRender) {
-        val session = activity.arCoreSessionHelper.sessionCache ?: return
+        val session = activity.arCoreSessionHelper?.sessionCache ?: return
 
         // Follow reference code pattern: set camera texture names first, then update session
         session.setCameraTextureNames(intArrayOf(backgroundRenderer.cameraColorTexture.textureId))
