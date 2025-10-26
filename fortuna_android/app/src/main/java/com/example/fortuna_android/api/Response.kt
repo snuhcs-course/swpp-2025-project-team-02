@@ -160,7 +160,7 @@ data class UserProfile(
     @SerializedName("hourly_ganji") val hourlyGanji: String?,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("last_login") val lastLogin: String?,
-    @SerializedName("collection_status") val collectionStatus: CollectionStatus? = null,
+    @SerializedName("collection_status") val collectionStatus: CollectionStatus?
 )
 
 data class CollectionStatus(

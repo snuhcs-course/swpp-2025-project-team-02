@@ -1,6 +1,5 @@
 package com.example.fortuna_android.ui
 
-import android.graphics.Bitmap
 import android.opengl.Matrix
 import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -11,11 +10,9 @@ import com.google.ar.core.Frame
 import com.google.ar.core.TrackingState
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.classification.DetectedObjectResult
-import com.example.fortuna_android.classification.ExtendedDetectedObjectResult
 import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
-import com.example.fortuna_android.classification.VLMClassifier
 import com.example.fortuna_android.classification.utils.VLM_PROMPT
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
@@ -65,9 +62,6 @@ class ARRenderer(private val fragment: ARFragment) :
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
     private val elementMapper = ElementMapper(fragment.requireContext())
-
-    // VLM classifier for accurate element classification
-    private val vlmClassifier = VLMClassifier(fragment.requireContext())
 
     // AR Game: needed element from API (null = show all elements)
     private var neededElement: ElementMapper.Element? = null
@@ -269,8 +263,6 @@ class ARRenderer(private val fragment: ARFragment) :
     }
 
     private var objectResults: List<DetectedObjectResult>? = null
-    private var cachedExtendedResults: List<ExtendedDetectedObjectResult>? = null
-    private var cachedCameraBitmap: Bitmap? = null
 
     override fun onDrawFrame(render: SampleRender) {
         val session = activity.arCoreSessionHelper.sessionCache ?: return
@@ -347,16 +339,7 @@ class ARRenderer(private val fragment: ARFragment) :
                     try {
                         val cameraId = session.cameraConfig.cameraId
                         val imageRotation = displayRotationHelper.getCameraSensorToDisplayRotation(cameraId)
-
-                        // Use analyzeExtended to get bounding boxes for VLM
-                        val extendedResults = mlKitAnalyzer.analyzeExtended(cameraImage, imageRotation)
-
-                        // Convert to legacy format for compatibility
-                        objectResults = extendedResults.map { it.toDetectedObjectResult() }
-
-                        // Cache extended results for VLM processing
-                        cachedExtendedResults = extendedResults
-
+                        objectResults = currentAnalyzer.analyze(cameraImage, imageRotation)
                         cameraImage.close()
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during object analysis", e)
@@ -382,50 +365,51 @@ class ARRenderer(private val fragment: ARFragment) :
 
         // Process object detection results
         val objects = objectResults
-        val extendedObjects = cachedExtendedResults
         if (objects != null) {
             objectResults = null
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
-            // Phase 1: Immediate ML Kit classification (fast UX)
+            // Map detected objects to element categories
             val elementResults = objects.map { obj ->
                 val element = elementMapper.mapLabelToElement(obj.label)
-                Log.i(TAG, "ML Kit: '${obj.label}' -> ${element.displayName}")
+                Log.i(TAG, "Object '${obj.label}' mapped to element: ${element.displayName}")
                 obj to element
             }
 
-            // Create anchors with ML Kit elements (immediate display)
+            elementResults.forEachIndexed { index, (obj, element) ->
+                val (atX, atY) = obj.centerCoordinate
+                Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
+            }
+
             val anchors = elementResults.mapNotNull { (obj, element) ->
                 val (atX, atY) = obj.centerCoordinate
-                Log.d(TAG, "Creating anchor for '${element.displayName}' at ($atX, $atY)")
+                Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
 
                 val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
                 if (anchor != null) {
-                    Log.i(TAG, "✅ Anchor created: ${element.displayName}")
+                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
                     ARLabeledAnchor(anchor, element)
                 } else {
-                    Log.w(TAG, "❌ Anchor creation failed at ($atX, $atY)")
+                    Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
                     null
                 }
             }
 
-            // Thread-safe anchor addition
+            // Thread-safe way to add anchors
             synchronized(arLabeledAnchors) {
                 arLabeledAnchors.addAll(anchors)
             }
 
-            // Notify fragment about detection completion
+            // Notify fragment about detection results on main thread
             fragment.view?.post {
                 fragment.onObjectDetectionCompleted(anchors.size, objects.size)
             }
 
-            // Phase 2: VLM refinement (background, batch processing)
-            if (isVLMLoaded && !isVLMAnalyzing && extendedObjects != null && extendedObjects.isNotEmpty()) {
-                refineWithVLMBatch(frame, extendedObjects, anchors)
+            // Trigger VLM analysis if model is loaded and not currently analyzing
+            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
+                analyzeCameraImageWithVLM(frame)
             }
-
-            cachedExtendedResults = null  // Clear cache
         }
 
         // Draw 3D sphere objects at their anchor positions - create a safe copy to avoid concurrent modification
@@ -500,14 +484,9 @@ class ARRenderer(private val fragment: ARFragment) :
     }
 
     /**
-     * Refine object classifications using VLM batch inference.
-     * Processes up to 3 objects in parallel on GPU.
+     * Analyze camera image with VLM for scene understanding
      */
-    private fun refineWithVLMBatch(
-        frame: Frame,
-        detectedObjects: List<ExtendedDetectedObjectResult>,
-        anchors: List<ARLabeledAnchor>
-    ) {
+    private fun analyzeCameraImageWithVLM(frame: Frame) {
         if (isVLMAnalyzing) {
             Log.d(TAG, "VLM analysis already in progress, skipping")
             return
@@ -520,55 +499,59 @@ class ARRenderer(private val fragment: ARFragment) :
 
         launch(Dispatchers.IO) {
             try {
-                Log.i(TAG, "Starting VLM batch refinement for ${detectedObjects.size} objects...")
+                Log.i(TAG, "Starting VLM analysis...")
 
-                // Acquire and convert camera image
+                // Acquire camera image
                 val cameraImage = frame.acquireCameraImage()
-                val fullBitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
+
+                // Convert YUV to Bitmap
+                val bitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
                 cameraImage.close()
 
-                if (fullBitmap == null) {
-                    Log.e(TAG, "Failed to convert camera image")
+                if (bitmap == null) {
+                    Log.e(TAG, "Failed to convert camera image to bitmap")
                     isVLMAnalyzing = false
                     return@launch
                 }
 
-                Log.i(TAG, "Camera image: ${fullBitmap.width}x${fullBitmap.height}")
+                // Optimize for VLM (aggressive downscale for speed)
+                // 196x196 is ~2x faster than 336x336 with acceptable quality loss
+                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 196)
+                Log.i(TAG, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
 
-                // Batch VLM classification (parallel processing on GPU)
-                val vlmResults = vlmClassifier.classifyBatch(fullBitmap, detectedObjects)
-
-                // Clean up camera bitmap
-                fullBitmap.recycle()
-
-                // Update anchors with VLM results
-                vlmResults.forEachIndexed { index, result ->
-                    val anchor = anchors.getOrNull(index)
-                    if (anchor != null && result.element != ElementMapper.Element.OTHERS) {
-                        synchronized(arLabeledAnchors) {
-                            val anchorIndex = arLabeledAnchors.indexOf(anchor)
-                            if (anchorIndex >= 0) {
-                                // Replace with VLM-refined element
-                                arLabeledAnchors[anchorIndex] = ARLabeledAnchor(anchor.anchor, result.element)
-                                Log.i(TAG, "✨ VLM refined object $index: ${result.element.displayName} " +
-                                        "(${result.inferenceTimeMs}ms, raw: '${result.rawResponse}')")
-                            }
-                        }
-                    } else {
-                        Log.d(TAG, "Object $index: VLM returned ${result.element.displayName} " +
-                                "(raw: '${result.rawResponse}')")
-                    }
+                // Clean up original if different
+                if (optimizedBitmap != bitmap) {
+                    bitmap.recycle()
                 }
 
-                Log.i(TAG, "VLM batch refinement completed")
+                // VLM prompt for scene description
+                // Stream VLM results
+                vlmManager.analyzeImage(optimizedBitmap, VLM_PROMPT)
+                    .catch { e ->
+                        Log.e(TAG, "VLM analysis error", e)
+                        fragment.view?.post {
+                            fragment.updateVLMDescription("\nError: ${e.message}")
+                        }
+                    }
+                    .collect { token ->
+                        fragment.updateVLMDescription(token)
+                    }
+
+                // Clean up optimized bitmap
+                optimizedBitmap.recycle()
+
+                Log.i(TAG, "VLM analysis completed")
                 fragment.view?.post {
                     fragment.onVLMAnalysisCompleted()
                 }
 
             } catch (e: NotYetAvailableException) {
-                Log.w(TAG, "Camera image not available for VLM", e)
+                Log.w(TAG, "Camera image not yet available for VLM", e)
             } catch (e: Exception) {
-                Log.e(TAG, "VLM batch refinement failed", e)
+                Log.e(TAG, "VLM analysis failed", e)
+                fragment.view?.post {
+                    fragment.updateVLMDescription("\nAnalysis failed: ${e.message}")
+                }
             } finally {
                 isVLMAnalyzing = false
             }

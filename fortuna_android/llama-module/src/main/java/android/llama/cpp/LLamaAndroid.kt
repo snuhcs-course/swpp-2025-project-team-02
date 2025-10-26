@@ -123,8 +123,7 @@ class LLamaAndroid {
                     if (context == 0L) throw IllegalStateException("new_context() failed")
 
                     // Larger batch for faster VLM image processing
-                    // nSeqMax=3 enables parallel processing of up to 3 sequences (for 3 objects)
-                    val batch = new_batch(1024, 0, 3)
+                    val batch = new_batch(1024, 0, 1)
                     if (batch == 0L) throw IllegalStateException("new_batch() failed")
 
                     val sampler = new_sampler()
