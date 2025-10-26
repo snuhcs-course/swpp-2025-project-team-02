@@ -15,5 +15,6 @@
 local.properties
 **/assets/models/*
 **/*.gguf
+**/*.salive
 # Include prebuilt OpenCL library for GPU acceleration
 !app/src/main/jniLibs/arm64-v8a/libOpenCL.so
