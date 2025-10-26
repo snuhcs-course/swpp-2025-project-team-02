@@ -31,7 +31,12 @@ import kotlinx.coroutines.tasks.asDeferred
 /**
  * Analyzes an image using ML Kit.
  */
-class MLKitObjectDetector(context: Activity) : ObjectDetector(context) {
+class MLKitObjectDetector(
+  context: Activity,
+  private val minObjectSizePercent: Float = 0.01f,
+  private val maxObjectSizePercent: Float = 0.8f,
+  private val maxDetectedObjects: Int = 3
+) : ObjectDetector(context) {
   // To use a custom model, follow steps on https://developers.google.com/ml-kit/vision/object-detection/custom-models/android.
   // val model = LocalModel.Builder().setAssetFilePath("inception_v4_1_metadata_1.tflite").build()
   // val builder = CustomObjectDetectorOptions.Builder(model)
@@ -64,12 +69,27 @@ class MLKitObjectDetector(context: Activity) : ObjectDetector(context) {
     val inputImage = InputImage.fromBitmap(rotatedImage, 0)
 
     val mlKitDetectedObjects = detector.process(inputImage).asDeferred().await()
+
+    // Calculate image area for size constraints
+    val imageArea = (rotatedImage.width * rotatedImage.height).toFloat()
+    val minObjectArea = imageArea * minObjectSizePercent
+    val maxObjectArea = imageArea * maxObjectSizePercent
+
     return mlKitDetectedObjects.mapNotNull { obj ->
       val bestLabel = obj.labels.maxByOrNull { label -> label.confidence } ?: return@mapNotNull null
-      val coords = obj.boundingBox.exactCenterX().toInt() to obj.boundingBox.exactCenterY().toInt()
+
+      // Check object size constraints
+      val boundingBox = obj.boundingBox
+      val objectArea = (boundingBox.width() * boundingBox.height()).toFloat()
+      if (objectArea < minObjectArea || objectArea > maxObjectArea) {
+        return@mapNotNull null
+      }
+
+      val coords = boundingBox.exactCenterX().toInt() to boundingBox.exactCenterY().toInt()
       val rotatedCoordinates = coords.rotateCoordinates(rotatedImage.width, rotatedImage.height, imageRotation)
       DetectedObjectResult(bestLabel.confidence, bestLabel.text, rotatedCoordinates)
-    }
+    }.sortedByDescending { it.confidence } // Sort by confidence (highest first)
+      .take(maxDetectedObjects) // Limit number of detected objects
   }
 
   @Suppress("USELESS_IS_CHECK")
