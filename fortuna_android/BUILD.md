@@ -9,22 +9,20 @@
 
 ## First Time Setup (If NDK Not Installed)
 
-If you don't have Android NDK installed, choose one of the following options:
+**⚠️ You usually don't need this section!** NDK installs automatically during `./gradlew assembleDebug`.
 
-### Option 1: Automatic Installation (Fastest)
+If automatic installation fails or you prefer manual installation, use one of these options:
 
-Run the provided installation script:
+### Option 1: Manual Script Execution
+
+Run the installation script manually before building:
 
 ```bash
 ./scripts/install-ndk.sh
+./gradlew assembleDebug
 ```
 
-This script will:
-- Detect your Android SDK installation
-- Automatically download and install Android NDK (~600MB)
-- Verify installation
-
-**Note**: Requires Android SDK (comes with Android Studio). If you don't have Android Studio, use Option 2 below.
+**Note**: This is the same script that runs automatically during Gradle build.
 
 ### Option 2: Install via Android Studio (Recommended for beginners)
 
@@ -95,31 +93,39 @@ If you still see NDK errors, check [Troubleshooting](#troubleshooting) section b
 
 ## Quick Start
 
-### 1. Clone and Open Project
+### TL;DR - Just Run This:
 
 ```bash
 git clone <repository-url>
 cd fortuna_android
-```
-
-Open in Android Studio or build from command line:
-
-```bash
 ./gradlew assembleDebug
 ```
 
-### 2. GPU Acceleration Setup (Automatic)
+**That's it!** Everything installs automatically:
+- ✅ Android NDK (if not present)
+- ✅ OpenCL headers for GPU acceleration
+- ✅ All native libraries with 16KB alignment
 
-The build system automatically sets up OpenCL for GPU acceleration.
+### What Happens During First Build?
 
-**First build output:**
+The build system **automatically** handles all setup:
+
+**If NDK not installed:**
+```
+🔍 Checking Android NDK installation...
+🔧 Automatic Android NDK Installation
+📥 NDK not found - installing automatically (~600MB download)...
+✅ NDK installed successfully!
+```
+
+**Then OpenCL setup:**
 ```
 🔧 Running OpenCL setup for GPU acceleration...
 📦 Using Android NDK: /Users/.../Android/sdk/ndk/27.0.12077973
 ✅ OpenCL headers installed successfully!
 ```
 
-**No manual steps required!** The setup script runs automatically before native code compilation.
+**No manual steps required!** All setup runs automatically before native code compilation.
 
 ### 3. Build Variants
 

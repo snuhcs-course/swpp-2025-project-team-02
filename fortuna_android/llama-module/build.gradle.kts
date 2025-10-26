@@ -3,7 +3,27 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Setup OpenCL headers before building
+// Step 1: Automatically install NDK if not present
+tasks.register<Exec>("setupNDK") {
+    description = "Automatically install Android NDK if not present"
+    group = "build setup"
+
+    val installScript = file("../scripts/install-ndk.sh")
+
+    commandLine("bash", installScript.absolutePath)
+
+    // Only run if script exists
+    onlyIf { installScript.exists() }
+
+    // Don't fail the build if setup fails (will fall back to CPU mode)
+    isIgnoreExitValue = true
+
+    doFirst {
+        println("🔍 Checking Android NDK installation...")
+    }
+}
+
+// Step 2: Setup OpenCL headers before building
 tasks.register<Exec>("setupOpenCL") {
     description = "Install OpenCL headers for GPU acceleration"
     group = "build setup"
@@ -17,6 +37,9 @@ tasks.register<Exec>("setupOpenCL") {
 
     // Don't fail the build if setup fails
     isIgnoreExitValue = true
+
+    // Run NDK setup first
+    dependsOn("setupNDK")
 
     doFirst {
         println("🔧 Running OpenCL setup for GPU acceleration...")

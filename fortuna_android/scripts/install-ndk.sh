@@ -1,11 +1,6 @@
 #!/bin/bash
 # Automatic NDK installation script
-# Run this once if you don't have Android NDK installed
-
-set -e
-
-echo "🔧 Automatic Android NDK Installation"
-echo ""
+# Runs automatically during Gradle build if NDK is not present
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -24,6 +19,16 @@ if [ -z "$ANDROID_HOME" ]; then
     fi
 fi
 
+# Check if NDK already installed (do this early for fast builds)
+if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME/ndk" ] && [ -n "$(ls -A "$ANDROID_HOME/ndk" 2>/dev/null)" ]; then
+    # NDK already exists - exit silently for fast builds
+    exit 0
+fi
+
+# NDK not found - show installation messages
+echo "🔧 Automatic Android NDK Installation"
+echo ""
+
 if [ -z "$ANDROID_HOME" ]; then
     echo "❌ Error: Android SDK not found"
     echo ""
@@ -36,17 +41,8 @@ if [ -z "$ANDROID_HOME" ]; then
 fi
 
 echo "📦 Using Android SDK: $ANDROID_HOME"
-
-# Check if NDK already installed
-if [ -d "$ANDROID_HOME/ndk" ] && [ -n "$(ls -A "$ANDROID_HOME/ndk" 2>/dev/null)" ]; then
-    NDK_VERSION=$(ls "$ANDROID_HOME/ndk" | grep -E '^[0-9]+\.' | sort -V | tail -1)
-    echo "✅ NDK already installed: $NDK_VERSION"
-    echo ""
-    echo "If you still have build issues, run:"
-    echo "  ./gradlew clean"
-    echo "  ./gradlew assembleDebug"
-    exit 0
-fi
+echo "📥 NDK not found - installing automatically (~600MB download)..."
+echo ""
 
 # Find sdkmanager
 SDKMANAGER=""
@@ -68,9 +64,6 @@ if [ -z "$SDKMANAGER" ]; then
     echo "See BUILD.md for detailed instructions."
     exit 1
 fi
-
-echo "📥 Installing Android NDK (this may take a few minutes, ~600MB download)..."
-echo ""
 
 # Install NDK using sdkmanager
 # Accept licenses automatically
