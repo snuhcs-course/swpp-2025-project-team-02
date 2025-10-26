@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera.ar" android:required="false"/>
 
+    <!-- OpenCL GPU acceleration (no explicit declaration needed - auto-detected) -->
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -20,7 +22,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Fortuna_android"
-        android:networkSecurityConfig="@xml/network_security_config" >
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:extractNativeLibs="false" >
         <meta-data
             android:name="com.google.ar.core"
             android:value="optional"
@@ -39,6 +42,10 @@
         <activity
             android:name=".IntroActivity"
             android:exported="false" />
+        <activity
+            android:name=".vlm.VLMTestActivity"
+            android:exported="true"
+            android:label="SmolVLM Test" />
 
         <service
             android:name=".FortunaFirebaseMessagingService"
@@ -51,6 +58,16 @@
         <receiver
             android:name=".NotificationManager$NotificationReceiver"
             android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

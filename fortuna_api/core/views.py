@@ -3,9 +3,6 @@ DRF ViewSets for Fortuna Core API.
 """
 
 from datetime import datetime, timedelta
-from io import BytesIO
-from PIL import Image as PILImage
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -13,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+import logging
 
 from user.permissions import DevelopmentOrAuthenticated
 from .models import ChakraImage, FortuneResult
@@ -40,28 +38,8 @@ from .services.fortune import FortuneService
 image_service = ImageService()
 fortune_service = FortuneService(image_service)
 
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-def create_dummy_image():
-    """
-    Create a 1x1 transparent PNG image for PoC purposes.
-    Returns a SimpleUploadedFile that can be used as an image field value.
-    """
-    # Create 1x1 transparent PNG in memory
-    img = PILImage.new('RGBA', (1, 1), (0, 0, 0, 0))
-    buffer = BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-
-    # Create Django file object
-    return SimpleUploadedFile(
-        name='dummy_chakra.png',
-        content=buffer.read(),
-        content_type='image/png'
-    )
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -134,13 +112,6 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Upload a chakra image with metadata extraction."""
-        # Check for image file first
-        if 'image' not in request.FILES:
-            return Response(
-                {'status': 'error', 'message': 'No image file provided'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         # Validate upload data
         upload_serializer = ChakraImageUploadSerializer(data=request.data)
 
@@ -151,7 +122,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 'message': str(error_message)
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        image_file = request.FILES['image']
+        image_file = request.FILES.get('image')
         user_id = request.user.id
 
         # Get additional data
@@ -159,7 +130,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             'chakra_type': upload_serializer.validated_data.get('chakra_type', 'default')
         }
 
-        # Process image upload
+        # Process image upload (image_file can be None)
         result = image_service.process_image_upload(
             image_file=image_file,
             user_id=user_id,
@@ -251,16 +222,17 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         PoC endpoint: Collect a chakra without image upload.
         Creates a ChakraImage with a dummy image file.
         """
-        # Validate request
-        serializer = ChakraCollectSerializer(data=request.data)
-        if not serializer.is_valid():
-            error_message = next(iter(serializer.errors.values()))[0]
+        # Validate request parameters
+        param_serializer = ChakraCollectSerializer(data=request.data)
+
+        if not param_serializer.is_valid():
+            error_message = next(iter(param_serializer.errors.values()))[0]
             return Response({
                 'status': 'error',
                 'message': str(error_message)
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        chakra_type = serializer.validated_data['chakra_type']
+        chakra_type = param_serializer.validated_data['chakra_type']
 
         # For development: use test user if not authenticated
         if request.user.is_authenticated:
@@ -283,12 +255,11 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
 
         now = datetime.now()
 
-        # Create ChakraImage with dummy image (PoC mode)
+        # Create ChakraImage without image (PoC mode)
         try:
-            dummy_image = create_dummy_image()
             chakra_image = ChakraImage.objects.create(
                 user=user,
-                image=dummy_image,
+                image=None,
                 chakra_type=chakra_type,
                 date=now.date(),
                 timestamp=now,
@@ -298,16 +269,27 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 device_model='PoC'
             )
 
-            return Response({
+            logger.info(
+                f"Chakra collected: user={user.email} (ID: {user.id}), "
+                f"type={chakra_type}, chakra_id={chakra_image.id}"
+            )
+
+            response_data = {
                 'status': 'success',
                 'data': {
                     'id': chakra_image.id,
                     'chakra_type': chakra_image.chakra_type,
                     'collected_at': chakra_image.timestamp.isoformat()
                 }
-            }, status=status.HTTP_201_CREATED)
+            }
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            logger.error(
+                f"Chakra collection failed: user={user.email if user else 'unknown'} (ID: {user.id if user else 'N/A'}), "
+                f"type={chakra_type}, error={str(e)}"
+            )
             return Response({
                 'status': 'error',
                 'message': f'Failed to collect chakra: {str(e)}'

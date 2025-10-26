@@ -50,6 +50,9 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     private var serverCollectedCount: Int = 0  // Track server-based collection count
     private var localCollectedCount: Int = 0  // Track local collection count during AR session
 
+    // VLM state
+    private val vlmResponseBuilder = StringBuilder()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -162,6 +165,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
         binding.clearButton.setOnClickListener {
             renderer.clearAnchors()
+            clearVLMDescription()
             CustomToast.show(requireContext(), "Anchors cleared")
         }
     }
@@ -195,6 +199,47 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             else -> "Detected $objectsDetected objects, created $anchorsCreated anchors"
         }
         CustomToast.show(requireContext(), message)
+    }
+
+    /**
+     * Start VLM analysis - called by renderer when beginning VLM processing
+     */
+    fun onVLMAnalysisStarted() {
+        view?.post {
+            vlmResponseBuilder.clear()
+            binding.vlmDescriptionOverlay.text = "Analyzing scene..."
+            binding.vlmDescriptionOverlay.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Update VLM description with streaming token
+     * Called from background thread by ARRenderer
+     */
+    fun updateVLMDescription(token: String) {
+        view?.post {
+            vlmResponseBuilder.append(token)
+            binding.vlmDescriptionOverlay.text = vlmResponseBuilder.toString()
+            binding.vlmDescriptionOverlay.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Clear VLM description overlay
+     */
+    fun clearVLMDescription() {
+        view?.post {
+            vlmResponseBuilder.clear()
+            binding.vlmDescriptionOverlay.visibility = View.GONE
+        }
+    }
+
+    /**
+     * Called when VLM analysis completes
+     */
+    fun onVLMAnalysisCompleted() {
+        // VLM result stays visible - user can clear with Clear button
+        Log.d(TAG, "VLM analysis completed")
     }
 
     override fun onResume(owner: LifecycleOwner) {
