@@ -36,10 +36,10 @@ class ObjectRender {
 
     // Map element to sphere obj file name
     private val elementToSphereFile = mapOf(
-        ElementMapper.Element.FIRE to "spheres/red.obj",
+        ElementMapper.Element.FIRE to "rendered/fire/base.obj",
         ElementMapper.Element.METAL to "spheres/white.obj",
         ElementMapper.Element.EARTH to "spheres/yellow.obj",
-        ElementMapper.Element.WOOD to "spheres/green.obj",
+        ElementMapper.Element.WOOD to "rendered/wood/base.obj",
         ElementMapper.Element.WATER to "spheres/blue.obj",
         ElementMapper.Element.OTHERS to "spheres/white.obj" // Default to white for others
     )
