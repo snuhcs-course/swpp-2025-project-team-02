@@ -122,8 +122,8 @@ class LLamaAndroid {
                     val context = new_context(model)
                     if (context == 0L) throw IllegalStateException("new_context() failed")
 
-                    // Optimized batch size for mobile devices (balance between speed and memory)
-                    val batch = new_batch(512, 0, 1)
+                    // Optimized batch size for mobile VLM (128 is optimal for vision processing)
+                    val batch = new_batch(128, 0, 1)
                     if (batch == 0L) throw IllegalStateException("new_batch() failed")
 
                     val sampler = new_sampler()
@@ -233,7 +233,7 @@ class LLamaAndroid {
                             state.context,
                             chunksPtr,
                             0,      // n_past (starting position)
-                            512     // n_batch (optimized for mobile: balance speed/memory)
+                            128     // n_batch (optimized for VLM vision processing)
                         )
 
                         if (newNPast < 0) {

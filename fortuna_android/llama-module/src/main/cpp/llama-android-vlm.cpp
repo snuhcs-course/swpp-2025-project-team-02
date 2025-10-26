@@ -29,12 +29,12 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
 
     struct mtmd_context_params params = mtmd_context_params_default();
     params.use_gpu = true;
-    // Optimize thread count for vision encoder: use half of cores (P-cores)
-    int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
-    params.n_threads = std::max(2, std::min(4, total_cores / 2));
+    // Vision encoder: fixed 2 threads (low parallelization efficiency)
+    params.n_threads = 2;
     params.verbosity = GGML_LOG_LEVEL_ERROR;
 
-    LOGi("🚀 GPU acceleration: use_gpu=%d, cores=%d, threads=%d (P-cores optimized)", params.use_gpu, total_cores, params.n_threads);
+    int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+    LOGi("🚀 Vision encoder: use_gpu=%d, cores_available=%d, threads=%d (fixed for efficiency)", params.use_gpu, total_cores, params.n_threads);
     LOGi("📱 Device will use best available backend (GPU -> CPU fallback)");
 
     mtmd_context *ctx = mtmd_init_from_file(path, text_model, params);
@@ -47,7 +47,11 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
         return 0;
     }
 
-    LOGi("✅ Mmproj loaded successfully - check above logs for backend type");
+    // Log successful initialization with backend info
+    LOGi("✅ Mmproj (Q8) loaded successfully");
+    LOGi("📊 Vision encoder config: threads=%d, gpu_requested=%s",
+         params.n_threads, params.use_gpu ? "yes" : "no");
+
     return reinterpret_cast<jlong>(ctx);
 }
 
