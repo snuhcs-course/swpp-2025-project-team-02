@@ -7,6 +7,92 @@
 - **JDK** 17 or later
 - **macOS** or **Linux** (Windows via WSL2)
 
+## First Time Setup (If NDK Not Installed)
+
+If you don't have Android NDK installed, choose one of the following options:
+
+### Option 1: Automatic Installation (Fastest)
+
+Run the provided installation script:
+
+```bash
+./scripts/install-ndk.sh
+```
+
+This script will:
+- Detect your Android SDK installation
+- Automatically download and install Android NDK (~600MB)
+- Verify installation
+
+**Note**: Requires Android SDK (comes with Android Studio). If you don't have Android Studio, use Option 2 below.
+
+### Option 2: Install via Android Studio (Recommended for beginners)
+
+1. **Open Android Studio**
+
+2. **Open SDK Manager**
+   - Mac: `Android Studio` → `Settings` → `Appearance & Behavior` → `System Settings` → `Android SDK`
+   - Windows/Linux: `File` → `Settings` → `Appearance & Behavior` → `System Settings` → `Android SDK`
+
+3. **Install NDK**
+   - Click the `SDK Tools` tab
+   - Check `☑ NDK (Side by side)`
+   - Check `☑ CMake` (if not already installed)
+   - Click `Apply` → `OK`
+   - Wait for download and installation (~600MB)
+
+4. **Verify Installation**
+   ```bash
+   # macOS/Linux
+   ls ~/Library/Android/sdk/ndk/
+   # Should show version number like: 27.0.12077973
+
+   # Or check ANDROID_HOME
+   echo $ANDROID_HOME/ndk
+   ```
+
+### Option 3: Install via Command Line
+
+```bash
+# macOS/Linux
+cd ~/Library/Android/sdk/cmdline-tools/latest/bin
+
+# Install latest NDK
+./sdkmanager "ndk;27.0.12077973"
+
+# Verify installation
+./sdkmanager --list_installed | grep ndk
+```
+
+### Option 4: Set NDK Path Manually (If Already Downloaded)
+
+If you have NDK elsewhere, create `local.properties` in project root:
+
+```properties
+# local.properties
+sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+ndk.dir=/Users/YOUR_USERNAME/Library/Android/sdk/ndk/27.0.12077973
+```
+
+Replace `YOUR_USERNAME` with your actual username.
+
+### Verify Setup
+
+After installation, run:
+
+```bash
+./gradlew assembleDebug
+```
+
+You should see:
+```
+🔧 Running OpenCL setup for GPU acceleration...
+📦 Using Android NDK: /Users/.../Android/sdk/ndk/27.0.12077973
+✅ OpenCL headers installed successfully!
+```
+
+If you still see NDK errors, check [Troubleshooting](#troubleshooting) section below.
+
 ## Quick Start
 
 ### 1. Clone and Open Project
@@ -114,13 +200,46 @@ ndk {
 
 ### Build Fails with "NDK not found"
 
-1. Install Android NDK via Android Studio:
-   - Tools → SDK Manager → SDK Tools → NDK (Side by side)
+**Error message:**
+```
+⚠️  Warning: Android NDK not found
+   Tried locations:
+   - $ANDROID_HOME/ndk
+   - $ANDROID_SDK_ROOT/ndk
+   - ~/Library/Android/sdk/ndk (macOS)
+   - ~/Android/Sdk/ndk (Linux)
+```
 
-2. Or set `ANDROID_NDK` manually:
+**Solution:**
+
+1. **Check if NDK is installed:**
    ```bash
-   export ANDROID_NDK=~/Library/Android/sdk/ndk/27.0.12077973
-   ./gradlew assembleDebug
+   # macOS
+   ls ~/Library/Android/sdk/ndk/
+
+   # Linux
+   ls ~/Android/Sdk/ndk/
+   ```
+
+2. **If not installed**, follow [First Time Setup](#first-time-setup-if-ndk-not-installed) section above
+
+3. **If installed but not detected**, set environment variable:
+   ```bash
+   # macOS/Linux - Add to ~/.zshrc or ~/.bashrc
+   export ANDROID_HOME=~/Library/Android/sdk
+   export ANDROID_NDK=$ANDROID_HOME/ndk/27.0.12077973
+
+   # Then reload shell
+   source ~/.zshrc  # or ~/.bashrc
+
+   # Verify
+   echo $ANDROID_NDK
+   ```
+
+4. **Alternative**: Create `local.properties` in project root:
+   ```properties
+   sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+   ndk.dir=/Users/YOUR_USERNAME/Library/Android/sdk/ndk/27.0.12077973
    ```
 
 ### "OpenCL headers not found" during build

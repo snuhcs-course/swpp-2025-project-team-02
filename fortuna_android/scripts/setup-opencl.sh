@@ -38,8 +38,16 @@ if [ -z "$ANDROID_NDK" ]; then
         echo "   - ~/Library/Android/sdk/ndk (macOS)"
         echo "   - ~/Android/Sdk/ndk (Linux)"
         echo ""
-        echo "   OpenCL GPU acceleration will not be available."
-        echo "   The app will fallback to CPU mode."
+        echo "   🚀 Quick fix: Run automatic installation"
+        echo "      ./scripts/install-ndk.sh"
+        echo ""
+        echo "   Or install manually via Android Studio:"
+        echo "      Settings → Android SDK → SDK Tools → NDK (Side by side)"
+        echo ""
+        echo "   See BUILD.md for detailed instructions."
+        echo ""
+        echo "   ⚠️  Build will continue but GPU acceleration will not be available."
+        echo "      The app will fallback to CPU mode."
         exit 0  # Don't fail the build
     fi
 
