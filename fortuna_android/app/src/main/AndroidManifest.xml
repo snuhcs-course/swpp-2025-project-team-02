@@ -5,11 +5,13 @@
     <uses-permission android:name="android.permission.INTERNET" android:required="true"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-feature android:name="android.hardware.camera.any" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-feature android:name="android.hardware.camera.ar" android:required="false"/>
+
+    <uses-feature android:name="android.hardware.camera.ar" android:required="true"/>
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
     <!-- OpenCL GPU acceleration (no explicit declaration needed - auto-detected) -->
 
@@ -26,7 +28,7 @@
         android:extractNativeLibs="false" >
         <meta-data
             android:name="com.google.ar.core"
-            android:value="optional"
+            android:value="required"
             tools:replace="android:value" />
         <activity
             android:name=".MainActivity"

@@ -32,8 +32,8 @@ class MainActivity : AppCompatActivity() {
     private val binding get() = _binding!!
     private lateinit var mGoogleSignInClient: GoogleSignInClient
 
-    // ARCore session lifecycle helper
-    val arCoreSessionHelper = ARCoreSessionLifecycleHelper(this)
+    // ARCore session lifecycle helper - moved to ARFragment for better lifecycle control
+    var arCoreSessionHelper: ARCoreSessionLifecycleHelper? = null
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "fortuna_prefs"
@@ -52,8 +52,7 @@ class MainActivity : AppCompatActivity() {
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Add ARCore session lifecycle observer
-        lifecycle.addObserver(arCoreSessionHelper)
+        // ARCore session lifecycle observer is now managed by ARFragment
 
         // edge-to-edge handling
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -214,27 +213,6 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private fun checkAndNavigateToCamera(navController: androidx.navigation.NavController) {
-        val missingPermissions = REQUIRED_PERMISSIONS.filter { permission ->
-            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missingPermissions.isEmpty()) {
-            // All permissions granted - navigate to camera
-            Log.d(TAG, "All permissions granted - navigating to camera")
-            try {
-                navController.navigate(R.id.cameraFragment)
-            } catch (e: IllegalStateException) {
-                Log.w(TAG, "Navigation to camera failed - activity may be finishing", e)
-            }
-        } else {
-            // Some permissions missing - request them
-            Log.d(TAG, "Missing permissions: ${missingPermissions.joinToString()}")
-            CustomToast.show(this, "Some permissions missing. Requesting permissions...")
-            requestPermissions()
-        }
-    }
-
     fun requestPermissions() {
         if (!checkPermissions()) {
             val permissionsToRequest = mutableListOf<String>()
@@ -267,8 +245,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        // Forward to ARCore session helper for camera permission handling
-        arCoreSessionHelper.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // Forward to ARCore session helper for camera permission handling (if available)
+        arCoreSessionHelper?.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == PERMISSION_REQUEST_CODE) {
             // Check if grantResults is empty (UI was interrupted)
@@ -320,21 +298,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /**
-     * Release any active camera resources to prepare for ARCore usage
-     */
-    fun releaseCameraResources() {
-        Log.d(TAG, "Attempting to release camera resources for ARCore")
-
-        try {
-            // Use the public method to release camera resources
-            arCoreSessionHelper.releaseCameraResources()
-            Log.d(TAG, "Camera resources released successfully")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error releasing camera resources", e)
-        }
-    }
 
     fun logout() {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
