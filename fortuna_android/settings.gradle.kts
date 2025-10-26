@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "fortuna_android"
 include(":app")
+include(":llama-module")
