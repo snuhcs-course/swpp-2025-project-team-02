@@ -74,6 +74,29 @@ android {
                 arguments += "-DGGML_OPENCL=ON"
                 arguments += "-DGGML_OPENCL_USE_ADRENO_KERNELS=ON"
                 arguments += "-DGGML_OPENCL_EMBED_KERNELS=ON"
+
+                // Set OpenCL library path for Android cross-compilation
+                val openclLib = "${project.rootDir}/app/src/main/jniLibs/${android.defaultConfig.ndk.abiFilters.first()}/libOpenCL.so"
+                arguments += "-DOpenCL_LIBRARY=${openclLib}"
+
+                // Detect NDK path dynamically for OpenCL headers
+                val ndkPath = android.ndkDirectory.absolutePath
+                    ?: System.getenv("ANDROID_NDK")
+                    ?: System.getenv("ANDROID_HOME")?.let { "$it/ndk-bundle" }
+                    ?: System.getenv("ANDROID_SDK_ROOT")?.let { "$it/ndk-bundle" }
+                    ?: "${System.getProperty("user.home")}/Library/Android/sdk/ndk-bundle"
+
+                // Detect host architecture for prebuilt path
+                val hostArch = when {
+                    System.getProperty("os.name").contains("Mac") && System.getProperty("os.arch").contains("aarch64") -> "darwin-aarch64"
+                    System.getProperty("os.name").contains("Mac") -> "darwin-x86_64"
+                    System.getProperty("os.name").contains("Linux") -> "linux-x86_64"
+                    System.getProperty("os.name").contains("Windows") -> "windows-x86_64"
+                    else -> "darwin-x86_64"
+                }
+
+                val openclInclude = "${ndkPath}/toolchains/llvm/prebuilt/${hostArch}/sysroot/usr/include"
+                arguments += "-DOpenCL_INCLUDE_DIR=${openclInclude}"
                 // 16KB page size support
                 arguments += "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
                 arguments += "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
