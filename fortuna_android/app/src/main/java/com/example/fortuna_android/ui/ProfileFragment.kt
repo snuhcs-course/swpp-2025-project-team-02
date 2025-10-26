@@ -2,6 +2,7 @@ package com.example.fortuna_android.ui
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
@@ -194,6 +195,80 @@ class ProfileFragment : Fragment() {
             daily = profile.dailyGanji,
             hourly = profile.hourlyGanji
         )
+
+        // 수집한 원소 표시 (색상과 카운트 적용)
+        updateCollectedElements(profile)
+    }
+
+    /**
+     * Update collected elements badges with proper colors
+     * Order: 목(Wood-Green), 화(Fire-Red), 토(Earth-Orange), 금(Metal-Gray), 수(Water-Blue)
+     */
+    private fun updateCollectedElements(profile: UserProfile) {
+        val binding = _binding ?: return
+        val collectedElements = profile.collectedElements
+
+        // Element colors matching SajuPaljaView
+        val woodColor = Color.parseColor("#0BEFA0")   // Green
+        val fireColor = Color.parseColor("#F93E3E")   // Red
+        val earthColor = Color.parseColor("#FF9500")  // Orange
+        val metalColor = Color.parseColor("#C1BFBF")  // Gray
+        val waterColor = Color.parseColor("#2BB3FC")  // Blue
+
+        // Update badge 1: 목 (Wood) - Green
+        updateElementBadge(
+            badge = binding.elementBadge1,
+            count = collectedElements?.wood ?: 0,
+            color = woodColor
+        )
+
+        // Update badge 2: 화 (Fire) - Red
+        updateElementBadge(
+            badge = binding.elementBadge2,
+            count = collectedElements?.fire ?: 0,
+            color = fireColor
+        )
+
+        // Update badge 3: 토 (Earth) - Orange
+        updateElementBadge(
+            badge = binding.elementBadge3,
+            count = collectedElements?.earth ?: 0,
+            color = earthColor
+        )
+
+        // Update badge 4: 금 (Metal) - Gray
+        updateElementBadge(
+            badge = binding.elementBadge4,
+            count = collectedElements?.metal ?: 0,
+            color = metalColor
+        )
+
+        // Update badge 5: 수 (Water) - Blue
+        updateElementBadge(
+            badge = binding.elementBadge5,
+            count = collectedElements?.water ?: 0,
+            color = waterColor
+        )
+
+        Log.d(TAG, "Collected elements updated: 목=${collectedElements?.wood}, 화=${collectedElements?.fire}, 토=${collectedElements?.earth}, 금=${collectedElements?.metal}, 수=${collectedElements?.water}")
+    }
+
+    /**
+     * Update a single element badge with count and color
+     */
+    private fun updateElementBadge(badge: TextView, count: Int, color: Int) {
+        badge.text = count.toString()
+
+        // Create rounded rectangle background with element color
+        val background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(color)
+            cornerRadius = 8f
+        }
+        badge.background = background
+
+        // Set text color to white for better visibility
+        badge.setTextColor(Color.WHITE)
     }
 
     private fun getElementFromCheongan(cheongan: String): String {

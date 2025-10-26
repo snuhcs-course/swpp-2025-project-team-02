@@ -159,7 +159,16 @@ data class UserProfile(
     @SerializedName("daily_ganji") val dailyGanji: String?,
     @SerializedName("hourly_ganji") val hourlyGanji: String?,
     @SerializedName("created_at") val createdAt: String?,
-    @SerializedName("last_login") val lastLogin: String?
+    @SerializedName("last_login") val lastLogin: String?,
+    @SerializedName("collected_elements") val collectedElements: CollectedElements?
+)
+
+data class CollectedElements(
+    @SerializedName("목") val wood: Int = 0,    // 木 (green)
+    @SerializedName("화") val fire: Int = 0,    // 火 (red)
+    @SerializedName("토") val earth: Int = 0,   // 土 (orange)
+    @SerializedName("금") val metal: Int = 0,   // 金 (gray)
+    @SerializedName("수") val water: Int = 0    // 水 (blue)
 )
 
 // PATCH /api/user/profile/ 요청 시 Body에 담을 데이터
@@ -292,4 +301,21 @@ data class NeededElementData(
     val date: String,
     @SerializedName("needed_element")
     val neededElement: String  // Korean: 목/화/토/금/수
+)
+
+// POST /api/core/chakra/collect-element/
+data class CollectElementRequest(
+    @SerializedName("element") val element: String,  // Korean: 목/화/토/금/수
+    @SerializedName("count") val count: Int = 1
+)
+
+data class CollectElementResponse(
+    val status: String,
+    val data: CollectElementData
+)
+
+data class CollectElementData(
+    val message: String,
+    @SerializedName("collected_elements")
+    val collectedElements: CollectedElements
 )

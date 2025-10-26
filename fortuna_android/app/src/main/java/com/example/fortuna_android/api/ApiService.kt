@@ -58,4 +58,9 @@ interface ApiService {
     suspend fun getNeededElement(
         @Query("date") date: String? = null
     ): Response<NeededElementResponse>
+
+    @POST("api/core/chakra/collect-element/")
+    suspend fun collectElement(
+        @Body request: CollectElementRequest
+    ): Response<CollectElementResponse>
 }

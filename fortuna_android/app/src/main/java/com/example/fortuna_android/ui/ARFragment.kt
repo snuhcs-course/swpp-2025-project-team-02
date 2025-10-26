@@ -16,6 +16,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.MainActivity
+import com.example.fortuna_android.api.CollectElementRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.databinding.FragmentArBinding
@@ -46,6 +47,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     private var surfaceView: GLSurfaceView? = null
     private lateinit var gestureDetector: GestureDetectorCompat
     private var neededElement: ElementMapper.Element? = null
+    private var serverCollectedCount: Int = 0  // Track server-based collection count
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -64,6 +66,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         setupClickListeners()
         setupTouchDetection()
         fetchNeededElement()
+        fetchCurrentCollectionCount()  // Fetch server-based count on load
     }
 
     private fun setupARSession() {
@@ -249,6 +252,40 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     /**
+     * Fetch current collection count from server
+     */
+    private fun fetchCurrentCollectionCount() {
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.getUserProfile()
+                if (response.isSuccessful && response.body() != null) {
+                    val profile = response.body()!!
+                    val collectedElements = profile.collectedElements
+
+                    // Get count for the needed element
+                    neededElement?.let { element ->
+                        val count = when (element) {
+                            ElementMapper.Element.WOOD -> collectedElements?.wood ?: 0
+                            ElementMapper.Element.FIRE -> collectedElements?.fire ?: 0
+                            ElementMapper.Element.EARTH -> collectedElements?.earth ?: 0
+                            ElementMapper.Element.METAL -> collectedElements?.metal ?: 0
+                            ElementMapper.Element.WATER -> collectedElements?.water ?: 0
+                            ElementMapper.Element.OTHERS -> 0
+                        }
+                        serverCollectedCount = count
+                        updateCollectionProgress()
+                        Log.d(TAG, "Server collection count loaded: $count for ${element.displayName}")
+                    }
+                } else {
+                    Log.w(TAG, "Failed to fetch collection count: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching collection count", e)
+            }
+        }
+    }
+
+    /**
      * Display the needed element in the UI banner
      */
     private fun displayNeededElement(element: ElementMapper.Element) {
@@ -265,14 +302,13 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     /**
-     * Update collection progress display
+     * Update collection progress display based on server count
      */
     private fun updateCollectionProgress() {
-        val count = renderer.getCollectedCount()
-        binding.collectionProgressText.text = "$count / $TARGET_COLLECTION_COUNT collected"
+        binding.collectionProgressText.text = "$serverCollectedCount / $TARGET_COLLECTION_COUNT collected"
 
         // Check if quest is complete
-        if (count >= TARGET_COLLECTION_COUNT) {
+        if (serverCollectedCount >= TARGET_COLLECTION_COUNT) {
             onQuestComplete()
         }
     }
@@ -312,13 +348,62 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
     /**
      * Called from renderer when a sphere is successfully collected
+     * Note: count parameter is the local renderer count, but we use server count for display
      */
     fun onSphereCollected(count: Int) {
-        // Update progress
-        updateCollectionProgress()
+        Log.i(TAG, "Sphere collected! Local count: $count, Server count: $serverCollectedCount")
 
-        CustomToast.show(requireContext(), "Collected! ($count/$TARGET_COLLECTION_COUNT)")
-        Log.i(TAG, "Sphere collected! Count: $count")
+        // Save collected element to backend (this will update server count and UI)
+        neededElement?.let { element ->
+            saveCollectedElement(element)
+        }
+    }
+
+    /**
+     * Save collected element to backend via API and update server count
+     */
+    private fun saveCollectedElement(element: ElementMapper.Element) {
+        lifecycleScope.launch {
+            try {
+                val koreanElement = ElementMapper.toKorean(element)
+                val request = CollectElementRequest(
+                    element = koreanElement,
+                    count = 1
+                )
+                val response = RetrofitClient.instance.collectElement(request)
+
+                if (response.isSuccessful && response.body() != null) {
+                    Log.i(TAG, "Element saved successfully: $koreanElement")
+                    val totalCollected = response.body()!!.data.collectedElements
+
+                    // Update server count with the latest value from API
+                    val updatedCount = when (element) {
+                        ElementMapper.Element.WOOD -> totalCollected.wood
+                        ElementMapper.Element.FIRE -> totalCollected.fire
+                        ElementMapper.Element.EARTH -> totalCollected.earth
+                        ElementMapper.Element.METAL -> totalCollected.metal
+                        ElementMapper.Element.WATER -> totalCollected.water
+                        ElementMapper.Element.OTHERS -> 0
+                    }
+                    serverCollectedCount = updatedCount
+
+                    // Update UI with new count
+                    updateCollectionProgress()
+
+                    // Show feedback to user with updated server count
+                    CustomToast.show(requireContext(), "Collected! ($updatedCount/$TARGET_COLLECTION_COUNT)")
+
+                    Log.d(TAG, "Server count updated: $updatedCount for ${element.displayName}")
+                    Log.d(TAG, "Total collected elements: 목=${totalCollected.wood}, 화=${totalCollected.fire}, 토=${totalCollected.earth}, 금=${totalCollected.metal}, 수=${totalCollected.water}")
+                } else {
+                    Log.w(TAG, "Failed to save collected element: ${response.code()}")
+                    CustomToast.show(requireContext(), "Failed to save collection")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving collected element", e)
+                CustomToast.show(requireContext(), "Error saving collection")
+            }
+        }
     }
 
     override fun onDestroyView() {
