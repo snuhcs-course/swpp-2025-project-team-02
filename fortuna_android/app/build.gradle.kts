@@ -12,7 +12,7 @@ plugins {
 // VLM Model Configuration (Single Source of Truth)
 // ========================================
 val VLM_MODEL_FILENAME = "SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
-val VLM_MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-f16.gguf"
+val VLM_MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
 val VLM_HUGGINGFACE_REPO = "ggml-org/SmolVLM2-500M-Video-Instruct-GGUF"
 
 android {
