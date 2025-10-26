@@ -389,7 +389,8 @@ class ResponseTest {
             dailyGanji = null,
             hourlyGanji = null,
             createdAt = null,
-            lastLogin = null
+            lastLogin = null,
+            collectionStatus = null
         )
 
         assertEquals(1, profile.userId)

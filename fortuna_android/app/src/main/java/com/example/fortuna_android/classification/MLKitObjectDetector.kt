@@ -92,6 +92,50 @@ class MLKitObjectDetector(
       .take(maxDetectedObjects) // Limit number of detected objects
   }
 
+  /**
+   * Analyze image and return extended results with bounding boxes.
+   * Required for VLM-based classification to crop objects.
+   */
+  suspend fun analyzeExtended(image: Image, imageRotation: Int): List<ExtendedDetectedObjectResult> {
+    // `image` is in YUV
+    val convertYuv = convertYuv(image)
+
+    // Rotate image for best model performance
+    val rotatedImage = ImageUtils.rotateBitmap(convertYuv, imageRotation)
+
+    val inputImage = InputImage.fromBitmap(rotatedImage, 0)
+
+    val mlKitDetectedObjects = detector.process(inputImage).asDeferred().await()
+
+    // Calculate image area for size constraints
+    val imageArea = (rotatedImage.width * rotatedImage.height).toFloat()
+    val minObjectArea = imageArea * minObjectSizePercent
+    val maxObjectArea = imageArea * maxObjectSizePercent
+
+    return mlKitDetectedObjects.mapNotNull { obj ->
+      val bestLabel = obj.labels.maxByOrNull { label -> label.confidence } ?: return@mapNotNull null
+
+      // Check object size constraints
+      val boundingBox = obj.boundingBox
+      val objectArea = (boundingBox.width() * boundingBox.height()).toFloat()
+      if (objectArea < minObjectArea || objectArea > maxObjectArea) {
+        return@mapNotNull null
+      }
+
+      val coords = boundingBox.exactCenterX().toInt() to boundingBox.exactCenterY().toInt()
+      val rotatedCoordinates = coords.rotateCoordinates(rotatedImage.width, rotatedImage.height, imageRotation)
+
+      // Return ExtendedDetectedObjectResult with bounding box for VLM cropping
+      ExtendedDetectedObjectResult(
+        confidence = bestLabel.confidence,
+        label = bestLabel.text,
+        centerCoordinate = rotatedCoordinates,
+        boundingBox = boundingBox  // Preserve bounding box
+      )
+    }.sortedByDescending { it.confidence } // Sort by confidence (highest first)
+      .take(maxDetectedObjects) // Limit number of detected objects
+  }
+
   @Suppress("USELESS_IS_CHECK")
   fun hasCustomModel() = builder is CustomObjectDetectorOptions.Builder
 }

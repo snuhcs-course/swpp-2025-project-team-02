@@ -115,4 +115,49 @@ object ImageUtils {
 
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
+
+    /**
+     * Crop and downscale object region for VLM classification
+     *
+     * Extracts the bounding box region from a full camera image and downscales to a square
+     * for fast VLM inference. Uses 96x96 target size for optimal speed/quality balance.
+     *
+     * @param bitmap Full camera image
+     * @param boundingBox Object bounding box from ML Kit detection
+     * @param targetSize Target dimension for square output (default: 96x96 for speed)
+     * @return Cropped and downscaled square bitmap
+     */
+    fun cropObjectForVLM(bitmap: Bitmap, boundingBox: android.graphics.Rect, targetSize: Int = 96): Bitmap {
+        try {
+            // Clamp bounding box to image bounds to prevent out-of-bounds errors
+            val left = boundingBox.left.coerceIn(0, bitmap.width - 1)
+            val top = boundingBox.top.coerceIn(0, bitmap.height - 1)
+            val right = boundingBox.right.coerceIn(left + 1, bitmap.width)
+            val bottom = boundingBox.bottom.coerceIn(top + 1, bitmap.height)
+
+            val width = right - left
+            val height = bottom - top
+
+            Log.d(TAG, "Cropping object: bbox=[$left,$top,$right,$bottom] size=${width}x${height}")
+
+            // Crop object from full image
+            val cropped = Bitmap.createBitmap(bitmap, left, top, width, height)
+
+            // Downscale to square (VLM expects square input)
+            val scaled = Bitmap.createScaledBitmap(cropped, targetSize, targetSize, true)
+
+            // Clean up intermediate bitmap if different from final
+            if (scaled != cropped) {
+                cropped.recycle()
+            }
+
+            Log.d(TAG, "Cropped object: ${width}x${height} → ${targetSize}x${targetSize}")
+            return scaled
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to crop object, using full image fallback", e)
+            // Fallback: return downscaled full image
+            return optimizeImageForVLM(bitmap, targetSize)
+        }
+    }
 }
