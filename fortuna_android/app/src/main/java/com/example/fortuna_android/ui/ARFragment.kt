@@ -164,8 +164,8 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
         lifecycle.addObserver(this)
 
-        // Add ARCore session helper to lifecycle - this will trigger session resume
-        lifecycle.addObserver(mainActivity.arCoreSessionHelper)
+        // Note: ARCore session helper is already managed by MainActivity's lifecycle
+        // Do not add it here to avoid duplicate lifecycle management
 
         // Log AR session setup
         Log.d(TAG, "ARFragment setup completed, ARCore session helper: ${mainActivity.arCoreSessionHelper}")

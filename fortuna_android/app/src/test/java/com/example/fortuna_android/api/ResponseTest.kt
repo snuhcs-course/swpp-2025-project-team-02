@@ -362,7 +362,8 @@ class ResponseTest {
             dailyGanji = "갑자",
             hourlyGanji = "병자",
             createdAt = "2025-01-01T00:00:00Z",
-            lastLogin = "2025-10-24T10:00:00Z"
+            lastLogin = "2025-10-24T10:00:00Z",
+            collectionStatus = null
         )
 
         assertEquals(1, profile.userId)
@@ -389,7 +390,8 @@ class ResponseTest {
             dailyGanji = null,
             hourlyGanji = null,
             createdAt = null,
-            lastLogin = null
+            lastLogin = null,
+            collectionStatus = null
         )
 
         assertEquals(1, profile.userId)
