@@ -164,15 +164,16 @@ class SmolVLMManager(private val context: Context) {
      * Analyze an image from a Bitmap
      * @param bitmap Image to analyze
      * @param prompt Text prompt/question about the image
+     * @param seqId Sequence ID for parallel processing (default 0)
      * @return Flow of generated text tokens
      */
-    fun analyzeImage(bitmap: Bitmap, prompt: String): Flow<String> {
+    fun analyzeImage(bitmap: Bitmap, prompt: String, seqId: Int = 0): Flow<String> {
         if (!isModelLoaded || !isMmprojLoaded) {
             throw IllegalStateException("Model not loaded. Call initialize() first.")
         }
 
         val fullPrompt = buildVisionPrompt(prompt)
-        return llamaAndroid.sendWithImage(fullPrompt, bitmap)
+        return llamaAndroid.sendWithImage(fullPrompt, bitmap, seqId)
     }
 
     /**

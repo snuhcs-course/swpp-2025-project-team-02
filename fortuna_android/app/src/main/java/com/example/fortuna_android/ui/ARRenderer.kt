@@ -26,8 +26,13 @@ import com.google.ar.core.exceptions.NotYetAvailableException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.take
 import java.util.Collections
 
 /**
@@ -77,6 +82,8 @@ class ARRenderer(private val fragment: ARFragment) :
     private val vlmManager = SmolVLMManager.getInstance(fragment.requireContext())
     private var isVLMLoaded = false
     private var isVLMAnalyzing = false
+    // Mutex to ensure sequential VLM execution (eval_chunks is NOT thread-safe)
+    private val vlmMutex = Mutex()
 
     data class ARLabeledAnchor(val anchor: Anchor, val element: ElementMapper.Element)
 
@@ -370,45 +377,102 @@ class ARRenderer(private val fragment: ARFragment) :
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
-            // Map detected objects to element categories
-            val elementResults = objects.map { obj ->
-                val element = elementMapper.mapLabelToElement(obj.label)
-                Log.i(TAG, "Object '${obj.label}' mapped to element: ${element.displayName}")
-                obj to element
-            }
+            // Classify objects using VLM in parallel
+            launch(Dispatchers.IO) {
+                try {
+                    val cameraImage = frame.acquireCameraImage()
+                    val fullBitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
+                    cameraImage.close()
 
-            elementResults.forEachIndexed { index, (obj, element) ->
-                val (atX, atY) = obj.centerCoordinate
-                Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
-            }
+                    if (fullBitmap == null) {
+                        Log.e(TAG, "Failed to convert camera image for VLM classification")
+                        // Fallback to ML Kit mapping
+                        processWithMLKitMapping(objects, frame)
+                        return@launch
+                    }
 
-            val anchors = elementResults.mapNotNull { (obj, element) ->
-                val (atX, atY) = obj.centerCoordinate
-                Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
+                    // Optimize bitmap for VLM (96x96 for speed)
+                    val optimizedBitmap = ImageUtils.optimizeImageForVLM(fullBitmap, 96)
+                    if (optimizedBitmap != fullBitmap) {
+                        fullBitmap.recycle()
+                    }
 
-                val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                if (anchor != null) {
-                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
-                    ARLabeledAnchor(anchor, element)
-                } else {
-                    Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
-                    null
+                    Log.i(TAG, "Starting sequential VLM classification with different seq_ids for ${objects.size} objects")
+                    Log.i(TAG, "Note: Using Mutex for sequential execution (eval_chunks is NOT thread-safe)")
+                    val startTime = System.currentTimeMillis()
+
+                    // Sequential VLM classification with different seq_ids
+                    // Mutex ensures sequential execution to avoid eval_chunks conflicts
+                    val elementResults = objects.take(3).mapIndexed { index, obj ->
+                        async(Dispatchers.IO) {
+                            vlmMutex.withLock {
+                                val seqId = index
+                                val prompt = "fire/water/wood/metal/earth?"
+
+                                try {
+                                    val tokens = mutableListOf<String>()
+                                    vlmManager.analyzeImage(optimizedBitmap, prompt, seqId)
+                                        .take(5)  // Take only first 5 tokens
+                                        .collect { tokens.add(it) }
+
+                                    val response = tokens.joinToString("").trim()
+                                    val element = parseVLMResponseToElement(response, obj.label)
+
+                                    val inferenceTime = System.currentTimeMillis() - startTime
+                                    Log.i(TAG, "VLM [seq_id=$seqId] classified '${obj.label}' -> ${element.displayName} (response: '$response', ${inferenceTime}ms)")
+
+                                    obj to element
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "VLM classification failed for seq_id=$seqId, falling back to ML Kit", e)
+                                    val element = elementMapper.mapLabelToElement(obj.label)
+                                    obj to element
+                                }
+                            }
+                        }
+                    }.map { it.await() }
+
+                    optimizedBitmap.recycle()
+
+                    val totalTime = System.currentTimeMillis() - startTime
+                    Log.i(TAG, "Parallel VLM classification completed in ${totalTime}ms (avg: ${totalTime / objects.size}ms per object)")
+
+                    // Log results
+                    elementResults.forEachIndexed { index, (obj, element) ->
+                        val (atX, atY) = obj.centerCoordinate
+                        Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at ($atX, $atY) with confidence ${obj.confidence}")
+                    }
+
+                    // Create anchors on main thread
+                    withContext(Dispatchers.Main) {
+                        val anchors = elementResults.mapNotNull { (obj, element) ->
+                            val (atX, atY) = obj.centerCoordinate
+                            Log.d(TAG, "Creating anchor for '${element.displayName}' at ($atX, $atY)")
+
+                            val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                            if (anchor != null) {
+                                Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}'")
+                                ARLabeledAnchor(anchor, element)
+                            } else {
+                                Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
+                                null
+                            }
+                        }
+
+                        // Thread-safe way to add anchors
+                        synchronized(arLabeledAnchors) {
+                            arLabeledAnchors.addAll(anchors)
+                        }
+
+                        // Notify fragment
+                        fragment.view?.post {
+                            fragment.onObjectDetectionCompleted(anchors.size, objects.size)
+                        }
+                    }
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "VLM classification failed, falling back to ML Kit", e)
+                    processWithMLKitMapping(objects, frame)
                 }
-            }
-
-            // Thread-safe way to add anchors
-            synchronized(arLabeledAnchors) {
-                arLabeledAnchors.addAll(anchors)
-            }
-
-            // Notify fragment about detection results on main thread
-            fragment.view?.post {
-                fragment.onObjectDetectionCompleted(anchors.size, objects.size)
-            }
-
-            // Trigger VLM analysis if model is loaded and not currently analyzing
-            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
-                analyzeCameraImageWithVLM(frame)
             }
         }
 
@@ -554,6 +618,58 @@ class ARRenderer(private val fragment: ARFragment) :
                 }
             } finally {
                 isVLMAnalyzing = false
+            }
+        }
+    }
+
+    /**
+     * Parse VLM response to Element enum.
+     * Normalizes response and checks for keywords: fire, water, wood, metal, earth (land).
+     */
+    private fun parseVLMResponseToElement(response: String, mlKitLabel: String): ElementMapper.Element {
+        val normalized = response.lowercase().trim()
+
+        return when {
+            normalized.contains("fire") -> ElementMapper.Element.FIRE
+            normalized.contains("water") -> ElementMapper.Element.WATER
+            normalized.contains("wood") -> ElementMapper.Element.WOOD
+            normalized.contains("metal") -> ElementMapper.Element.METAL
+            normalized.contains("earth") || normalized.contains("land") -> ElementMapper.Element.EARTH
+            else -> {
+                // Fallback to ML Kit mapping if VLM gives unexpected response
+                Log.w(TAG, "Unexpected VLM response: '$response', falling back to ML Kit label: $mlKitLabel")
+                elementMapper.mapLabelToElement(mlKitLabel)
+            }
+        }
+    }
+
+    /**
+     * Fallback processing using ML Kit label mapping.
+     */
+    private fun processWithMLKitMapping(objects: List<DetectedObjectResult>, frame: Frame) {
+        launch(Dispatchers.Main) {
+            val elementResults = objects.map { obj ->
+                val element = elementMapper.mapLabelToElement(obj.label)
+                Log.i(TAG, "ML Kit fallback: '${obj.label}' -> ${element.displayName}")
+                obj to element
+            }
+
+            val anchors = elementResults.mapNotNull { (obj, element) ->
+                val (atX, atY) = obj.centerCoordinate
+                val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                if (anchor != null) {
+                    ARLabeledAnchor(anchor, element)
+                } else {
+                    null
+                }
+            }
+
+            synchronized(arLabeledAnchors) {
+                arLabeledAnchors.addAll(anchors)
+            }
+
+            fragment.view?.post {
+                fragment.onObjectDetectionCompleted(anchors.size, objects.size)
             }
         }
     }

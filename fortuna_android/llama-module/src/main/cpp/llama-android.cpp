@@ -405,7 +405,8 @@ Java_android_llama_cpp_LLamaAndroid_completion_1loop(
         jlong batch_pointer,
         jlong sampler_pointer,
         jint n_len,
-        jobject intvar_ncur
+        jobject intvar_ncur,
+        jint seq_id
 ) {
     const auto context = reinterpret_cast<llama_context *>(context_pointer);
     const auto batch   = reinterpret_cast<llama_batch   *>(batch_pointer);
@@ -438,7 +439,7 @@ Java_android_llama_cpp_LLamaAndroid_completion_1loop(
     }
 
     common_batch_clear(*batch);
-    common_batch_add(*batch, new_token_id, n_cur, { 0 }, true);
+    common_batch_add(*batch, new_token_id, n_cur, { seq_id }, true);
 
     env->CallVoidMethod(intvar_ncur, la_int_var_inc);
 

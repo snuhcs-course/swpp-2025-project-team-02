@@ -85,7 +85,8 @@ class LLamaAndroid {
         batch: Long,
         sampler: Long,
         nLen: Int,
-        ncur: IntVar
+        ncur: IntVar,
+        seqId: Int
     ): String?
 
     private external fun kv_cache_clear(context: Long)
@@ -97,7 +98,7 @@ class LLamaAndroid {
     private external fun bitmap_free(bitmap: Long)
     private external fun tokenize_with_image(mtmd_ctx: Long, prompt: String, bitmap: Long): Long
     private external fun chunks_free(chunks: Long)
-    private external fun eval_chunks(mtmd_ctx: Long, llama_ctx: Long, chunks: Long, n_past: Int, n_batch: Int): Long
+    private external fun eval_chunks(mtmd_ctx: Long, llama_ctx: Long, chunks: Long, n_past: Int, seq_id: Int, n_batch: Int): Long
 
     suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int = 1): String {
         return withContext(runLoop) {
@@ -142,7 +143,7 @@ class LLamaAndroid {
             is State.Loaded -> {
                 val ncur = IntVar(completion_init(state.context, state.batch, message, formatChat, nlen))
                 while (ncur.value <= nlen) {
-                    val str = completion_loop(state.context, state.batch, state.sampler, nlen, ncur)
+                    val str = completion_loop(state.context, state.batch, state.sampler, nlen, ncur, 0)
                     if (str == null) {
                         break
                     }
@@ -201,8 +202,9 @@ class LLamaAndroid {
 
     /**
      * Sends a message with an image for vision-language processing.
+     * @param seqId Sequence ID for parallel processing (default 0)
      */
-    fun sendWithImage(message: String, image: Bitmap): Flow<String> = flow {
+    fun sendWithImage(message: String, image: Bitmap, seqId: Int = 0): Flow<String> = flow {
         when (val state = threadLocalState.get()) {
             is State.Loaded -> {
                 if (state.mmproj == 0L) {
@@ -227,12 +229,13 @@ class LLamaAndroid {
                     try {
                         // Evaluate chunks using mtmd_helper
                         // This properly encodes image through vision encoder
-                        Log.d(tag, "Evaluating chunks...")
+                        Log.d(tag, "Evaluating chunks (seq_id=$seqId)...")
                         val newNPast = eval_chunks(
                             state.mmproj,
                             state.context,
                             chunksPtr,
                             0,      // n_past (starting position)
+                            seqId,  // seq_id (for parallel processing)
                             1024    // n_batch (larger = faster but more memory)
                         )
 
@@ -254,9 +257,9 @@ class LLamaAndroid {
                         var tokenCount = 0
 
                         while (ncur.value < maxTokens) {
-                            val str = completion_loop(state.context, state.batch, state.sampler, maxTokens, ncur)
+                            val str = completion_loop(state.context, state.batch, state.sampler, maxTokens, ncur, seqId)
                             if (str == null) {
-                                Log.d(tag, "Generation ended after $tokenCount tokens")
+                                Log.d(tag, "Generation ended after $tokenCount tokens (seq_id=$seqId)")
                                 break
                             }
 
