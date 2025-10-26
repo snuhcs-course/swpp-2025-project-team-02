@@ -5,7 +5,7 @@ from django.conf import settings
 class ChakraImage(models.Model):
     """Stores uploaded chakra images with metadata."""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='chakras/%Y/%m/%d/')
+    image = models.ImageField(upload_to='chakras/%Y/%m/%d/', null=True, blank=True)
     chakra_type = models.CharField(max_length=50, default='default')
     date = models.DateField(db_index=True)
 
