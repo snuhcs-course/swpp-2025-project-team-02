@@ -92,31 +92,65 @@ if [ ! -d "$NDK_SYSROOT" ]; then
 fi
 
 INCLUDE_DIR="$NDK_SYSROOT/usr/include"
+LIB_DIR="$NDK_SYSROOT/usr/lib/aarch64-linux-android"
 
-# Check if OpenCL headers already installed
-if [ -d "$INCLUDE_DIR/CL" ]; then
-    echo "✅ OpenCL headers already installed at $INCLUDE_DIR/CL"
+# Check if OpenCL is already fully installed
+OPENCL_INSTALLED=false
+if [ -d "$INCLUDE_DIR/CL" ] && [ -f "$LIB_DIR/libOpenCL.so" ]; then
+    OPENCL_INSTALLED=true
+fi
+
+if [ "$OPENCL_INSTALLED" = true ]; then
+    echo "✅ OpenCL headers and library already installed"
+    echo "   Headers: $INCLUDE_DIR/CL"
+    echo "   Library: $LIB_DIR/libOpenCL.so"
     exit 0
 fi
 
-echo "📥 Installing OpenCL headers..."
+echo "📥 Installing OpenCL headers and library..."
 
 # Clone OpenCL headers
 TEMP_DIR=$(mktemp -d)
 cd "$TEMP_DIR"
 
-echo "  Cloning OpenCL-Headers..."
-git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git
+# Install headers if needed
+if [ ! -d "$INCLUDE_DIR/CL" ]; then
+    echo "  Cloning OpenCL-Headers..."
+    git clone --depth 1 https://github.com/KhronosGroup/OpenCL-Headers.git
 
-# Copy headers to NDK
-echo "  Copying headers to NDK sysroot..."
-cp -r OpenCL-Headers/CL "$INCLUDE_DIR/"
+    echo "  Copying headers to NDK sysroot..."
+    cp -r OpenCL-Headers/CL "$INCLUDE_DIR/"
+    echo "  ✅ Headers installed"
+fi
+
+# Install library if needed
+if [ ! -f "$LIB_DIR/libOpenCL.so" ]; then
+    echo "  Copying libOpenCL.so to NDK sysroot..."
+
+    # Source: our prebuilt libOpenCL.so
+    OPENCL_LIB="$PROJECT_ROOT/app/src/main/jniLibs/arm64-v8a/libOpenCL.so"
+
+    if [ -f "$OPENCL_LIB" ]; then
+        # Ensure lib directory exists
+        mkdir -p "$LIB_DIR"
+
+        # Copy library to NDK
+        cp "$OPENCL_LIB" "$LIB_DIR/"
+
+        echo "  ✅ Library installed at $LIB_DIR/libOpenCL.so"
+    else
+        echo "  ⚠️  Warning: libOpenCL.so not found at $OPENCL_LIB"
+        echo "     CMake may fail to find OpenCL library"
+    fi
+fi
 
 # Cleanup
 cd "$PROJECT_ROOT"
 rm -rf "$TEMP_DIR"
 
-echo "✅ OpenCL headers installed successfully!"
 echo ""
-echo "📝 Note: libOpenCL.so is already included in app/src/main/jniLibs/"
-echo "         No additional build steps required."
+echo "✅ OpenCL setup complete!"
+echo "   Headers: $INCLUDE_DIR/CL"
+echo "   Library: $LIB_DIR/libOpenCL.so"
+echo ""
+echo "📝 CMake will now be able to find OpenCL automatically"
