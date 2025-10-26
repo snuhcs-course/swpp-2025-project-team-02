@@ -28,10 +28,12 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
 
     struct mtmd_context_params params = mtmd_context_params_default();
     params.use_gpu = true;
-    params.n_threads = std::max(1, std::min(4, (int) sysconf(_SC_NPROCESSORS_ONLN) - 1));
+    // Optimize thread count for vision encoder: use half of cores (P-cores)
+    int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+    params.n_threads = std::max(2, std::min(4, total_cores / 2));
     params.verbosity = GGML_LOG_LEVEL_ERROR;
 
-    LOGi("🚀 GPU acceleration requested: use_gpu=%d, n_threads=%d", params.use_gpu, params.n_threads);
+    LOGi("🚀 GPU acceleration: use_gpu=%d, cores=%d, threads=%d (P-cores optimized)", params.use_gpu, total_cores, params.n_threads);
     LOGi("📱 Device will use best available backend (GPU -> CPU fallback)");
 
     mtmd_context *ctx = mtmd_init_from_file(path, text_model, params);

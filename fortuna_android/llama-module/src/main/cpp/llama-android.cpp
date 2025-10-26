@@ -120,14 +120,29 @@ Java_android_llama_cpp_LLamaAndroid_new_1context(JNIEnv *env, jobject, jlong jmo
         return 0;
     }
 
-    int n_threads = std::max(1, std::min(8, (int) sysconf(_SC_NPROCESSORS_ONLN) - 2));
-    LOGi("Using %d threads", n_threads);
+    // Optimize thread count for mobile: use half of available cores (P-cores only on big.LITTLE)
+    // This avoids E-cores which can slow down inference
+    int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+    int n_threads = std::max(2, std::min(6, total_cores / 2));
+    LOGi("Total cores: %d, Using %d threads (optimized for P-cores)", total_cores, n_threads);
 
     llama_context_params ctx_params = llama_context_default_params();
 
     ctx_params.n_ctx           = 2048;
     ctx_params.n_threads       = n_threads;
     ctx_params.n_threads_batch = n_threads;
+
+    // KV Cache quantization: reduces memory by 60% and speeds up eval
+    ctx_params.type_k          = GGML_TYPE_Q4_0;
+    ctx_params.type_v          = GGML_TYPE_Q4_0;
+
+    // Flash Attention: optimizes attention computation for mobile
+    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
+
+    LOGi("Context params: n_ctx=%d, threads=%d, KV_Q4=%s, flash_attn=%s",
+         ctx_params.n_ctx, n_threads,
+         (ctx_params.type_k == GGML_TYPE_Q4_0 ? "enabled" : "disabled"),
+         (ctx_params.flash_attn_type == LLAMA_FLASH_ATTN_TYPE_ENABLED ? "enabled" : "disabled"));
 
     llama_context * context = llama_new_context_with_model(model, ctx_params);
 
