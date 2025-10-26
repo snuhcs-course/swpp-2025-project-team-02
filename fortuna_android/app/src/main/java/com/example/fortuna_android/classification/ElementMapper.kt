@@ -14,6 +14,81 @@ class ElementMapper(private val context: Context) {
     companion object {
         private const val TAG = "ElementMapper"
         private const val CLASS_FILE = "class.txt"
+
+        /**
+         * Convert Korean element name to Element enum
+         * API returns: 목/화/토/금/수
+         */
+        fun fromKorean(koreanElement: String): Element {
+            return when (koreanElement) {
+                "목" -> Element.WOOD   // Wood
+                "화" -> Element.FIRE   // Fire
+                "토" -> Element.EARTH  // Earth
+                "금" -> Element.METAL  // Metal
+                "수" -> Element.WATER  // Water
+                else -> {
+                    Log.w(TAG, "Unknown Korean element: $koreanElement, defaulting to OTHERS")
+                    Element.OTHERS
+                }
+            }
+        }
+
+        /**
+         * Convert Element enum to Korean name
+         */
+        fun toKorean(element: Element): String {
+            return when (element) {
+                Element.WOOD -> "목"
+                Element.FIRE -> "화"
+                Element.EARTH -> "토"
+                Element.METAL -> "금"
+                Element.WATER -> "수"
+                Element.OTHERS -> "기타"
+            }
+        }
+
+        /**
+         * Convert Element enum to English name (for API)
+         * API expects: fire/water/earth/metal/wood
+         */
+        fun toEnglish(element: Element): String {
+            return when (element) {
+                Element.WOOD -> "wood"
+                Element.FIRE -> "fire"
+                Element.EARTH -> "earth"
+                Element.METAL -> "metal"
+                Element.WATER -> "water"
+                Element.OTHERS -> "wood"
+            }
+        }
+
+        /**
+         * Get the color code for an element (for UI display)
+         */
+        fun getElementColor(element: Element): Int {
+            return when (element) {
+                Element.WOOD -> 0xFF4CAF50.toInt()   // Green
+                Element.FIRE -> 0xFFF44336.toInt()   // Red
+                Element.EARTH -> 0xFFFFEB3B.toInt()  // Yellow
+                Element.METAL -> 0xFFFFFFFF.toInt()  // White
+                Element.WATER -> 0xFF2196F3.toInt()  // Blue
+                Element.OTHERS -> 0xFF9E9E9E.toInt() // Gray
+            }
+        }
+
+        /**
+         * Get element description text for UI
+         */
+        fun getElementDisplayText(element: Element): String {
+            return when (element) {
+                Element.WOOD -> "Wood (Green)"
+                Element.FIRE -> "Fire (Red)"
+                Element.EARTH -> "Earth (Yellow)"
+                Element.METAL -> "Metal (White)"
+                Element.WATER -> "Water (Blue)"
+                Element.OTHERS -> "Others"
+            }
+        }
     }
 
     // Categories based on Chinese Five Elements

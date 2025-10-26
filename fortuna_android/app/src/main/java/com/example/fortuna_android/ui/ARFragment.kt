@@ -1,18 +1,26 @@
 package com.example.fortuna_android.ui
 
+import android.graphics.drawable.GradientDrawable
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.GestureDetectorCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.MainActivity
+import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.databinding.FragmentArBinding
 import com.example.fortuna_android.util.CustomToast
+import com.example.fortuna_android.util.PendingCollectionManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -23,11 +31,13 @@ import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException
+import kotlinx.coroutines.launch
 
 class ARFragment : Fragment(), DefaultLifecycleObserver {
 
     companion object {
         private const val TAG = "ARFragment"
+        private const val TARGET_COLLECTION_COUNT = 5
     }
 
     private var _binding: FragmentArBinding? = null
@@ -35,6 +45,10 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
     private lateinit var renderer: ARRenderer
     private var surfaceView: GLSurfaceView? = null
+    private lateinit var gestureDetector: GestureDetectorCompat
+    private var neededElement: ElementMapper.Element? = null
+    private var serverCollectedCount: Int = 0  // Track server-based collection count
+    private var localCollectedCount: Int = 0  // Track local collection count during AR session
 
     // VLM state
     private val vlmResponseBuilder = StringBuilder()
@@ -54,6 +68,9 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
         setupARSession()
         setupClickListeners()
+        setupTouchDetection()
+        fetchNeededElement()
+        fetchCurrentCollectionCount()  // Fetch server-based count on load
     }
 
     private fun setupARSession() {
@@ -248,6 +265,170 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             }
         }
     }
+
+    /**
+     * Fetch the needed element from API and display it
+     */
+    private fun fetchNeededElement() {
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.getNeededElement()
+                if (response.isSuccessful && response.body() != null) {
+                    val koreanElement = response.body()!!.data.neededElement
+                    neededElement = ElementMapper.fromKorean(koreanElement)
+
+                    // Update UI
+                    displayNeededElement(neededElement!!)
+
+                    // Set in renderer to filter spheres
+                    renderer.setNeededElement(neededElement)
+
+                    Log.i(TAG, "Needed element loaded: ${neededElement?.displayName}")
+                } else {
+                    Log.w(TAG, "Failed to fetch needed element: ${response.code()}")
+                    // Show all elements if API fails
+                    renderer.setNeededElement(null)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching needed element", e)
+                // Show all elements if error
+                renderer.setNeededElement(null)
+            }
+        }
+    }
+
+    /**
+     * Fetch current collection count from server
+     */
+    private fun fetchCurrentCollectionCount() {
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.instance.getUserProfile()
+                if (response.isSuccessful && response.body() != null) {
+                    val profile = response.body()!!
+                    val collectionStatus = profile.collectionStatus
+
+                    // Get count for the needed element
+                    neededElement?.let { element ->
+                        val count = when (element) {
+                            ElementMapper.Element.WOOD -> collectionStatus?.wood ?: 0
+                            ElementMapper.Element.FIRE -> collectionStatus?.fire ?: 0
+                            ElementMapper.Element.EARTH -> collectionStatus?.earth ?: 0
+                            ElementMapper.Element.METAL -> collectionStatus?.metal ?: 0
+                            ElementMapper.Element.WATER -> collectionStatus?.water ?: 0
+                            ElementMapper.Element.OTHERS -> 0
+                        }
+                        serverCollectedCount = count
+                        localCollectedCount = count  // Initialize local count from server
+                        updateCollectionProgress()
+                        Log.d(TAG, "Server collection count loaded: $count for ${element.displayName}")
+                    }
+                } else {
+                    Log.w(TAG, "Failed to fetch collection count: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching collection count", e)
+            }
+        }
+    }
+
+    /**
+     * Display the needed element in the UI banner
+     */
+    private fun displayNeededElement(element: ElementMapper.Element) {
+        binding.apply {
+            neededElementBanner.visibility = View.VISIBLE
+            neededElementText.text = "Collect: ${ElementMapper.getElementDisplayText(element)}"
+            updateCollectionProgress()
+
+            // Set color indicator
+            val color = ElementMapper.getElementColor(element)
+            val background = elementColorIndicator.background as? GradientDrawable
+            background?.setColor(color)
+        }
+    }
+
+    /**
+     * Update collection progress display based on local count
+     */
+    private fun updateCollectionProgress() {
+        binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT collected"
+
+        // Check if quest is complete
+        if (localCollectedCount >= TARGET_COLLECTION_COUNT) {
+            onQuestComplete()
+        }
+    }
+
+    /**
+     * Handle quest completion - save to SharedPreferences then close AR
+     * The actual POST request will be handled by HomeFragment after AR session closes
+     */
+    private fun onQuestComplete() {
+        CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
+        Log.i(TAG, "Daily energy quest completed!")
+
+        // Save pending collection to SharedPreferences
+        neededElement?.let { element ->
+            if (element != ElementMapper.Element.OTHERS) {
+                val englishElement = ElementMapper.toEnglish(element)
+                PendingCollectionManager.savePendingCollection(requireContext(), englishElement, 1)
+                Log.i(TAG, "Pending collection saved to SharedPreferences: $englishElement")
+            } else {
+                Log.w(TAG, "OTHERS element not supported by backend, skipping")
+            }
+        }
+
+        // Close AR after a short delay to let user see the completion message
+        view?.postDelayed({
+            if (isAdded) {
+                Log.i(TAG, "Closing AR view after quest completion")
+                findNavController().popBackStack()
+            }
+        }, 1500) // 1.5 second delay (reduced from 2s since we're not waiting for API)
+    }
+
+    /**
+     * Setup touch detection for sphere collection
+     */
+    private fun setupTouchDetection() {
+        gestureDetector = GestureDetectorCompat(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                Log.d(TAG, "Touch detected at (${e.x}, ${e.y})")
+
+                // Queue tap to be processed on render thread
+                renderer.handleTap(e.x, e.y)
+
+                return true
+            }
+        })
+
+        // Attach touch listener to surface view
+        binding.surfaceview.setOnTouchListener { view, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+
+        Log.i(TAG, "Touch detection setup complete")
+    }
+
+    /**
+     * Called from renderer when a sphere is successfully collected
+     * Only updates local count - API call happens when quest is complete (5/5)
+     */
+    fun onSphereCollected(count: Int) {
+        Log.i(TAG, "Sphere collected! Local count: $count")
+
+        // Increment local collection count
+        localCollectedCount++
+
+        // Update UI with new count
+        updateCollectionProgress()
+
+        // Show feedback to user
+        CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

@@ -318,6 +318,19 @@
                 android:paddingBottom="16dp"
                 android:layout_marginBottom="16dp" />
 
+            <!-- 왜 부족한지 설명 버튼 (동적 텍스트) -->
+            <Button
+                android:id="@+id/btnWhyDeficient"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="나무가 왜 부족한가요?"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:backgroundTint="#4A4A4A"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:layout_marginBottom="16dp" />
+
             <!-- 오늘의 기운 보충하러가기 버튼 -->
             <Button
                 android:id="@+id/btnRefreshFortune"

@@ -73,6 +73,16 @@ class TodayFortuneFragment : Fragment() {
                 binding.fortuneCardView.setOnRefreshFortuneClickListener {
                     findNavController().navigate(R.id.arFragment)
                 }
+
+                // Set up why deficient button click listener - navigate to detail analysis tab
+                binding.fortuneCardView.setOnWhyDeficientClickListener {
+                    // Access parent fragment's ViewPager to switch to detail analysis tab
+                    (parentFragment as? HomeFragment)?.let { homeFragment ->
+                        homeFragment.view?.findViewById<androidx.viewpager2.widget.ViewPager2>(
+                            com.example.fortuna_android.R.id.viewPager
+                        )?.currentItem = 1
+                    }
+                }
             }
         }
 
