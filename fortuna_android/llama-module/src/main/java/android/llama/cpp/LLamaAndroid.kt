@@ -45,8 +45,8 @@ class LLamaAndroid {
         }
     }.asCoroutineDispatcher()
 
-    // Maximum tokens to generate (64 = ~2 sentences, reduced for faster responses)
-    private val nlen: Int = 64
+    // Maximum tokens to generate (32 = single word classification, optimized for speed)
+    private val nlen: Int = 32
 
     private external fun log_to_android()
     private external fun load_model(filename: String): Long

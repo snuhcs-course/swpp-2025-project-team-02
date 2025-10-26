@@ -28,6 +28,10 @@ import com.google.mlkit.vision.objects.custom.CustomObjectDetectorOptions
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import kotlinx.coroutines.tasks.asDeferred
 
+val ObjectDetector.lastRotatedBitmap: Bitmap?
+  get() = (this as? MLKitObjectDetector)?.lastRotatedBitmap
+
+
 /**
  * Analyzes an image using ML Kit.
  */
@@ -57,7 +61,9 @@ class MLKitObjectDetector(
 
   private val detector = ObjectDetection.getClient(customObjectDetectorOptions)
 
-
+  // Store the last rotated bitmap for VLM processing
+  var lastRotatedBitmap: Bitmap? = null
+    private set
 
   override suspend fun analyze(image: Image, imageRotation: Int): List<DetectedObjectResult> {
     // `image` is in YUV (https://developers.google.com/ar/reference/java/com/google/ar/core/Frame#acquireCameraImage()),
@@ -65,6 +71,9 @@ class MLKitObjectDetector(
 
     // The model performs best on upright images, so rotate it.
     val rotatedImage = ImageUtils.rotateBitmap(convertYuv, imageRotation)
+
+    // Store for VLM processing (bounding boxes are in this coordinate system)
+    lastRotatedBitmap = rotatedImage
 
     val inputImage = InputImage.fromBitmap(rotatedImage, 0)
 
@@ -87,7 +96,9 @@ class MLKitObjectDetector(
 
       val coords = boundingBox.exactCenterX().toInt() to boundingBox.exactCenterY().toInt()
       val rotatedCoordinates = coords.rotateCoordinates(rotatedImage.width, rotatedImage.height, imageRotation)
-      DetectedObjectResult(bestLabel.confidence, bestLabel.text, rotatedCoordinates)
+
+      // Store the bounding box (already in rotated image coordinates)
+      DetectedObjectResult(bestLabel.confidence, bestLabel.text, rotatedCoordinates, boundingBox)
     }.sortedByDescending { it.confidence } // Sort by confidence (highest first)
       .take(maxDetectedObjects) // Limit number of detected objects
   }

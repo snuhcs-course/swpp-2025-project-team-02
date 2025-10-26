@@ -86,6 +86,37 @@ object ImageUtils {
     }
 
     /**
+     * Crop a bitmap using a bounding box
+     * Clamps the bounding box to bitmap dimensions to avoid errors
+     *
+     * @param bitmap Source bitmap
+     * @param boundingBox Rect defining the crop region
+     * @return Cropped bitmap
+     */
+    fun cropBitmap(bitmap: Bitmap, boundingBox: Rect): Bitmap {
+        // Clamp bounding box to bitmap dimensions
+        val clampedLeft = boundingBox.left.coerceIn(0, bitmap.width)
+        val clampedTop = boundingBox.top.coerceIn(0, bitmap.height)
+        val clampedRight = boundingBox.right.coerceIn(0, bitmap.width)
+        val clampedBottom = boundingBox.bottom.coerceIn(0, bitmap.height)
+
+        // Calculate width and height
+        val width = (clampedRight - clampedLeft).coerceAtLeast(1)
+        val height = (clampedBottom - clampedTop).coerceAtLeast(1)
+
+        Log.d(TAG, "Cropping bitmap: original=${bitmap.width}x${bitmap.height}, " +
+                "bbox=[${clampedLeft},${clampedTop},${clampedRight},${clampedBottom}], " +
+                "cropped=${width}x${height}")
+
+        return try {
+            Bitmap.createBitmap(bitmap, clampedLeft, clampedTop, width, height)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to crop bitmap, returning original", e)
+            bitmap
+        }
+    }
+
+    /**
      * Optimize bitmap for VLM processing
      * Downscales to maxSize while maintaining aspect ratio
      *
