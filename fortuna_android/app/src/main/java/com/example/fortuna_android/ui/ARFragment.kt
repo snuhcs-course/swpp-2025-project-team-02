@@ -1,5 +1,7 @@
 package com.example.fortuna_android.ui
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.graphics.drawable.GradientDrawable
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -9,6 +11,10 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
+import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.core.view.GestureDetectorCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -57,6 +63,10 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
     // VLM state
     private val vlmResponseBuilder = StringBuilder()
+
+    // Track last tap coordinates for celebration animation
+    private var lastTapX: Float = 0f
+    private var lastTapY: Float = 0f
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -464,6 +474,10 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             override fun onSingleTapUp(e: MotionEvent): Boolean {
                 Log.d(TAG, "Touch detected at (${e.x}, ${e.y})")
 
+                // Save tap coordinates for celebration animation
+                lastTapX = e.x
+                lastTapY = e.y
+
                 // Queue tap to be processed on render thread
                 if (::renderer.isInitialized) {
                     renderer.handleTap(e.x, e.y)
@@ -497,9 +511,104 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         // Update UI with new count
         updateCollectionProgress()
 
+        // Show celebration animation
+        showCelebrationAnimation()
+
         // Show feedback to user
         if (isAdded) {
             CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+        }
+    }
+
+    /**
+     * Show fireworks-style celebration animation at tap location
+     */
+    private fun showCelebrationAnimation() {
+        view?.post {
+            _binding?.let { binding ->
+                // Clear any existing particles
+                binding.celebrationOverlay.removeAllViews()
+                binding.celebrationOverlay.visibility = View.VISIBLE
+
+                // Create firework particles
+                val particleCount = 12
+                val colors = listOf(
+                    "#FFD700", // Gold
+                    "#FF6B6B", // Red
+                    "#4ECDC4", // Cyan
+                    "#45B7D1", // Blue
+                    "#FFA07A", // Light Salmon
+                    "#98D8C8", // Mint
+                    "#F7DC6F", // Yellow
+                    "#BB8FCE"  // Purple
+                )
+                val emojis = listOf("✨", "⭐", "💫", "🌟", "✨", "⭐")
+
+                for (i in 0 until particleCount) {
+                    val particle = TextView(requireContext()).apply {
+                        text = emojis[i % emojis.size]
+                        textSize = 32f
+                        alpha = 1f
+                        layoutParams = FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT
+                        )
+
+                        // Position at tap location
+                        x = lastTapX - 20 // Center the emoji (half of approximate size)
+                        y = lastTapY - 20
+                    }
+
+                    binding.celebrationOverlay.addView(particle)
+
+                    // Calculate angle for this particle (evenly distributed in circle)
+                    val angle = (360f / particleCount) * i
+                    val radians = Math.toRadians(angle.toDouble())
+
+                    // Distance particles will travel
+                    val distance = 200f + (Math.random() * 100).toFloat()
+
+                    // Calculate end position
+                    val endX = lastTapX + (Math.cos(radians) * distance).toFloat() - 20
+                    val endY = lastTapY + (Math.sin(radians) * distance).toFloat() - 20
+
+                    // Animate particle
+                    val moveX = ObjectAnimator.ofFloat(particle, "x", lastTapX - 20, endX)
+                    val moveY = ObjectAnimator.ofFloat(particle, "y", lastTapY - 20, endY)
+                    val fadeOut = ObjectAnimator.ofFloat(particle, "alpha", 1f, 0f)
+                    val scale = ObjectAnimator.ofFloat(particle, "scaleX", 1f, 0.3f)
+                    val scaleY = ObjectAnimator.ofFloat(particle, "scaleY", 1f, 0.3f)
+                    val rotate = ObjectAnimator.ofFloat(particle, "rotation", 0f, 360f * 2)
+
+                    val animatorSet = AnimatorSet()
+                    animatorSet.playTogether(moveX, moveY, fadeOut, scale, scaleY, rotate)
+                    animatorSet.duration = 800 + (Math.random() * 200).toLong() // Vary duration slightly
+                    animatorSet.interpolator = AccelerateDecelerateInterpolator()
+                    animatorSet.start()
+                }
+
+                // Hide celebration overlay after animation completes
+                binding.celebrationOverlay.postDelayed({
+                    hideCelebrationAnimation()
+                }, 1200)
+            }
+        }
+    }
+
+    /**
+     * Hide celebration animation with fade out
+     */
+    private fun hideCelebrationAnimation() {
+        _binding?.let { binding ->
+            val fadeOut = ObjectAnimator.ofFloat(binding.celebrationOverlay, "alpha", 1f, 0f)
+            fadeOut.duration = 300
+            fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    _binding?.celebrationOverlay?.visibility = View.GONE
+                    _binding?.celebrationOverlay?.alpha = 1f // Reset alpha for next time
+                }
+            })
+            fadeOut.start()
         }
     }
 
