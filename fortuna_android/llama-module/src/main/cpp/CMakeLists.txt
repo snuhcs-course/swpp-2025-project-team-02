@@ -11,6 +11,36 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("llama-android")
 
+# ===========================================================================
+# Android Mobile Optimizations for llama.cpp
+# ===========================================================================
+
+# Android-specific optimizations
+if (ANDROID)
+    # Disable GGML_NATIVE to avoid TRY_RUN issues in cross-compilation
+    # ARM NEON is enabled by default on Android arm64-v8a
+    set(GGML_NATIVE OFF CACHE BOOL "Disable native feature detection for cross-compile" FORCE)
+
+    # Disable Vulkan due to cross-compilation issues with shader build
+    # CPU optimizations (NEON, KV Cache Q4, Flash Attention) are sufficient
+    set(GGML_VULKAN OFF CACHE BOOL "Disable Vulkan for cross-compile compatibility" FORCE)
+
+    if (ANDROID_ABI STREQUAL "arm64-v8a")
+        message(STATUS "✅ Building for Android ARM64 (${ANDROID_ABI})")
+        message(STATUS "✅ ARM NEON: enabled by default on arm64-v8a")
+        message(STATUS "✅ CPU optimizations: enabled (KV Cache Q4, Flash Attention)")
+        message(STATUS "⚠️  Vulkan: disabled (cross-compile compatibility)")
+    else()
+        message(STATUS "Building for Android ABI: ${ANDROID_ABI}")
+    endif()
+else()
+    message(STATUS "Non-Android build detected")
+    # Enable native optimizations for non-Android builds
+    set(GGML_NATIVE ON CACHE BOOL "Enable native optimizations" FORCE)
+endif()
+
+# ===========================================================================
+
 #include(FetchContent)
 #FetchContent_Declare(
 #        llama

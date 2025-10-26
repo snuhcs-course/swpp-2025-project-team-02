@@ -45,9 +45,8 @@ class LLamaAndroid {
         }
     }.asCoroutineDispatcher()
 
-    // Maximum tokens to generate
-    // Increased for VLM models which have large image token prefixes
-    private val nlen: Int = 256
+    // Maximum tokens to generate (32 = single word classification, optimized for speed)
+    private val nlen: Int = 32
 
     private external fun log_to_android()
     private external fun load_model(filename: String): Long
@@ -122,8 +121,8 @@ class LLamaAndroid {
                     val context = new_context(model)
                     if (context == 0L) throw IllegalStateException("new_context() failed")
 
-                    // Larger batch for faster VLM image processing
-                    val batch = new_batch(1024, 0, 1)
+                    // Larger batch for faster processing (512, sacrificing some memory)
+                    val batch = new_batch(512, 0, 1)
                     if (batch == 0L) throw IllegalStateException("new_batch() failed")
 
                     val sampler = new_sampler()
@@ -233,7 +232,7 @@ class LLamaAndroid {
                             state.context,
                             chunksPtr,
                             0,      // n_past (starting position)
-                            1024    // n_batch (larger = faster but more memory)
+                            512     // n_batch (larger for speed, sacrificing memory)
                         )
 
                         if (newNPast < 0) {

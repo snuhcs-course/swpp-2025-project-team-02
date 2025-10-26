@@ -27,9 +27,12 @@ class SmolVLMManager(private val context: Context) {
 
     companion object {
         private const val MODEL_FILENAME = "SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
-        private const val MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-f16.gguf"
+        private const val MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
         private const val MODELS_DIR = "models"
         private const val IMAGE_MARKER = "<__media__>"
+
+        // Target image size for VLM processing (256x256 is optimal for mobile VLM speed)
+        private const val TARGET_IMAGE_SIZE = 256
 
         @Volatile
         private var instance: SmolVLMManager? = null
@@ -171,8 +174,15 @@ class SmolVLMManager(private val context: Context) {
             throw IllegalStateException("Model not loaded. Call initialize() first.")
         }
 
+        // Log original image size
+        Log.i(tag, "📸 Original image size: ${bitmap.width}x${bitmap.height}")
+
+        // Resize image for optimal VLM performance (384x384 is optimal for mobile)
+        val resizedBitmap = resizeImageForVLM(bitmap, TARGET_IMAGE_SIZE)
+        Log.i(tag, "📸 Resized image size: ${resizedBitmap.width}x${resizedBitmap.height}")
+
         val fullPrompt = buildVisionPrompt(prompt)
-        return llamaAndroid.sendWithImage(fullPrompt, bitmap)
+        return llamaAndroid.sendWithImage(fullPrompt, resizedBitmap)
     }
 
     /**
@@ -229,6 +239,55 @@ class SmolVLMManager(private val context: Context) {
             Log.e(tag, "Failed to load image from URI", e)
             null
         }
+    }
+
+    /**
+     * Resize image to target size while maintaining aspect ratio
+     * Adds padding if needed to maintain square dimensions
+     */
+    private fun resizeImageForVLM(bitmap: Bitmap, targetSize: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        // If already at target size, return as-is
+        if (width == targetSize && height == targetSize) {
+            return bitmap
+        }
+
+        // Calculate scaling factor to fit within target size while maintaining aspect ratio
+        val scaleFactor = minOf(
+            targetSize.toFloat() / width,
+            targetSize.toFloat() / height
+        )
+
+        val scaledWidth = (width * scaleFactor).toInt()
+        val scaledHeight = (height * scaleFactor).toInt()
+
+        // First, scale the image
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+
+        // If not square, create a square canvas and center the image
+        if (scaledWidth != targetSize || scaledHeight != targetSize) {
+            val paddedBitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(paddedBitmap)
+
+            // Fill with black background
+            canvas.drawColor(android.graphics.Color.BLACK)
+
+            // Center the scaled image
+            val left = (targetSize - scaledWidth) / 2f
+            val top = (targetSize - scaledHeight) / 2f
+            canvas.drawBitmap(scaledBitmap, left, top, null)
+
+            // Recycle the intermediate bitmap
+            if (scaledBitmap != bitmap) {
+                scaledBitmap.recycle()
+            }
+
+            return paddedBitmap
+        }
+
+        return scaledBitmap
     }
 
     /**

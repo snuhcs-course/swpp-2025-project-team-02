@@ -120,14 +120,29 @@ Java_android_llama_cpp_LLamaAndroid_new_1context(JNIEnv *env, jobject, jlong jmo
         return 0;
     }
 
-    int n_threads = std::max(1, std::min(8, (int) sysconf(_SC_NPROCESSORS_ONLN) - 2));
-    LOGi("Using %d threads", n_threads);
+    // Optimize thread count for mobile: use half of available cores (P-cores only on big.LITTLE)
+    // This avoids E-cores which can slow down inference
+    int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+    int n_threads = std::max(2, std::min(6, total_cores / 2));
+    LOGi("Total cores: %d, Using %d threads (optimized for P-cores)", total_cores, n_threads);
 
     llama_context_params ctx_params = llama_context_default_params();
 
-    ctx_params.n_ctx           = 2048;
+    ctx_params.n_ctx           = 1024;  // Reduced for VLM (don't need long context)
     ctx_params.n_threads       = n_threads;
     ctx_params.n_threads_batch = n_threads;
+
+    // KV Cache quantization: reduces memory by 60% and speeds up eval
+    ctx_params.type_k          = GGML_TYPE_Q4_0;
+    ctx_params.type_v          = GGML_TYPE_Q4_0;
+
+    // Flash Attention: optimizes attention computation for mobile
+    ctx_params.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_ENABLED;
+
+    LOGi("Context params: n_ctx=%d, threads=%d, KV_Q4=%s, flash_attn=%s",
+         ctx_params.n_ctx, n_threads,
+         (ctx_params.type_k == GGML_TYPE_Q4_0 ? "enabled" : "disabled"),
+         (ctx_params.flash_attn_type == LLAMA_FLASH_ATTN_TYPE_ENABLED ? "enabled" : "disabled"));
 
     llama_context * context = llama_new_context_with_model(model, ctx_params);
 
@@ -145,6 +160,16 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_android_llama_cpp_LLamaAndroid_free_1context(JNIEnv *, jobject, jlong context) {
     llama_free(reinterpret_cast<llama_context *>(context));
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_android_llama_cpp_LLamaAndroid_kv_1cache_1clear(JNIEnv *, jobject, jlong context_ptr) {
+    auto *context = reinterpret_cast<llama_context *>(context_ptr);
+    if (context) {
+        llama_memory_clear(llama_get_memory(context), false);
+        LOGi("KV cache cleared");
+    }
 }
 
 extern "C"
@@ -373,9 +398,9 @@ Java_android_llama_cpp_LLamaAndroid_completion_1init(
         LOGe("error: n_kv_req > n_ctx, the required KV cache size is not big enough");
     }
 
-    for (auto id : tokens_list) {
-        LOGi("token: `%s`-> %d ", common_token_to_piece(context, id).c_str(), id);
-    }
+//    for (auto id : tokens_list) {
+//        LOGi("token: `%s`-> %d ", common_token_to_piece(context, id).c_str(), id);
+//    }
 
     common_batch_clear(*batch);
 
@@ -447,10 +472,4 @@ Java_android_llama_cpp_LLamaAndroid_completion_1loop(
     }
 
     return new_token;
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_android_llama_cpp_LLamaAndroid_kv_1cache_1clear(JNIEnv *, jobject, jlong context) {
-    llama_memory_clear(llama_get_memory(reinterpret_cast<llama_context *>(context)), true);
 }

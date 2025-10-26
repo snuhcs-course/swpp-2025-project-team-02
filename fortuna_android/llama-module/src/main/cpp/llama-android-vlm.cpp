@@ -3,6 +3,7 @@
 #include <jni.h>
 #include <string>
 #include <vector>
+#include <chrono>
 #include "llama.h"
 #include "common.h"
 #include "mtmd/mtmd.h"
@@ -28,10 +29,12 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
 
     struct mtmd_context_params params = mtmd_context_params_default();
     params.use_gpu = true;
-    params.n_threads = std::max(1, std::min(4, (int) sysconf(_SC_NPROCESSORS_ONLN) - 1));
+    // Vision encoder: 4 threads (balanced for performance)
+    params.n_threads = 4;
     params.verbosity = GGML_LOG_LEVEL_ERROR;
 
-    LOGi("🚀 GPU acceleration requested: use_gpu=%d, n_threads=%d", params.use_gpu, params.n_threads);
+    int total_cores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+    LOGi("🚀 Vision encoder: use_gpu=%d, cores_available=%d, threads=%d (balanced)", params.use_gpu, total_cores, params.n_threads);
     LOGi("📱 Device will use best available backend (GPU -> CPU fallback)");
 
     mtmd_context *ctx = mtmd_init_from_file(path, text_model, params);
@@ -44,7 +47,11 @@ Java_android_llama_cpp_LLamaAndroid_load_1mmproj(
         return 0;
     }
 
-    LOGi("✅ Mmproj loaded successfully - check above logs for backend type");
+    // Log successful initialization with backend info
+    LOGi("✅ Mmproj (Q8) loaded successfully");
+    LOGi("📊 Vision encoder config: threads=%d, gpu_requested=%s",
+         params.n_threads, params.use_gpu ? "yes" : "no");
+
     return reinterpret_cast<jlong>(ctx);
 }
 
@@ -196,6 +203,14 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         return -1;
     }
 
+    // Log detailed eval_chunks parameters
+    size_t n_chunks = mtmd_input_chunks_size(chunks);
+    LOGi("⚡ eval_chunks starting: n_batch=%d, n_chunks=%zu, n_past=%d", n_batch, n_chunks, n_past);
+    LOGi("📝 Note: n_chunks is determined by tokenization (image + text), cannot be manually increased");
+
+    // Measure eval time
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     llama_pos new_n_past = 0;
 
     // Use mtmd_helper to evaluate all chunks (text + image)
@@ -210,11 +225,16 @@ Java_android_llama_cpp_LLamaAndroid_eval_1chunks(
         &new_n_past      // output: new position
     );
 
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
     if (ret != 0) {
-        LOGe("mtmd_helper_eval_chunks failed with code %d", ret);
+        LOGe("mtmd_helper_eval_chunks failed with code %d after %lld ms", ret, duration.count());
         return -1;
     }
 
-    LOGi("Chunks evaluated successfully, new n_past: %d", (int)new_n_past);
+    LOGi("✅ eval_chunks completed: new_n_past=%d, duration=%lld ms (%.2f tok/s)",
+         (int)new_n_past, duration.count(),
+         duration.count() > 0 ? (new_n_past * 1000.0 / duration.count()) : 0.0);
     return static_cast<jlong>(new_n_past);
 }
