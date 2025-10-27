@@ -101,21 +101,6 @@ class ARCoreSessionLifecycleHelper(
     sessionCache = null
   }
 
-  /**
-   * Force release camera resources by closing the current ARCore session
-   * This method can be called to ensure camera resources are available for other uses
-   */
-  fun releaseCameraResources() {
-    try {
-      sessionCache?.let { session ->
-        session.close()
-        android.util.Log.d("ARCoreSessionHelper", "ARCore session closed to release camera resources")
-      }
-      sessionCache = null
-    } catch (e: Exception) {
-      android.util.Log.w("ARCoreSessionHelper", "Error releasing camera resources", e)
-    }
-  }
 
   fun onRequestPermissionsResult(
     requestCode: Int,

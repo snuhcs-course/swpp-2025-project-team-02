@@ -1,0 +1,5 @@
+# OpenCL ICD Loader configuration
+# Android system OpenCL drivers
+/system/vendor/lib64/libOpenCL.so
+/vendor/lib64/libOpenCL.so
+/system/lib64/libOpenCL.so

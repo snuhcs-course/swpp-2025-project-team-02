@@ -159,7 +159,45 @@ data class UserProfile(
     @SerializedName("daily_ganji") val dailyGanji: String?,
     @SerializedName("hourly_ganji") val hourlyGanji: String?,
     @SerializedName("created_at") val createdAt: String?,
-    @SerializedName("last_login") val lastLogin: String?
+    @SerializedName("last_login") val lastLogin: String?,
+    @SerializedName("collection_status") val collectionStatus: CollectionStatus?
+)
+
+data class CollectionStatus(
+    @SerializedName("collections") val collections: List<CollectionItem>,
+    @SerializedName("total_count") val totalCount: Int
+) {
+    /**
+     * Get count for a specific chakra type
+     * Returns 0 if not found
+     */
+    fun getCount(chakraType: String): Int {
+        return collections.find { it.chakraType.equals(chakraType, ignoreCase = true) }?.count ?: 0
+    }
+
+    /**
+     * Helper properties for easy access to element counts
+     */
+    val wood: Int get() = getCount("wood")
+    val fire: Int get() = getCount("fire")
+    val earth: Int get() = getCount("earth")
+    val metal: Int get() = getCount("metal")
+    val water: Int get() = getCount("water")
+}
+
+data class CollectionItem(
+    @SerializedName("chakra_type") val chakraType: String,
+    @SerializedName("count") val count: Int
+)
+
+// Deprecated - keeping for backward compatibility with old API responses
+@Deprecated("Use CollectionStatus instead")
+data class CollectedElements(
+    @SerializedName("wood") val wood: Int = 0,    // 木 (green) - wood
+    @SerializedName("fire") val fire: Int = 0,    // 火 (red) - fire
+    @SerializedName("earth") val earth: Int = 0,   // 土 (orange) - earth
+    @SerializedName("metal") val metal: Int = 0,   // 金 (gray) - metal
+    @SerializedName("water") val water: Int = 0    // 水 (blue) - water
 )
 
 // PATCH /api/user/profile/ 요청 시 Body에 담을 데이터
@@ -280,4 +318,43 @@ data class StemBranchDetail(
 data class ElementDistribution(
     val count: Int,
     val percentage: Double
+)
+
+// GET /api/core/chakra/needed-element/
+data class NeededElementResponse(
+    val status: String,
+    val data: NeededElementData
+)
+
+data class NeededElementData(
+    val date: String,
+    @SerializedName("needed_element")
+    val neededElement: String  // Korean: 목/화/토/금/수
+)
+
+// POST /api/chakra/collect
+data class CollectElementRequest(
+    @SerializedName("chakra_type") val chakraType: String  // English: fire/water/earth/metal/wood
+)
+
+data class CollectElementResponse(
+    val status: String,
+    val data: CollectElementData
+)
+
+data class CollectElementData(
+    val message: String,
+    @SerializedName("collected_elements")
+    val collectedElements: CollectedElements
+)
+
+// GET /api/chakra/collection-status
+data class CollectionStatusResponse(
+    val status: String,
+    val data: CollectionStatusData
+)
+
+data class CollectionStatusData(
+    @SerializedName("collected_elements")
+    val collectedElements: CollectedElements
 )

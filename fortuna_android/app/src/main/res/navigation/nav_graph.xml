@@ -54,11 +54,6 @@
         android:label="Profile Edit"
         tools:layout="@layout/fragment_profile_edit" />
     <fragment
-        android:id="@+id/cameraFragment"
-        android:name="com.example.fortuna_android.ui.CameraFragment"
-        android:label="Camera"
-        tools:layout="@layout/fragment_camera" />
-    <fragment
         android:id="@+id/arFragment"
         android:name="com.example.fortuna_android.ui.ARFragment"
         android:label="AR Object Detection"

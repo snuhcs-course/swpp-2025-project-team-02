@@ -3,9 +3,6 @@ DRF ViewSets for Fortuna Core API.
 """
 
 from datetime import datetime, timedelta
-from io import BytesIO
-from PIL import Image as PILImage
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -13,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+import logging
 
 from user.permissions import DevelopmentOrAuthenticated
 from .models import ChakraImage, FortuneResult
@@ -30,6 +28,7 @@ from .serializers import (
     FortuneRequestSerializer,
     FortuneResponseSerializer,
     APIResponseSerializer,
+    NeededElementResponseSerializer,
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
@@ -39,28 +38,8 @@ from .services.fortune import FortuneService
 image_service = ImageService()
 fortune_service = FortuneService(image_service)
 
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-def create_dummy_image():
-    """
-    Create a 1x1 transparent PNG image for PoC purposes.
-    Returns a SimpleUploadedFile that can be used as an image field value.
-    """
-    # Create 1x1 transparent PNG in memory
-    img = PILImage.new('RGBA', (1, 1), (0, 0, 0, 0))
-    buffer = BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-
-    # Create Django file object
-    return SimpleUploadedFile(
-        name='dummy_chakra.png',
-        content=buffer.read(),
-        content_type='image/png'
-    )
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -133,13 +112,6 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Upload a chakra image with metadata extraction."""
-        # Check for image file first
-        if 'image' not in request.FILES:
-            return Response(
-                {'status': 'error', 'message': 'No image file provided'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         # Validate upload data
         upload_serializer = ChakraImageUploadSerializer(data=request.data)
 
@@ -150,7 +122,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 'message': str(error_message)
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        image_file = request.FILES['image']
+        image_file = request.FILES.get('image')
         user_id = request.user.id
 
         # Get additional data
@@ -158,7 +130,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             'chakra_type': upload_serializer.validated_data.get('chakra_type', 'default')
         }
 
-        # Process image upload
+        # Process image upload (image_file can be None)
         result = image_service.process_image_upload(
             image_file=image_file,
             user_id=user_id,
@@ -250,16 +222,17 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         PoC endpoint: Collect a chakra without image upload.
         Creates a ChakraImage with a dummy image file.
         """
-        # Validate request
-        serializer = ChakraCollectSerializer(data=request.data)
-        if not serializer.is_valid():
-            error_message = next(iter(serializer.errors.values()))[0]
+        # Validate request parameters
+        param_serializer = ChakraCollectSerializer(data=request.data)
+
+        if not param_serializer.is_valid():
+            error_message = next(iter(param_serializer.errors.values()))[0]
             return Response({
                 'status': 'error',
                 'message': str(error_message)
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        chakra_type = serializer.validated_data['chakra_type']
+        chakra_type = param_serializer.validated_data['chakra_type']
 
         # For development: use test user if not authenticated
         if request.user.is_authenticated:
@@ -282,12 +255,11 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
 
         now = datetime.now()
 
-        # Create ChakraImage with dummy image (PoC mode)
+        # Create ChakraImage without image (PoC mode)
         try:
-            dummy_image = create_dummy_image()
             chakra_image = ChakraImage.objects.create(
                 user=user,
-                image=dummy_image,
+                image=None,
                 chakra_type=chakra_type,
                 date=now.date(),
                 timestamp=now,
@@ -297,16 +269,27 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 device_model='PoC'
             )
 
-            return Response({
+            logger.info(
+                f"Chakra collected: user={user.email} (ID: {user.id}), "
+                f"type={chakra_type}, chakra_id={chakra_image.id}"
+            )
+
+            response_data = {
                 'status': 'success',
                 'data': {
                     'id': chakra_image.id,
                     'chakra_type': chakra_image.chakra_type,
                     'collected_at': chakra_image.timestamp.isoformat()
                 }
-            }, status=status.HTTP_201_CREATED)
+            }
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            logger.error(
+                f"Chakra collection failed: user={user.email if user else 'unknown'} (ID: {user.id if user else 'N/A'}), "
+                f"type={chakra_type}, error={str(e)}"
+            )
             return Response({
                 'status': 'error',
                 'message': f'Failed to collect chakra: {str(e)}'
@@ -360,6 +343,113 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             'data': {
                 'collections': list(collections),
                 'total_count': total_count
+            }
+        }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Get Needed Element",
+        description="Get the needed element (목/화/토/금/수) for the user based on tomorrow's fortune",
+        parameters=[
+            OpenApiParameter(
+                name='date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Date for which to get needed element (YYYY-MM-DD). Defaults to today.',
+                required=False
+            )
+        ],
+        responses={
+            200: NeededElementResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='needed-element')
+    def needed_element(self, request):
+        """
+        Get the needed element for harmonizing user's energy with today's energy.
+        Returns the element with the smallest count from element_distribution.
+        Returns one of: 목, 화, 토, 금, 수
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get date parameter (defaults to today)
+        date_param = request.query_params.get('date')
+        if date_param:
+            try:
+                today_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            today_date = datetime.now().date()
+
+        # Calculate fortune balance to get element distribution
+        fortune_score = fortune_service.calculate_fortune_balance(user, datetime.combine(today_date, datetime.min.time()))
+
+        # Get element_distribution from fortune_score
+        element_dist = fortune_score.element_distribution
+
+        # Find minimum count
+        min_count = min(element_dist.values(), key=lambda x: x.count).count
+
+        # Get all elements with minimum count
+        min_elements = [elem for elem, dist in element_dist.items() if dist.count == min_count]
+
+        # If only one element with min count, use it
+        if len(min_elements) == 1:
+            needed_element = min_elements[0]
+        else:
+            # Multiple elements with same min count - prioritize by 상생 relation with user's day stem
+            user_saju = user.saju()
+            user_day_element = user_saju.daily.stem.element
+
+            # Map element names to FiveElements objects
+            from core.utils.saju_concepts import FiveElements
+            element_map = {
+                "목": FiveElements.WOOD,
+                "화": FiveElements.FIRE,
+                "토": FiveElements.EARTH,
+                "금": FiveElements.METAL,
+                "수": FiveElements.WATER
+            }
+
+            # Find element that empowers (생) user's day element
+            # 상생: 수생목, 목생화, 화생토, 토생금, 금생수
+            needed_element = None
+            for elem_name in min_elements:
+                elem_obj = element_map[elem_name]
+                if elem_obj.empowers(user_day_element):
+                    needed_element = elem_name
+                    break
+
+            # If no element empowers user (shouldn't happen but failsafe), use first one
+            if not needed_element:
+                needed_element = min_elements[0]
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'date': today_date.isoformat(),
+                'needed_element': needed_element
             }
         }, status=status.HTTP_200_OK)
 
