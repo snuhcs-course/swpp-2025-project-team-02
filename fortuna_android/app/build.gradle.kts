@@ -81,6 +81,14 @@ android {
                 it.jvmArgs("-noverify", "-XX:+IgnoreUnrecognizedVMOptions", "--add-opens=java.base/java.lang=ALL-UNNAMED")
             }
         }
+        // Enable animations for better test visibility
+        animationsDisabled = false
+    }
+    buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
+        }
     }
     packaging {
         resources {
@@ -121,6 +129,7 @@ dependencies {
     androidTestImplementation("androidx.navigation:navigation-testing:2.7.6")
     androidTestImplementation("androidx.fragment:fragment-testing:1.6.2")
     androidTestImplementation("org.mockito:mockito-android:5.7.0")
+    androidTestImplementation("androidx.test:rules:1.5.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -161,7 +170,7 @@ dependencies {
     implementation("io.github.sceneview:sceneview:2.3.0")
 }
 
-// JaCoCo Configuration
+// JaCoCo Configuration for Unit Tests
 tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn("testDebugUnitTest")
 
@@ -192,6 +201,75 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     classDirectories.setFrom(files(debugTree))
     executionData.setFrom(fileTree(buildDir) {
         include("**/*.exec", "**/*.ec")
+    })
+}
+
+// JaCoCo Configuration for Instrumented Tests
+tasks.register<JacocoReport>("jacocoAndroidTestReport") {
+    dependsOn("createDebugCoverageReport")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+        "**/databinding/**",
+        "**/generated/**"
+    )
+
+    val debugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    val mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(fileTree(buildDir) {
+        include("**/*.exec", "**/*.ec", "**/coverage.ec")
+    })
+}
+
+// Combined JaCoCo Report (Unit + Instrumented Tests)
+tasks.register<JacocoReport>("jacocoFullReport") {
+    dependsOn("testDebugUnitTest", "createDebugCoverageReport")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+        html.outputLocation.set(file("${buildDir}/reports/jacoco/jacocoFullReport/html"))
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+        "**/databinding/**",
+        "**/generated/**"
+    )
+
+    val debugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    val mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(fileTree(buildDir) {
+        include("**/*.exec", "**/*.ec", "**/coverage.ec")
     })
 }
 
