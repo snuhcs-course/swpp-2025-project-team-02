@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
  * Tests model loading, text generation, and image analysis
  */
 @RunWith(AndroidJUnit4::class)
-class SmolVLMManagerTest {
+class 피ㅡSmolVLMManagerTest {
 
     private lateinit var vlmManager: SmolVLMManager
     private val context = InstrumentationRegistry.getInstrumentation().targetContext

@@ -104,6 +104,16 @@ android {
     }
 }
 
+// Force resolution of androidx.test libraries to compatible versions
+configurations.all {
+    resolutionStrategy {
+        force("androidx.test:core:1.6.1")
+        force("androidx.test:monitor:1.7.2")
+        force("androidx.test:runner:1.6.2")
+        force("androidx.test:rules:1.6.1")
+    }
+}
+
 dependencies {
     implementation(project(":llama-module"))
     implementation(libs.androidx.core.ktx)
@@ -123,13 +133,16 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation("androidx.test.espresso:espresso-contrib:3.5.1")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.navigation:navigation-testing:2.7.6")
     androidTestImplementation("androidx.fragment:fragment-testing:1.6.2")
     androidTestImplementation("org.mockito:mockito-android:5.7.0")
-    androidTestImplementation("androidx.test:rules:1.5.0")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
