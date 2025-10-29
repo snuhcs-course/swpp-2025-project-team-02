@@ -17,6 +17,9 @@ out vec2 v_TexCoord;
 void main() {
     v_ViewPosition = (u_ModelView * vec4(a_Position, 1.0)).xyz;
     v_ViewNormal = normalize((u_ModelView * vec4(a_Normal, 0.0)).xyz);
-    v_TexCoord = a_TexCoord;
+
+    // Flip Y coordinate for Blender UV mapping (OpenGL uses bottom-left origin)
+    v_TexCoord = vec2(a_TexCoord.x, 1.0 - a_TexCoord.y);
+
     gl_Position = u_ModelViewProjection * vec4(a_Position, 1.0);
 }
