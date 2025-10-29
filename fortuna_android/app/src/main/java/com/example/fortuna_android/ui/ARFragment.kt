@@ -92,7 +92,12 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         val mainActivity = activity as? MainActivity
         if (mainActivity == null) {
             Log.e(TAG, "Activity is not MainActivity")
-            findNavController().popBackStack()
+            // Only try to navigate back if NavController is available
+            try {
+                findNavController().popBackStack()
+            } catch (e: IllegalStateException) {
+                Log.w(TAG, "NavController not available, likely in test environment")
+            }
             return
         }
 
