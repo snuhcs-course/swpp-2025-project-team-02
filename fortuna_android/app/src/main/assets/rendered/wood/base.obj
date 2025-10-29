@@ -1,6 +1,5 @@
 # Blender 4.5.3 LTS
 # www.blender.org
-mtllib base_mobile.mtl
 o model
 v -0.864385 1.117879 -0.122087
 v -0.828157 1.159858 -0.220945
