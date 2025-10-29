@@ -15,7 +15,7 @@ import org.junit.runner.RunWith
  * This test runs on an Android device/emulator
  * Focus on line coverage for methods that can be tested
  *
- * Note: RemMessage is a final class and requires complex setup.
+ * Note: RemoteMessage is a final class and requires complex setup.
  * We focus on testable methods like onNewToken.
  */
 @RunWith(AndroidJUnit4::class)
