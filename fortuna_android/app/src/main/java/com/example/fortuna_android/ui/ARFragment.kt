@@ -55,7 +55,6 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     private var surfaceView: GLSurfaceView? = null
     private lateinit var gestureDetector: GestureDetectorCompat
     private var neededElement: ElementMapper.Element? = null
-    private var serverCollectedCount: Int = 0  // Track server-based collection count
     private var localCollectedCount: Int = 0  // Track local collection count during AR session
 
     // ARCore session helper - managed by this fragment
@@ -85,7 +84,6 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
         setupClickListeners()
         setupTouchDetection()
         fetchNeededElement()
-        fetchCurrentCollectionCount()  // Fetch server-based count on load
     }
 
     private fun setupARSession() {
@@ -365,41 +363,6 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                 if (::renderer.isInitialized) {
                     renderer.setNeededElement(null)
                 }
-            }
-        }
-    }
-
-    /**
-     * Fetch current collection count from server
-     */
-    private fun fetchCurrentCollectionCount() {
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.instance.getUserProfile()
-                if (response.isSuccessful && response.body() != null) {
-                    val profile = response.body()!!
-                    val collectionStatus = profile.collectionStatus
-
-                    // Get count for the needed element
-                    neededElement?.let { element ->
-                        val count = when (element) {
-                            ElementMapper.Element.WOOD -> collectionStatus?.wood ?: 0
-                            ElementMapper.Element.FIRE -> collectionStatus?.fire ?: 0
-                            ElementMapper.Element.EARTH -> collectionStatus?.earth ?: 0
-                            ElementMapper.Element.METAL -> collectionStatus?.metal ?: 0
-                            ElementMapper.Element.WATER -> collectionStatus?.water ?: 0
-                            ElementMapper.Element.OTHERS -> 0
-                        }
-                        serverCollectedCount = count
-                        localCollectedCount = count  // Initialize local count from server
-                        updateCollectionProgress()
-                        Log.d(TAG, "Server collection count loaded: $count for ${element.displayName}")
-                    }
-                } else {
-                    Log.w(TAG, "Failed to fetch collection count: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching collection count", e)
             }
         }
     }

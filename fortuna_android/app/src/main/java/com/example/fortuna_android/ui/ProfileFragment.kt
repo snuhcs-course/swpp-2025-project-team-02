@@ -50,7 +50,6 @@ class ProfileFragment : Fragment() {
         setupHeader()
         setupClickListeners()
         loadUserProfile()
-        loadCollectionStatus()  // Load collection status separately
     }
 
     private fun setupHeader() {
@@ -138,119 +137,6 @@ class ProfileFragment : Fragment() {
         val binding = _binding ?: return
         binding.loadingContainer.visibility = View.GONE
         binding.contentContainer.visibility = View.VISIBLE
-    }
-
-    /**
-     * Load collection status from dedicated API
-     */
-    private fun loadCollectionStatus() {
-        if (!isAdded) return
-
-        Log.d(TAG, "==== Loading collection status ====")
-
-        lifecycleScope.launch {
-            try {
-                Log.d(TAG, "Calling getCollectionStatus API...")
-                val response = RetrofitClient.instance.getCollectionStatus()
-
-                Log.d(TAG, "Response code: ${response.code()}")
-                Log.d(TAG, "Response success: ${response.isSuccessful}")
-
-                if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!
-                    Log.d(TAG, "Response body status: ${body.status}")
-
-                    // Log raw response to understand structure
-                    try {
-                        val gson = com.google.gson.Gson()
-                        val jsonString = gson.toJson(body)
-                        Log.d(TAG, "Full response JSON: $jsonString")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Could not serialize response to JSON", e)
-                    }
-
-                    val collectionData = body.data
-                    Log.d(TAG, "Collection data: $collectionData")
-
-                    val elements = collectionData.collectedElements
-                    Log.d(TAG, "Collected elements object: $elements")
-
-                    if (elements != null) {
-                        Log.d(TAG, "Collected elements received:")
-                        Log.d(TAG, "  - wood: ${elements.wood}")
-                        Log.d(TAG, "  - fire: ${elements.fire}")
-                        Log.d(TAG, "  - earth: ${elements.earth}")
-                        Log.d(TAG, "  - metal: ${elements.metal}")
-                        Log.d(TAG, "  - water: ${elements.water}")
-
-                        updateCollectedElementsFromAPI(elements)
-                        Log.d(TAG, "Collection status loaded successfully")
-                    } else {
-                        Log.e(TAG, "collectedElements is null in the response!")
-                        Log.e(TAG, "This means the API response structure is different than expected")
-                    }
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e(TAG, "Failed to load collection status: ${response.code()}")
-                    Log.e(TAG, "Error message: ${response.message()}")
-                    Log.e(TAG, "Error body: $errorBody")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading collection status", e)
-                e.printStackTrace()
-            }
-        }
-    }
-
-    /**
-     * Update collected elements badges from API response
-     */
-    private fun updateCollectedElementsFromAPI(collectedElements: com.example.fortuna_android.api.CollectedElements) {
-        val binding = _binding ?: return
-
-        // Element colors matching SajuPaljaView
-        val woodColor = Color.parseColor("#0BEFA0")   // Green
-        val fireColor = Color.parseColor("#F93E3E")   // Red
-        val earthColor = Color.parseColor("#FF9500")  // Orange
-        val metalColor = Color.parseColor("#C1BFBF")  // Gray
-        val waterColor = Color.parseColor("#2BB3FC")  // Blue
-
-        // Update badge 1: 목 (Wood) - Green
-        updateElementBadge(
-            badge = binding.elementBadge1,
-            count = collectedElements.wood,
-            color = woodColor
-        )
-
-        // Update badge 2: 화 (Fire) - Red
-        updateElementBadge(
-            badge = binding.elementBadge2,
-            count = collectedElements.fire,
-            color = fireColor
-        )
-
-        // Update badge 3: 토 (Earth) - Orange
-        updateElementBadge(
-            badge = binding.elementBadge3,
-            count = collectedElements.earth,
-            color = earthColor
-        )
-
-        // Update badge 4: 금 (Metal) - Gray
-        updateElementBadge(
-            badge = binding.elementBadge4,
-            count = collectedElements.metal,
-            color = metalColor
-        )
-
-        // Update badge 5: 수 (Water) - Blue
-        updateElementBadge(
-            badge = binding.elementBadge5,
-            count = collectedElements.water,
-            color = waterColor
-        )
-
-        Log.d(TAG, "Collected elements updated from API: 목=${collectedElements.wood}, 화=${collectedElements.fire}, 토=${collectedElements.earth}, 금=${collectedElements.metal}, 수=${collectedElements.water}")
     }
 
     private fun updateUI(profile: UserProfile) {
