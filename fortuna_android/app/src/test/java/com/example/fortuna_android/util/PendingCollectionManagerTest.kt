@@ -260,20 +260,20 @@ class PendingCollectionManagerTest {
 
     @Test
     fun `test savePendingCollection with zero count`() {
+        // Zero count is invalid - getPendingCollection should return null (count > 0 validation)
         PendingCollectionManager.savePendingCollection(context, "water", 0)
 
         val pendingData = PendingCollectionManager.getPendingCollection(context)
-        assertNotNull("Pending data should not be null", pendingData)
-        assertEquals("Count should be 0", 0, pendingData!!.second)
+        assertNull("Pending data should be null for count = 0 (invalid)", pendingData)
     }
 
     @Test
     fun `test savePendingCollection with negative count`() {
+        // Negative count is invalid - getPendingCollection should return null (count > 0 validation)
         PendingCollectionManager.savePendingCollection(context, "earth", -1)
 
         val pendingData = PendingCollectionManager.getPendingCollection(context)
-        assertNotNull("Pending data should not be null", pendingData)
-        assertEquals("Count should be -1", -1, pendingData!!.second)
+        assertNull("Pending data should be null for count = -1 (invalid)", pendingData)
     }
 
     @Test
