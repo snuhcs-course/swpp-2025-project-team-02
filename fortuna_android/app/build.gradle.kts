@@ -97,6 +97,8 @@ android {
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/io.netty.versions.properties"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/LICENSE-notice.md"
         }
         jniLibs {
             useLegacyPackaging = false
@@ -143,6 +145,8 @@ dependencies {
     androidTestImplementation("androidx.navigation:navigation-testing:2.7.6")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     androidTestImplementation("org.mockito:mockito-android:5.7.0")
+    androidTestImplementation("io.mockk:mockk-android:1.13.8")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
