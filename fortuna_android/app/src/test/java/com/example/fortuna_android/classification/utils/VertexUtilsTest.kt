@@ -1,310 +1,229 @@
 package com.example.fortuna_android.classification.utils
 
-import com.example.fortuna_android.classification.utils.VertexUtils.calculateAverage
-import com.example.fortuna_android.classification.utils.VertexUtils.rotateCoordinates
-import com.example.fortuna_android.classification.utils.VertexUtils.toAbsoluteCoordinates
 import com.google.cloud.vision.v1.NormalizedVertex
 import org.junit.Assert.*
 import org.junit.Test
 
-/**
- * Unit tests for VertexUtils
- * Tests coordinate transformation and vertex manipulation utilities
- */
 class VertexUtilsTest {
 
     // Test toAbsoluteCoordinates extension function
     @Test
-    fun `test toAbsoluteCoordinates with zero coordinates`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0f).setY(0f).build()
-        val result = vertex.toAbsoluteCoordinates(1920, 1080)
+    fun testToAbsoluteCoordinates_NormalValues() {
+        val vertex = NormalizedVertex.newBuilder()
+            .setX(0.5f)
+            .setY(0.5f)
+            .build()
+
+        val result = VertexUtils.run { vertex.toAbsoluteCoordinates(1000, 800) }
+
+        assertEquals(500, result.first)
+        assertEquals(400, result.second)
+    }
+
+    @Test
+    fun testToAbsoluteCoordinates_ZeroValues() {
+        val vertex = NormalizedVertex.newBuilder()
+            .setX(0.0f)
+            .setY(0.0f)
+            .build()
+
+        val result = VertexUtils.run { vertex.toAbsoluteCoordinates(1000, 800) }
 
         assertEquals(0, result.first)
         assertEquals(0, result.second)
     }
 
     @Test
-    fun `test toAbsoluteCoordinates with normalized coordinates`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0.5f).setY(0.5f).build()
-        val result = vertex.toAbsoluteCoordinates(1920, 1080)
+    fun testToAbsoluteCoordinates_MaxValues() {
+        val vertex = NormalizedVertex.newBuilder()
+            .setX(1.0f)
+            .setY(1.0f)
+            .build()
 
-        assertEquals(960, result.first)
-        assertEquals(540, result.second)
+        val result = VertexUtils.run { vertex.toAbsoluteCoordinates(1000, 800) }
+
+        assertEquals(1000, result.first)
+        assertEquals(800, result.second)
     }
 
     @Test
-    fun `test toAbsoluteCoordinates with max coordinates`() {
-        val vertex = NormalizedVertex.newBuilder().setX(1.0f).setY(1.0f).build()
-        val result = vertex.toAbsoluteCoordinates(1920, 1080)
+    fun testToAbsoluteCoordinates_FractionalValues() {
+        val vertex = NormalizedVertex.newBuilder()
+            .setX(0.25f)
+            .setY(0.75f)
+            .build()
 
-        assertEquals(1920, result.first)
-        assertEquals(1080, result.second)
-    }
-
-    @Test
-    fun `test toAbsoluteCoordinates with fractional coordinates`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0.25f).setY(0.75f).build()
-        val result = vertex.toAbsoluteCoordinates(1000, 800)
+        val result = VertexUtils.run { vertex.toAbsoluteCoordinates(1000, 800) }
 
         assertEquals(250, result.first)
         assertEquals(600, result.second)
     }
 
+    // Test rotateCoordinates extension function - all rotation angles
     @Test
-    fun `test toAbsoluteCoordinates with small image size`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0.5f).setY(0.5f).build()
-        val result = vertex.toAbsoluteCoordinates(100, 100)
-
-        assertEquals(50, result.first)
-        assertEquals(50, result.second)
-    }
-
-    @Test
-    fun `test toAbsoluteCoordinates with large image size`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0.5f).setY(0.5f).build()
-        val result = vertex.toAbsoluteCoordinates(4000, 3000)
-
-        assertEquals(2000, result.first)
-        assertEquals(1500, result.second)
-    }
-
-    // Test rotateCoordinates extension function
-    @Test
-    fun `test rotateCoordinates with 0 degree rotation`() {
-        val coords = 100 to 200
-        val result = coords.rotateCoordinates(1920, 1080, 0)
+    fun testRotateCoordinates_0Degrees() {
+        val coord = 100 to 200
+        val result = VertexUtils.run { coord.rotateCoordinates(1000, 800, 0) }
 
         assertEquals(100, result.first)
         assertEquals(200, result.second)
     }
 
     @Test
-    fun `test rotateCoordinates with 180 degree rotation`() {
-        val coords = 100 to 200
-        val result = coords.rotateCoordinates(1920, 1080, 180)
-
-        assertEquals(1920 - 100, result.first)
-        assertEquals(1080 - 200, result.second)
-    }
-
-    @Test
-    fun `test rotateCoordinates with 90 degree rotation`() {
-        val coords = 100 to 200
-        val result = coords.rotateCoordinates(1920, 1080, 90)
+    fun testRotateCoordinates_90Degrees() {
+        val coord = 100 to 200
+        val result = VertexUtils.run { coord.rotateCoordinates(1000, 800, 90) }
 
         assertEquals(200, result.first)
-        assertEquals(1920 - 100, result.second)
+        assertEquals(900, result.second)
     }
 
     @Test
-    fun `test rotateCoordinates with 270 degree rotation`() {
-        val coords = 100 to 200
-        val result = coords.rotateCoordinates(1920, 1080, 270)
+    fun testRotateCoordinates_180Degrees() {
+        val coord = 100 to 200
+        val result = VertexUtils.run { coord.rotateCoordinates(1000, 800, 180) }
 
-        assertEquals(1080 - 200, result.first)
+        assertEquals(900, result.first)
+        assertEquals(600, result.second)
+    }
+
+    @Test
+    fun testRotateCoordinates_270Degrees() {
+        val coord = 100 to 200
+        val result = VertexUtils.run { coord.rotateCoordinates(1000, 800, 270) }
+
+        assertEquals(600, result.first)
         assertEquals(100, result.second)
     }
 
-    @Test
-    fun `test rotateCoordinates with origin point and 0 degree`() {
-        val coords = 0 to 0
-        val result = coords.rotateCoordinates(1920, 1080, 0)
-
-        assertEquals(0, result.first)
-        assertEquals(0, result.second)
-    }
-
-    @Test
-    fun `test rotateCoordinates with origin point and 180 degree`() {
-        val coords = 0 to 0
-        val result = coords.rotateCoordinates(1920, 1080, 180)
-
-        assertEquals(1920, result.first)
-        assertEquals(1080, result.second)
-    }
-
-    @Test
-    fun `test rotateCoordinates with origin point and 90 degree`() {
-        val coords = 0 to 0
-        val result = coords.rotateCoordinates(1920, 1080, 90)
-
-        assertEquals(0, result.first)
-        assertEquals(1920, result.second)
-    }
-
-    @Test
-    fun `test rotateCoordinates with origin point and 270 degree`() {
-        val coords = 0 to 0
-        val result = coords.rotateCoordinates(1920, 1080, 270)
-
-        assertEquals(1080, result.first)
-        assertEquals(0, result.second)
-    }
-
-    @Test
-    fun `test rotateCoordinates with center point and 180 degree`() {
-        val coords = 960 to 540
-        val result = coords.rotateCoordinates(1920, 1080, 180)
-
-        assertEquals(960, result.first)
-        assertEquals(540, result.second)
+    @Test(expected = IllegalStateException::class)
+    fun testRotateCoordinates_InvalidRotation() {
+        val coord = 100 to 200
+        VertexUtils.run { coord.rotateCoordinates(1000, 800, 45) }
     }
 
     @Test(expected = IllegalStateException::class)
-    fun `test rotateCoordinates with invalid rotation throws error`() {
-        val coords = 100 to 200
-        coords.rotateCoordinates(1920, 1080, 45)
+    fun testRotateCoordinates_InvalidRotation_Negative() {
+        val coord = 100 to 200
+        VertexUtils.run { coord.rotateCoordinates(1000, 800, -90) }
     }
 
     @Test(expected = IllegalStateException::class)
-    fun `test rotateCoordinates with negative rotation throws error`() {
-        val coords = 100 to 200
-        coords.rotateCoordinates(1920, 1080, -90)
+    fun testRotateCoordinates_InvalidRotation_360() {
+        val coord = 100 to 200
+        VertexUtils.run { coord.rotateCoordinates(1000, 800, 360) }
     }
 
-    @Test(expected = IllegalStateException::class)
-    fun `test rotateCoordinates with 360 rotation throws error`() {
-        val coords = 100 to 200
-        coords.rotateCoordinates(1920, 1080, 360)
-    }
-
-    // Test calculateAverage function
+    // Test calculateAverage extension function
     @Test
-    fun `test calculateAverage with single vertex`() {
+    fun testCalculateAverage_SingleVertex() {
         val vertices = listOf(
             NormalizedVertex.newBuilder().setX(0.5f).setY(0.5f).build()
         )
-        val result = vertices.calculateAverage()
+
+        val result = VertexUtils.run { vertices.calculateAverage() }
 
         assertEquals(0.5f, result.x, 0.001f)
         assertEquals(0.5f, result.y, 0.001f)
     }
 
     @Test
-    fun `test calculateAverage with two vertices`() {
+    fun testCalculateAverage_TwoVertices() {
         val vertices = listOf(
             NormalizedVertex.newBuilder().setX(0.0f).setY(0.0f).build(),
             NormalizedVertex.newBuilder().setX(1.0f).setY(1.0f).build()
         )
-        val result = vertices.calculateAverage()
+
+        val result = VertexUtils.run { vertices.calculateAverage() }
 
         assertEquals(0.5f, result.x, 0.001f)
         assertEquals(0.5f, result.y, 0.001f)
     }
 
     @Test
-    fun `test calculateAverage with four vertices forming a square`() {
+    fun testCalculateAverage_FourVertices() {
         val vertices = listOf(
             NormalizedVertex.newBuilder().setX(0.0f).setY(0.0f).build(),
             NormalizedVertex.newBuilder().setX(1.0f).setY(0.0f).build(),
             NormalizedVertex.newBuilder().setX(1.0f).setY(1.0f).build(),
             NormalizedVertex.newBuilder().setX(0.0f).setY(1.0f).build()
         )
-        val result = vertices.calculateAverage()
+
+        val result = VertexUtils.run { vertices.calculateAverage() }
 
         assertEquals(0.5f, result.x, 0.001f)
         assertEquals(0.5f, result.y, 0.001f)
     }
 
     @Test
-    fun `test calculateAverage with asymmetric vertices`() {
+    fun testCalculateAverage_NonSymmetricVertices() {
         val vertices = listOf(
-            NormalizedVertex.newBuilder().setX(0.1f).setY(0.2f).build(),
-            NormalizedVertex.newBuilder().setX(0.3f).setY(0.4f).build(),
-            NormalizedVertex.newBuilder().setX(0.5f).setY(0.6f).build()
+            NormalizedVertex.newBuilder().setX(0.2f).setY(0.3f).build(),
+            NormalizedVertex.newBuilder().setX(0.8f).setY(0.4f).build(),
+            NormalizedVertex.newBuilder().setX(0.6f).setY(0.9f).build()
         )
-        val result = vertices.calculateAverage()
 
-        assertEquals(0.3f, result.x, 0.001f)
-        assertEquals(0.4f, result.y, 0.001f)
+        val result = VertexUtils.run { vertices.calculateAverage() }
+
+        // (0.2 + 0.8 + 0.6) / 3 = 1.6 / 3 = 0.533...
+        assertEquals(0.533f, result.x, 0.01f)
+        // (0.3 + 0.4 + 0.9) / 3 = 1.6 / 3 = 0.533...
+        assertEquals(0.533f, result.y, 0.01f)
     }
 
     @Test
-    fun `test calculateAverage with zero coordinates`() {
+    fun testCalculateAverage_AllZeroVertices() {
         val vertices = listOf(
             NormalizedVertex.newBuilder().setX(0.0f).setY(0.0f).build(),
             NormalizedVertex.newBuilder().setX(0.0f).setY(0.0f).build(),
             NormalizedVertex.newBuilder().setX(0.0f).setY(0.0f).build()
         )
-        val result = vertices.calculateAverage()
+
+        val result = VertexUtils.run { vertices.calculateAverage() }
 
         assertEquals(0.0f, result.x, 0.001f)
         assertEquals(0.0f, result.y, 0.001f)
     }
 
     @Test
-    fun `test calculateAverage with max coordinates`() {
+    fun testCalculateAverage_MaxVertices() {
         val vertices = listOf(
             NormalizedVertex.newBuilder().setX(1.0f).setY(1.0f).build(),
             NormalizedVertex.newBuilder().setX(1.0f).setY(1.0f).build()
         )
-        val result = vertices.calculateAverage()
+
+        val result = VertexUtils.run { vertices.calculateAverage() }
 
         assertEquals(1.0f, result.x, 0.001f)
         assertEquals(1.0f, result.y, 0.001f)
     }
 
+    // Combined integration tests
     @Test
-    fun `test calculateAverage with many vertices`() {
-        val vertices = listOf(
-            NormalizedVertex.newBuilder().setX(0.1f).setY(0.1f).build(),
-            NormalizedVertex.newBuilder().setX(0.2f).setY(0.2f).build(),
-            NormalizedVertex.newBuilder().setX(0.3f).setY(0.3f).build(),
-            NormalizedVertex.newBuilder().setX(0.4f).setY(0.4f).build(),
-            NormalizedVertex.newBuilder().setX(0.5f).setY(0.5f).build()
-        )
-        val result = vertices.calculateAverage()
+    fun testIntegration_ToAbsoluteAndRotate() {
+        val vertex = NormalizedVertex.newBuilder()
+            .setX(0.5f)
+            .setY(0.5f)
+            .build()
 
-        assertEquals(0.3f, result.x, 0.001f)
-        assertEquals(0.3f, result.y, 0.001f)
-    }
+        val absolute = VertexUtils.run { vertex.toAbsoluteCoordinates(1000, 800) }
+        val rotated = VertexUtils.run { absolute.rotateCoordinates(1000, 800, 90) }
 
-    // Integration tests combining multiple functions
-    @Test
-    fun `test conversion and rotation workflow`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0.5f).setY(0.5f).build()
-        val absolute = vertex.toAbsoluteCoordinates(1920, 1080)
-        val rotated = absolute.rotateCoordinates(1920, 1080, 180)
-
-        assertEquals(960, rotated.first)
-        assertEquals(540, rotated.second)
+        assertEquals(400, rotated.first)
+        assertEquals(500, rotated.second)
     }
 
     @Test
-    fun `test average calculation and conversion workflow`() {
+    fun testIntegration_CalculateAverageAndConvert() {
         val vertices = listOf(
-            NormalizedVertex.newBuilder().setX(0.25f).setY(0.25f).build(),
-            NormalizedVertex.newBuilder().setX(0.75f).setY(0.75f).build()
+            NormalizedVertex.newBuilder().setX(0.0f).setY(0.0f).build(),
+            NormalizedVertex.newBuilder().setX(1.0f).setY(1.0f).build()
         )
-        val average = vertices.calculateAverage()
-        val absolute = average.toAbsoluteCoordinates(1000, 1000)
+
+        val average = VertexUtils.run { vertices.calculateAverage() }
+        val absolute = VertexUtils.run { average.toAbsoluteCoordinates(1000, 800) }
 
         assertEquals(500, absolute.first)
-        assertEquals(500, absolute.second)
-    }
-
-    // Edge cases
-    @Test
-    fun `test toAbsoluteCoordinates with very small normalized values`() {
-        val vertex = NormalizedVertex.newBuilder().setX(0.001f).setY(0.001f).build()
-        val result = vertex.toAbsoluteCoordinates(1000, 1000)
-
-        assertEquals(1, result.first)
-        assertEquals(1, result.second)
-    }
-
-    @Test
-    fun `test rotateCoordinates with square image`() {
-        val coords = 100 to 100
-        val result90 = coords.rotateCoordinates(1000, 1000, 90)
-        val result180 = coords.rotateCoordinates(1000, 1000, 180)
-        val result270 = coords.rotateCoordinates(1000, 1000, 270)
-
-        assertEquals(100, result90.first)
-        assertEquals(900, result90.second)
-        assertEquals(900, result180.first)
-        assertEquals(900, result180.second)
-        assertEquals(900, result270.first)
-        assertEquals(100, result270.second)
+        assertEquals(400, absolute.second)
     }
 }

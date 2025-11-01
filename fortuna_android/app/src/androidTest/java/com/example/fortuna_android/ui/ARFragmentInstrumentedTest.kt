@@ -11,11 +11,6 @@ import org.junit.runner.RunWith
 
 /**
  * Instrumented tests for ARFragment
- * These tests verify fragment instantiation and public method behavior
- *
- * Note: These tests focus on fragment instance creation and public API methods.
- * Full lifecycle and UI tests are skipped due to fragment-testing library limitations
- * with launchFragmentInContainer causing IllegalStateException issues.
  */
 @RunWith(AndroidJUnit4::class)
 class ARFragmentInstrumentedTest {

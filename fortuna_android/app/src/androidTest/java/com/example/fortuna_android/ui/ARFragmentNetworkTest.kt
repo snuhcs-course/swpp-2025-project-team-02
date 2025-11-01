@@ -10,11 +10,6 @@ import org.junit.runner.RunWith
 
 /**
  * Network-related instrumented tests for ARFragment
- * These tests verify fragment behavior under different network/auth states
- *
- * Note: These tests focus on fragment API methods without full lifecycle.
- * Full UI and network interaction tests are skipped due to fragment-testing
- * library limitations with launchFragmentInContainer.
  */
 @RunWith(AndroidJUnit4::class)
 class ARFragmentNetworkTest {
