@@ -2,6 +2,7 @@ package com.example.fortuna_android.ui
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.app.Activity
 import android.graphics.drawable.GradientDrawable
 import android.opengl.GLSurfaceView
 import android.os.Bundle
@@ -41,7 +42,9 @@ import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationExceptio
 import android.hardware.camera2.CameraAccessException
 import kotlinx.coroutines.launch
 
-class ARFragment : Fragment(), DefaultLifecycleObserver {
+class ARFragment(
+    private val sessionManagerFactory: ((Activity) -> ARSessionManager)? = null
+) : Fragment(), DefaultLifecycleObserver {
 
     companion object {
         private const val TAG = "ARFragment"
@@ -57,8 +60,8 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     private var neededElement: ElementMapper.Element? = null
     private var localCollectedCount: Int = 0  // Track local collection count during AR session
 
-    // ARCore session helper - managed by this fragment
-    private lateinit var arCoreSessionHelper: ARCoreSessionLifecycleHelper
+    // ARCore session manager - managed by this fragment
+    private lateinit var sessionManager: ARSessionManager
 
     // VLM state
     private val vlmResponseBuilder = StringBuilder()
@@ -103,15 +106,17 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
     }
 
     private fun setupARCoreSession(mainActivity: MainActivity) {
-        // Create ARCore session helper for this fragment
-        // Use a more conservative approach to avoid frequent session recreation
-        arCoreSessionHelper = ARCoreSessionLifecycleHelper(requireActivity())
+        // Create ARCore session manager for this fragment using factory or default implementation
+        sessionManager = sessionManagerFactory?.invoke(requireActivity())
+            ?: ARCoreSessionLifecycleHelper(requireActivity())
 
-        // Set this session helper on MainActivity for renderer access
-        mainActivity.arCoreSessionHelper = arCoreSessionHelper
+        // Set session manager on MainActivity for renderer access (maintain compatibility)
+        if (sessionManager is ARCoreSessionLifecycleHelper) {
+            mainActivity.arCoreSessionHelper = sessionManager as ARCoreSessionLifecycleHelper
+        }
 
         // Configure ARCore session
-        arCoreSessionHelper.exceptionCallback = { exception ->
+        sessionManager.exceptionCallback = { exception ->
             val message = when (exception) {
                 is UnavailableArcoreNotInstalledException,
                 is UnavailableUserDeclinedInstallationException -> "Please install ARCore"
@@ -137,7 +142,7 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
             }
         }
 
-        arCoreSessionHelper.beforeSessionResume = { session ->
+        sessionManager.beforeSessionResume = { session ->
             Log.d(TAG, "ARCore session configuration starting...")
 
             try {
@@ -186,11 +191,11 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
 
         lifecycle.addObserver(this)
 
-        // Add ARCore session helper to fragment lifecycle for proper autofocus control
-        lifecycle.addObserver(arCoreSessionHelper)
+        // Add ARCore session manager to fragment lifecycle for proper autofocus control
+        lifecycle.addObserver(sessionManager)
 
         // Log AR session setup
-        Log.d(TAG, "ARFragment setup completed, ARCore session helper: $arCoreSessionHelper")
+        Log.d(TAG, "ARFragment setup completed, ARCore session manager: $sessionManager")
     }
 
     private fun setupClickListeners() {
@@ -593,9 +598,9 @@ class ARFragment : Fragment(), DefaultLifecycleObserver {
                 lifecycle.removeObserver(renderer)
             }
 
-            // Remove ARCore session helper lifecycle observer if initialized
-            if (::arCoreSessionHelper.isInitialized) {
-                lifecycle.removeObserver(arCoreSessionHelper)
+            // Remove ARCore session manager lifecycle observer if initialized
+            if (::sessionManager.isInitialized) {
+                lifecycle.removeObserver(sessionManager)
             }
 
             // Clean up surface view reference
