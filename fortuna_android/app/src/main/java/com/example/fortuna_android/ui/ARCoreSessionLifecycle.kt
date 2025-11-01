@@ -33,24 +33,24 @@ import com.google.ar.core.exceptions.CameraNotAvailableException
 class ARCoreSessionLifecycleHelper(
   val activity: Activity,
   val features: Set<Session.Feature> = setOf()
-) : DefaultLifecycleObserver {
+) : DefaultLifecycleObserver, ARSessionManager {
   var installRequested = false
-  var sessionCache: Session? = null
+  override var sessionCache: Session? = null
     private set
 
   // Creating a Session may fail. In this case, sessionCache will remain null, and this function will be called with an exception.
   // See https://developers.google.com/ar/reference/java/com/google/ar/core/Session#Session(android.content.Context)
   // for more information.
-  var exceptionCallback: ((Exception) -> Unit)? = null
+  override var exceptionCallback: ((Exception) -> Unit)? = null
 
   // After creating a session, but before Session.resume is called is the perfect time to setup a session.
   // Generally, you would use Session.configure or setCameraConfig here.
   // https://developers.google.com/ar/reference/java/com/google/ar/core/Session#public-void-configure-config-config
   // https://developers.google.com/ar/reference/java/com/google/ar/core/Session#setCameraConfig(com.google.ar.core.CameraConfig)
-  var beforeSessionResume: ((Session) -> Unit)? = null
+  override var beforeSessionResume: ((Session) -> Unit)? = null
 
   // Creates a session. If ARCore is not installed, an installation will be requested.
-  fun tryCreateSession(): Session? {
+  override fun tryCreateSession(): Session? {
     // Request an installation if necessary.
     when (ArCoreApk.getInstance().requestInstall(activity, !installRequested)!!) {
       ArCoreApk.InstallStatus.INSTALL_REQUESTED -> {
@@ -102,7 +102,7 @@ class ARCoreSessionLifecycleHelper(
   }
 
 
-  fun onRequestPermissionsResult(
+  override fun onRequestPermissionsResult(
     requestCode: Int,
     permissions: Array<out String>,
     grantResults: IntArray
