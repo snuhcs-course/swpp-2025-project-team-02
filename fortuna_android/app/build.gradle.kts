@@ -143,7 +143,7 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.navigation:navigation-testing:2.7.6")
-    androidTestImplementation("androidx.fragment:fragment-testing:1.6.2")
+    debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     androidTestImplementation("org.mockito:mockito-android:5.7.0")
     androidTestImplementation("io.mockk:mockk-android:1.13.8")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
@@ -242,14 +242,18 @@ tasks.register<JacocoReport>("jacocoAndroidTestReport") {
         "**/generated/**"
     )
 
-    val debugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+    val kotlinDebugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    val javaDebugTree = fileTree("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
         exclude(fileFilter)
     }
 
     val mainSrc = "${project.projectDir}/src/main/java"
 
     sourceDirectories.setFrom(files(mainSrc))
-    classDirectories.setFrom(files(debugTree))
+    classDirectories.setFrom(files(kotlinDebugTree, javaDebugTree))
     executionData.setFrom(fileTree(buildDir) {
         include("**/*.exec", "**/*.ec", "**/coverage.ec")
     })
@@ -277,14 +281,18 @@ tasks.register<JacocoReport>("jacocoFullReport") {
         "**/generated/**"
     )
 
-    val debugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+    val kotlinDebugTree = fileTree("${buildDir}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    val javaDebugTree = fileTree("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") {
         exclude(fileFilter)
     }
 
     val mainSrc = "${project.projectDir}/src/main/java"
 
     sourceDirectories.setFrom(files(mainSrc))
-    classDirectories.setFrom(files(debugTree))
+    classDirectories.setFrom(files(kotlinDebugTree, javaDebugTree))
     executionData.setFrom(fileTree(buildDir) {
         include("**/*.exec", "**/*.ec", "**/coverage.ec")
     })

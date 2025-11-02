@@ -3,6 +3,7 @@ package com.example.fortuna_android
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.content.Context
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -101,6 +102,15 @@ class FortunaFirebaseMessagingServiceInstrumentedTest {
         service.onMessageReceived(remoteMessage)
 
         Thread.sleep(500)
+    }
+
+    @Test
+    fun testOnNewToken() {
+        val token = "test_fcm_token_12345"
+
+        // Should not throw
+        service.onNewToken(token)
+
         assertTrue(true)
     }
 
