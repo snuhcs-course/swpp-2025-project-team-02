@@ -83,7 +83,11 @@ class FortuneViewModel : ViewModel() {
 
                     // Check each pillar
                     fortuneResponse.data.fortuneScore.elements.forEach { (key, pillar) ->
-                        Log.d(TAG, "Pillar[$key]: ${pillar.twoLetters}, Stem: ${pillar.stem.koreanName}(${pillar.stem.element}), Branch: ${pillar.branch.koreanName}(${pillar.branch.element})")
+                        if (pillar != null) {
+                            Log.d(TAG, "Pillar[$key]: ${pillar.twoLetters}, Stem: ${pillar.stem.koreanName}(${pillar.stem.element}), Branch: ${pillar.branch.koreanName}(${pillar.branch.element})")
+                        } else {
+                            Log.w(TAG, "Pillar[$key] is null")
+                        }
                     }
 
                     // Check if fortune data is complete
