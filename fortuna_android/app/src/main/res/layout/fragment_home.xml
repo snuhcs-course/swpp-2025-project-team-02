@@ -16,57 +16,10 @@
         <!-- 상단 헤더 -->
         <include layout="@layout/header_fortuna" />
 
-        <!-- 탭 레이아웃 -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="20dp">
-
-            <!-- 오늘의 운세 탭 -->
-            <TextView
-                android:id="@+id/tabTodayFortune"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="오늘의 운세"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless" />
-
-            <!-- 구분선 -->
-            <View
-                android:layout_width="1dp"
-                android:layout_height="16dp"
-                android:layout_marginHorizontal="4dp"
-                android:background="#444444" />
-
-            <!-- 상세 분석 탭 -->
-            <TextView
-                android:id="@+id/tabDetailAnalysis"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="상세 분석"
-                android:textColor="#888888"
-                android:textSize="15sp"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless" />
-
-        </LinearLayout>
-
-        <!-- ViewPager2 for swipeable tabs -->
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/viewPager"
+        <!-- Main fortune content -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/fortune_container"
+            android:name="com.example.fortuna_android.ui.TodayFortuneFragment"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
