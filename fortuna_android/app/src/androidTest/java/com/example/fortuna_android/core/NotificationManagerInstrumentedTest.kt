@@ -1,8 +1,7 @@
-package com.example.fortuna_android
+package com.example.fortuna_android.core
 
 import android.Manifest
 import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,7 +10,8 @@ import androidx.core.content.ContextCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import com.example.fortuna_android.MainActivity
+import com.example.fortuna_android.NotificationManager
 import com.google.firebase.FirebaseApp
 import io.mockk.*
 import org.junit.After
@@ -19,6 +19,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Calendar
 
 /**
  * Instrumented tests for NotificationManager
@@ -64,7 +65,7 @@ class NotificationManagerInstrumentedTest {
             try {
                 scenario.onActivity { activity ->
                     // Call requestNotificationPermission
-                    NotificationManager.requestNotificationPermission(activity)
+                    NotificationManager.Companion.requestNotificationPermission(activity)
                 }
 
                 Thread.sleep(1000)
@@ -90,7 +91,7 @@ class NotificationManagerInstrumentedTest {
                     ) == PackageManager.PERMISSION_GRANTED
 
                     // Call the method regardless of permission state
-                    NotificationManager.requestNotificationPermission(activity)
+                    NotificationManager.Companion.requestNotificationPermission(activity)
                 }
 
                 Thread.sleep(500)
@@ -111,7 +112,7 @@ class NotificationManagerInstrumentedTest {
         try {
             scenario.onActivity { activity ->
                 // On API < 33, this should do nothing
-                NotificationManager.requestNotificationPermission(activity)
+                NotificationManager.Companion.requestNotificationPermission(activity)
             }
 
             Thread.sleep(500)
@@ -129,7 +130,7 @@ class NotificationManagerInstrumentedTest {
         var receivedToken: String? = null
 
         // Call generateFCMToken
-        NotificationManager.generateFCMToken(context) { token ->
+        NotificationManager.Companion.generateFCMToken(context) { token ->
             receivedToken = token
         }
 
@@ -145,7 +146,7 @@ class NotificationManagerInstrumentedTest {
         var callbackCalled = false
 
         // Call generateFCMToken
-        NotificationManager.generateFCMToken(context) { token ->
+        NotificationManager.Companion.generateFCMToken(context) { token ->
             callbackCalled = true
             // Token might be null if Firebase fails
         }
@@ -164,7 +165,7 @@ class NotificationManagerInstrumentedTest {
         val topic = "test_topic_success"
 
         // Call subscribeToTopic
-        NotificationManager.subscribeToTopic(topic)
+        NotificationManager.Companion.subscribeToTopic(topic)
 
         // Wait for Firebase operation to complete
         Thread.sleep(3000)
@@ -178,7 +179,7 @@ class NotificationManagerInstrumentedTest {
         val topic = "test_topic_failure_invalid!@#$%"
 
         // Call subscribeToTopic with potentially invalid topic
-        NotificationManager.subscribeToTopic(topic)
+        NotificationManager.Companion.subscribeToTopic(topic)
 
         // Wait for Firebase operation to complete
         Thread.sleep(3000)
@@ -193,11 +194,11 @@ class NotificationManagerInstrumentedTest {
         val topic = "test_topic_unsubscribe"
 
         // Subscribe first
-        NotificationManager.subscribeToTopic(topic)
+        NotificationManager.Companion.subscribeToTopic(topic)
         Thread.sleep(2000)
 
         // Now unsubscribe
-        NotificationManager.unsubscribeFromTopic(topic)
+        NotificationManager.Companion.unsubscribeFromTopic(topic)
 
         // Wait for Firebase operation to complete
         Thread.sleep(3000)
@@ -208,7 +209,7 @@ class NotificationManagerInstrumentedTest {
         val topic = "test_topic_unsubscribe_invalid!@#"
 
         // Call unsubscribeFromTopic
-        NotificationManager.unsubscribeFromTopic(topic)
+        NotificationManager.Companion.unsubscribeFromTopic(topic)
 
         // Wait for Firebase operation to complete
         Thread.sleep(3000)
@@ -225,7 +226,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 1001
 
         // Call scheduleNotification
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             title,
             message,
@@ -250,7 +251,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 1002
 
         // Call scheduleNotification with past time (should schedule for next day)
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             title,
             message,
@@ -274,7 +275,7 @@ class NotificationManagerInstrumentedTest {
         val minute = 30
 
         // Call scheduleNotification with default notificationId (0)
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             title,
             message,
@@ -291,16 +292,16 @@ class NotificationManagerInstrumentedTest {
 
     @Test
     fun testScheduleNotification_currentTime() {
-        val calendar = java.util.Calendar.getInstance()
-        val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
-        val currentMinute = calendar.get(java.util.Calendar.MINUTE)
+        val calendar = Calendar.getInstance()
+        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+        val currentMinute = calendar.get(Calendar.MINUTE)
 
         val title = "Current Time Notification"
         val message = "Scheduled at current time"
         val notificationId = 1003
 
         // Call scheduleNotification with current time
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             title,
             message,
@@ -324,7 +325,7 @@ class NotificationManagerInstrumentedTest {
         val message = "Your daily fortune is ready!"
 
         // Call fortuneGeneratedNotification with default ID
-        NotificationManager.fortuneGeneratedNotification(
+        NotificationManager.Companion.fortuneGeneratedNotification(
             context,
             title,
             message
@@ -344,7 +345,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 2001
 
         // Call fortuneGeneratedNotification with custom ID
-        NotificationManager.fortuneGeneratedNotification(
+        NotificationManager.Companion.fortuneGeneratedNotification(
             context,
             title,
             message,
@@ -365,7 +366,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 3001
 
         // First schedule a notification
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             "To Be Cancelled",
             "This will be cancelled",
@@ -377,7 +378,7 @@ class NotificationManagerInstrumentedTest {
         Thread.sleep(500)
 
         // Now cancel it
-        NotificationManager.cancelScheduledNotification(context, notificationId)
+        NotificationManager.Companion.cancelScheduledNotification(context, notificationId)
 
         Thread.sleep(500)
 
@@ -391,7 +392,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 9999
 
         // Cancel a notification that doesn't exist (should not crash)
-        NotificationManager.cancelScheduledNotification(context, notificationId)
+        NotificationManager.Companion.cancelScheduledNotification(context, notificationId)
 
         Thread.sleep(500)
 
@@ -525,7 +526,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 5001
 
         // Schedule notification
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             title,
             message,
@@ -548,7 +549,7 @@ class NotificationManagerInstrumentedTest {
         Thread.sleep(500)
 
         // Cancel the notification
-        NotificationManager.cancelScheduledNotification(context, notificationId)
+        NotificationManager.Companion.cancelScheduledNotification(context, notificationId)
 
         Thread.sleep(500)
     }
@@ -557,7 +558,7 @@ class NotificationManagerInstrumentedTest {
     fun testMultipleNotifications() {
         // Schedule multiple notifications with different IDs
         for (i in 6001..6005) {
-            NotificationManager.scheduleNotification(
+            NotificationManager.Companion.scheduleNotification(
                 context,
                 "Notification $i",
                 "Message $i",
@@ -572,7 +573,7 @@ class NotificationManagerInstrumentedTest {
 
         // Cancel all notifications
         for (i in 6001..6005) {
-            NotificationManager.cancelScheduledNotification(context, i)
+            NotificationManager.Companion.cancelScheduledNotification(context, i)
             Thread.sleep(100)
         }
     }
@@ -580,7 +581,7 @@ class NotificationManagerInstrumentedTest {
     @Test
     fun testFortuneNotificationFlow() {
         // Schedule fortune notification
-        NotificationManager.fortuneGeneratedNotification(
+        NotificationManager.Companion.fortuneGeneratedNotification(
             context,
             "Your Fortune",
             "Today's fortune is ready!"
@@ -608,7 +609,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 7001
 
         // Schedule notification
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             "Past Time Test",
             "Should be scheduled for tomorrow",
@@ -620,7 +621,7 @@ class NotificationManagerInstrumentedTest {
         Thread.sleep(500)
 
         // Notification should be scheduled for next day
-        NotificationManager.cancelScheduledNotification(context, notificationId)
+        NotificationManager.Companion.cancelScheduledNotification(context, notificationId)
     }
 
     @Test
@@ -631,7 +632,7 @@ class NotificationManagerInstrumentedTest {
         val notificationId = 7002
 
         // Schedule notification
-        NotificationManager.scheduleNotification(
+        NotificationManager.Companion.scheduleNotification(
             context,
             "Future Time Test",
             "Should be scheduled for today",
@@ -643,7 +644,7 @@ class NotificationManagerInstrumentedTest {
         Thread.sleep(500)
 
         // Notification should be scheduled for today
-        NotificationManager.cancelScheduledNotification(context, notificationId)
+        NotificationManager.Companion.cancelScheduledNotification(context, notificationId)
     }
 
     @Test

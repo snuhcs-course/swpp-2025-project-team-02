@@ -1,17 +1,20 @@
-package com.example.fortuna_android
+package com.example.fortuna_android.core
 
 import android.content.Context
-import android.content.Intent
+import android.widget.Button
 import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.fortuna_android.R
+import com.example.fortuna_android.SignInFragment
+import com.example.fortuna_android.api.ApiService
 import com.example.fortuna_android.api.LoginResponse
 import com.example.fortuna_android.api.LogoutResponse
 import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.api.User
 import com.example.fortuna_android.api.UserProfile
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.common.SignInButton
 import io.mockk.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -103,7 +106,7 @@ class SignInFragmentInstrumentedTest {
         scenario.onFragment { fragment ->
             // Force mGoogleSignInClient to null by not initializing
             // Call signIn via reflection or trigger button click
-            fragment.view?.findViewById<com.google.android.gms.common.SignInButton>(R.id.sign_in_button)?.performClick()
+            fragment.view?.findViewById<SignInButton>(R.id.sign_in_button)?.performClick()
         }
 
         delay(100)
@@ -118,7 +121,7 @@ class SignInFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             // Trigger signOut with no token
-            fragment.view?.findViewById<android.widget.Button>(R.id.sign_out_button)?.performClick()
+            fragment.view?.findViewById<Button>(R.id.sign_out_button)?.performClick()
         }
 
         delay(200) // Wait for coroutine
@@ -135,7 +138,7 @@ class SignInFragmentInstrumentedTest {
 
         // Mock API
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.logout(any()) } returns Response.success(
             LogoutResponse(message = "Success")
@@ -146,7 +149,7 @@ class SignInFragmentInstrumentedTest {
         )
 
         scenario.onFragment { fragment ->
-            fragment.view?.findViewById<android.widget.Button>(R.id.sign_out_button)?.performClick()
+            fragment.view?.findViewById<Button>(R.id.sign_out_button)?.performClick()
         }
 
         delay(300)
@@ -161,7 +164,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.logout(any()) } returns Response.error(
             400,
@@ -173,7 +176,7 @@ class SignInFragmentInstrumentedTest {
         )
 
         scenario.onFragment { fragment ->
-            fragment.view?.findViewById<android.widget.Button>(R.id.sign_out_button)?.performClick()
+            fragment.view?.findViewById<Button>(R.id.sign_out_button)?.performClick()
         }
 
         delay(300)
@@ -188,7 +191,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.logout(any()) } throws Exception("Network error")
 
@@ -197,7 +200,7 @@ class SignInFragmentInstrumentedTest {
         )
 
         scenario.onFragment { fragment ->
-            fragment.view?.findViewById<android.widget.Button>(R.id.sign_out_button)?.performClick()
+            fragment.view?.findViewById<Button>(R.id.sign_out_button)?.performClick()
         }
 
         delay(300)
@@ -209,7 +212,7 @@ class SignInFragmentInstrumentedTest {
     fun testHandleSignInResult_success_withIdToken() = runBlocking {
         // Covers: handleSignInResult() lines 155-176 (success with token)
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.loginWithGoogle(any()) } returns Response.success(
             LoginResponse(
@@ -224,7 +227,7 @@ class SignInFragmentInstrumentedTest {
             )
         )
         coEvery { mockInstance.getProfile() } returns Response.success(
-            com.example.fortuna_android.api.User(
+            User(
                 id = 1,
                 username = "test",
                 email = "test@test.com"
@@ -286,7 +289,7 @@ class SignInFragmentInstrumentedTest {
     fun testSendTokenToServer_success() = runBlocking {
         // Covers: sendTokenToServer() lines 187-207 (success branch)
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.loginWithGoogle(any()) } returns Response.success(
             LoginResponse(
@@ -301,7 +304,7 @@ class SignInFragmentInstrumentedTest {
             )
         )
         coEvery { mockInstance.getProfile() } returns Response.success(
-            com.example.fortuna_android.api.User(
+            User(
                 id = 1,
                 username = "test",
                 email = "test@test.com"
@@ -319,7 +322,7 @@ class SignInFragmentInstrumentedTest {
     fun testSendTokenToServer_failure() = runBlocking {
         // Covers: sendTokenToServer() lines 208-214 (error branch)
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.loginWithGoogle(any()) } returns Response.error(
             401,
@@ -337,7 +340,7 @@ class SignInFragmentInstrumentedTest {
     fun testSendTokenToServer_exception() = runBlocking {
         // Covers: sendTokenToServer() lines 215-220 (exception branch)
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.loginWithGoogle(any()) } throws Exception("Network error")
 
@@ -370,10 +373,10 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getProfile() } returns Response.success(
-            com.example.fortuna_android.api.User(
+            User(
                 id = 1,
                 username = "test",
                 email = "test@test.com"
@@ -417,7 +420,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getProfile() } returns Response.error(
             401,
@@ -440,7 +443,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getProfile() } throws Exception("Network error")
 
@@ -472,7 +475,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -512,7 +515,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -552,7 +555,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(null)
 
@@ -572,7 +575,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(
             500,
@@ -595,7 +598,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } throws Exception("Network error")
 
@@ -740,7 +743,7 @@ class SignInFragmentInstrumentedTest {
         )
 
         scenario.onFragment { fragment ->
-            fragment.view?.findViewById<android.widget.Button>(R.id.sign_out_button)?.performClick()
+            fragment.view?.findViewById<Button>(R.id.sign_out_button)?.performClick()
         }
 
         // Wait for async GoogleSignInClient.signOut() callback

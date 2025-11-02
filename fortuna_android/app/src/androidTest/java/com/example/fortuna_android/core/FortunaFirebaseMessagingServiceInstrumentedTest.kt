@@ -1,12 +1,12 @@
-package com.example.fortuna_android
+package com.example.fortuna_android.core
 
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import android.content.Context
 import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.fortuna_android.FortunaFirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import org.junit.After
 import org.junit.Assert.*
@@ -151,16 +151,6 @@ class FortunaFirebaseMessagingServiceInstrumentedTest {
         service.onMessageReceived(remoteMessage)
 
         Thread.sleep(500)
-        assertTrue(true)
-    }
-
-    @Test
-    fun testOnNewToken() {
-        val testToken = "test_firebase_token_123456"
-
-        service.onNewToken(testToken)
-
-        // The method just logs, so we verify it doesn't crash
         assertTrue(true)
     }
 

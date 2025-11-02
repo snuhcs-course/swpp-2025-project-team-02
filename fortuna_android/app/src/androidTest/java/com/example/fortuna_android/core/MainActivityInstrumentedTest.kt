@@ -1,13 +1,15 @@
-package com.example.fortuna_android
+package com.example.fortuna_android.core
 
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
+import com.example.fortuna_android.MainActivity
+import com.example.fortuna_android.api.ApiService
 import com.example.fortuna_android.api.LogoutResponse
 import com.example.fortuna_android.api.RefreshTokenResponse
 import com.example.fortuna_android.api.RetrofitClient
@@ -71,7 +73,7 @@ class MainActivityInstrumentedTest {
 
         // Mock API
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -142,7 +144,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -171,7 +173,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -190,7 +192,7 @@ class MainActivityInstrumentedTest {
         clearPreferences()
 
         // Resume activity
-        scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        scenario.moveToState(Lifecycle.State.RESUMED)
         delay(500)
 
         scenario.close()
@@ -206,7 +208,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -235,7 +237,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -262,7 +264,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(401, "Unauthorized".toResponseBody())
         coEvery { mockInstance.refreshToken(any()) } returns Response.success(
@@ -284,7 +286,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(500, "Server error".toResponseBody())
 
@@ -303,7 +305,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } throws Exception("Network error")
 
@@ -324,7 +326,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(401, "Unauthorized".toResponseBody())
         coEvery { mockInstance.refreshToken(any()) } returns Response.success(
@@ -351,7 +353,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(401, "Unauthorized".toResponseBody())
         coEvery { mockInstance.refreshToken(any()) } returns Response.success(null)
@@ -371,7 +373,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(401, "Unauthorized".toResponseBody())
         coEvery { mockInstance.refreshToken(any()) } returns Response.error(400, "Bad request".toResponseBody())
@@ -391,7 +393,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.error(401, "Unauthorized".toResponseBody())
         coEvery { mockInstance.refreshToken(any()) } throws Exception("Network error")
@@ -413,7 +415,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -452,7 +454,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -488,7 +490,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -522,7 +524,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -558,7 +560,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        val mockInstance = mockk<ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -659,7 +661,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -697,7 +699,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -735,7 +737,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -773,7 +775,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
@@ -810,7 +812,7 @@ class MainActivityInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>(relaxed = true)
+        val mockInstance = mockk<ApiService>(relaxed = true)
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.getUserProfile() } returns Response.success(
             UserProfile(
