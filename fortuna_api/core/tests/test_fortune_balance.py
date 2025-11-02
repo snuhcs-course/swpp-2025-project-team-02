@@ -158,33 +158,12 @@ class TestFortuneBalance(TestCase):
     @patch('core.services.fortune.FortuneService.generate_fortune_with_ai')
     def test_generate_fortune_includes_balance(self, mock_generate_ai):
         """Test that generate_fortune includes fortune_score."""
-        from core.services.fortune import FortuneAIResponse, ChakraReading, DailyGuidance, ElementType
+        from core.services.fortune import FortuneAIResponse
 
         # Mock AI response
         mock_generate_ai.return_value = FortuneAIResponse(
-            tomorrow_date="2024-12-26",
-            saju_compatibility="좋은 궁합",
-            overall_fortune=85,
-            fortune_summary="좋은 날입니다",
-            element_balance="균형잡힌 오행",
-            chakra_readings=[
-                ChakraReading(
-                    chakra_type="fire",
-                    strength=80,
-                    message="강한 에너지",
-                    location_significance="중요한 장소"
-                )
-            ],
-            daily_guidance=DailyGuidance(
-                best_time="오전",
-                lucky_direction="동쪽",
-                lucky_color="청색",
-                activities_to_embrace=["운동", "공부"],
-                activities_to_avoid=["논쟁"],
-                key_advice="긍정적으로"
-            ),
-            special_message="좋은 하루",
-            needed_element=ElementType.WOOD
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화롭습니다. 균형잡힌 오행이 좋은 날을 만듭니다.",
+            today_daily_guidance="긍정적인 마음으로 운동이나 공부에 집중해보세요. 동쪽으로의 활동이 좋습니다."
         )
 
         test_date = datetime(2024, 12, 25, 12, 0)

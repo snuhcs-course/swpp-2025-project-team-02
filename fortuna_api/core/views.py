@@ -402,54 +402,14 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         else:
             today_date = datetime.now().date()
 
-        # Calculate fortune balance to get element distribution
+        # Calculate fortune balance which now includes needed_element
         fortune_score = fortune_service.calculate_fortune_balance(user, datetime.combine(today_date, datetime.min.time()))
-
-        # Get element_distribution from fortune_score
-        element_dist = fortune_score.element_distribution
-
-        # Find minimum count
-        min_count = min(element_dist.values(), key=lambda x: x.count).count
-
-        # Get all elements with minimum count
-        min_elements = [elem for elem, dist in element_dist.items() if dist.count == min_count]
-
-        # If only one element with min count, use it
-        if len(min_elements) == 1:
-            needed_element = min_elements[0]
-        else:
-            # Multiple elements with same min count - prioritize by 상생 relation with user's day stem
-            user_saju = user.saju()
-            user_day_element = user_saju.daily.stem.element
-
-            # Map element names to FiveElements objects
-            from core.utils.saju_concepts import FiveElements
-            element_map = {
-                "목": FiveElements.WOOD,
-                "화": FiveElements.FIRE,
-                "토": FiveElements.EARTH,
-                "금": FiveElements.METAL,
-                "수": FiveElements.WATER
-            }
-
-            # Find element that empowers (생) user's day element
-            # 상생: 수생목, 목생화, 화생토, 토생금, 금생수
-            needed_element = None
-            for elem_name in min_elements:
-                elem_obj = element_map[elem_name]
-                if elem_obj.empowers(user_day_element):
-                    needed_element = elem_name
-                    break
-
-            # If no element empowers user (shouldn't happen but failsafe), use first one
-            if not needed_element:
-                needed_element = min_elements[0]
 
         return Response({
             'status': 'success',
             'data': {
                 'date': today_date.isoformat(),
-                'needed_element': needed_element
+                'needed_element': fortune_score.needed_element
             }
         }, status=status.HTTP_200_OK)
 
@@ -474,96 +434,6 @@ class FortuneViewSet(viewsets.GenericViewSet):
     serializer_class = FortuneResponseSerializer
 
     @extend_schema(
-        summary="Get Tomorrow's Fortune",
-        description="Generate personalized Saju fortune for tomorrow based on today's collected chakras",
-        parameters=[
-            OpenApiParameter(
-                name='date',
-                type=OpenApiTypes.DATE,
-                location=OpenApiParameter.QUERY,
-                description='Date for which to generate fortune (YYYY-MM-DD). Defaults to today.',
-                required=False
-            ),
-            OpenApiParameter(
-                name='include_photos',
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description='Include photo analysis in fortune generation',
-                required=False,
-                default=True
-            )
-        ],
-        request=FortuneRequestSerializer,
-        responses={200: FortuneResponseSerializer}
-    )
-    @action(detail=False, methods=['get', 'post'])
-    def tomorrow(self, request):
-        """Get tomorrow's fortune (will be deprecated)."""
-        # Support both GET and POST for backward compatibility
-        if request.method == 'POST':
-            request_data = request.data
-        else:
-            request_data = request.query_params
-
-        # Validate request parameters
-        param_serializer = FortuneRequestSerializer(data=request_data)
-
-        if not param_serializer.is_valid():
-            error_message = next(iter(param_serializer.errors.values()))[0]
-            return Response({
-                'status': 'error',
-                'message': str(error_message)
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        user_id = request.user.id
-        date = param_serializer.validated_data.get('date')
-
-        if not date:
-            date = datetime.now()
-        else:
-            date = datetime.combine(date, datetime.min.time())
-
-        include_photos = param_serializer.validated_data.get('include_photos', True)
-        tomorrow = date + timedelta(days=1)
-
-        # Try to get existing fortune
-        try:
-            fortune_result = FortuneResult.objects.get(
-                user_id=user_id,
-                for_date=tomorrow.date()
-            )
-
-            # Prepare response
-            response_data = {
-                'status': 'success',
-                'data': {
-                    'user_id': user_id,
-                    'for_date': fortune_result.for_date.isoformat(),
-                    'tomorrow_gapja': {
-                        'code': fortune_result.gapja_code,
-                        'name': fortune_result.gapja_name,
-                        'element': fortune_result.gapja_element
-                    },
-                    'fortune': fortune_result.fortune_data
-                }
-            }
-
-            return Response(response_data, status=status.HTTP_200_OK)
-
-        except FortuneResult.DoesNotExist:
-            # Generate fortune on-the-fly if not exists
-            result = fortune_service.generate_tomorrow_fortune(
-                user_id=user_id,
-                date=date,
-                include_photos=include_photos
-            )
-
-            if result['status'] == 'success':
-                return Response(result, status=status.HTTP_200_OK)
-            else:
-                return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @extend_schema(
         summary="Get Today's Fortune",
         description="Get personalized Saju fortune for today with five elements balance score (DB cached)",
         responses={200: FortuneResponseSerializer}
@@ -573,7 +443,6 @@ class FortuneViewSet(viewsets.GenericViewSet):
         """Get today's fortune with balance score (DB cached)."""
         user = request.user
         today_date = datetime.now().date()
-        tomorrow_date = today_date + timedelta(days=1)
 
         # Helper functions to convert GanJi/Saju objects (used in both branches)
         def ganji_to_dict(ganji):
@@ -610,7 +479,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
         try:
             fortune_result = FortuneResult.objects.get(
                 user=user,
-                for_date=tomorrow_date
+                for_date=today_date
             )
 
             # If fortune exists in DB, return it directly (fast! 두 번째 요청부터 빠름)
@@ -642,9 +511,10 @@ class FortuneViewSet(viewsets.GenericViewSet):
             pass  # Generate new fortune below
 
         # If not in DB, generate new fortune
+        yesterday = today_date - timedelta(days=1)
         result = fortune_service.generate_fortune(
             user=user,
-            date=datetime.now()
+            date=datetime.combine(yesterday, datetime.min.time())
         )
 
         # Convert Response[FortuneResponse] to dict

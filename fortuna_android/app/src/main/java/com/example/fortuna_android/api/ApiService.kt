@@ -66,4 +66,9 @@ interface ApiService {
 
     @GET("api/chakra/collection-status/")
     suspend fun getCollectionStatus(): Response<CollectionStatusResponse>
+
+    @GET("api/chakra/collection-history/")
+    suspend fun getCollectionHistory(
+        @Query("chakra_type") chakraType: String
+    ): Response<CollectionHistoryResponse>
 }

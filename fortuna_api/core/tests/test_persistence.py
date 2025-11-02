@@ -178,6 +178,7 @@ class TestFortuneServicePersistence(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
+        from datetime import date
         self.user = User.objects.create_user(
             email='service@example.com',
             password='testpass123',
@@ -186,86 +187,66 @@ class TestFortuneServicePersistence(TestCase):
             daily_ganji='무신',
             hourly_ganji='임오'
         )
+        # Set required birth info separately
+        self.user.birth_date_solar = date(1990, 1, 1)
+        self.user.birth_time_units = '자시'
+        self.user.save()
+
         with patch('core.services.fortune.openai'):
             self.service = FortuneService()
 
     @patch.object(FortuneService, 'generate_fortune_with_ai')
     def test_fortune_generation_saves_to_db(self, mock_ai):
         """Test that fortune generation saves to database."""
-        from core.services.fortune import FortuneAIResponse, ChakraReading, DailyGuidance, ElementType
+        from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
-            tomorrow_date='2024-01-02',
-            saju_compatibility='좋음',
-            overall_fortune=85,
-            fortune_summary='Good fortune',
-            element_balance='Balance',
-            chakra_readings=[],
-            daily_guidance=DailyGuidance(
-                best_time='9-11',
-                lucky_direction='East',
-                lucky_color='Blue',
-                activities_to_embrace=['Work'],
-                activities_to_avoid=['Fight'],
-                key_advice='Be calm'
-            ),
-            special_message='Stay positive',
-            needed_element=ElementType.WOOD
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 균형잡힌 좋은 날입니다.",
+            today_daily_guidance="동쪽으로의 활동이 좋으며, 침착함을 유지하세요. 일에 집중하기 좋은 시간입니다."
         )
 
-        result = self.service.generate_tomorrow_fortune(
-            user_id=self.user.id,
-            date=datetime(2024, 1, 1),
-            include_photos=False
+        result = self.service.generate_fortune(
+            user=self.user,
+            date=datetime(2024, 1, 1)
         )
 
-        self.assertEqual(result['status'], 'success')
-        self.assertIn('fortune_id', result['data'])
+        self.assertEqual(result.status, 'success')
+        self.assertIsNotNone(result.data)
 
-        # Verify database record
-        fortune = FortuneResult.objects.get(id=result['data']['fortune_id'])
+        # Verify database record exists for tomorrow
+        tomorrow = datetime(2024, 1, 2).date()
+        fortune = FortuneResult.objects.get(user=self.user, for_date=tomorrow)
         self.assertEqual(fortune.user_id, self.user.id)
-        self.assertEqual(fortune.gapja_name, fortune.gapja_name)
         self.assertIsNotNone(fortune.fortune_data)
 
     @patch.object(FortuneService, 'generate_fortune_with_ai')
     def test_fortune_regeneration_updates_existing(self, mock_ai):
         """Test that regenerating fortune updates existing record."""
-        from core.services.fortune import FortuneAIResponse, DailyGuidance, ElementType
+        from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
-            tomorrow_date='2024-01-02',
-            saju_compatibility='좋음',
-            overall_fortune=80,
-            fortune_summary='First fortune',
-            element_balance='Balance',
-            chakra_readings=[],
-            daily_guidance=DailyGuidance(
-                best_time='9-11',
-                lucky_direction='East',
-                lucky_color='Blue',
-                activities_to_embrace=['Work'],
-                activities_to_avoid=['Fight'],
-                key_advice='Be calm'
-            ),
-            special_message='Stay positive',
-            needed_element=ElementType.FIRE
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 첫 번째 운세입니다.",
+            today_daily_guidance="동쪽으로의 활동이 좋으며, 침착함을 유지하세요."
         )
 
         # Generate first fortune
-        result1 = self.service.generate_tomorrow_fortune(
-            user_id=self.user.id,
-            date=datetime(2024, 1, 1),
-            include_photos=False
+        result1 = self.service.generate_fortune(
+            user=self.user,
+            date=datetime(2024, 1, 1)
         )
-        fortune_id1 = result1['data']['fortune_id']
+        tomorrow = datetime(2024, 1, 2).date()
+        fortune1 = FortuneResult.objects.get(user=self.user, for_date=tomorrow)
+        fortune_id1 = fortune1.id
 
         # Generate again for same date
-        mock_ai.return_value.overall_fortune = 90
-        result2 = self.service.generate_tomorrow_fortune(
-            user_id=self.user.id,
-            date=datetime(2024, 1, 1),
-            include_photos=False
+        mock_ai.return_value = FortuneAIResponse(
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 업데이트된 운세입니다.",
+            today_daily_guidance="남쪽으로의 활동이 좋으며, 긍정적인 마음을 유지하세요."
         )
-        fortune_id2 = result2['data']['fortune_id']
+        result2 = self.service.generate_fortune(
+            user=self.user,
+            date=datetime(2024, 1, 1)
+        )
+        fortune2 = FortuneResult.objects.get(user=self.user, for_date=tomorrow)
+        fortune_id2 = fortune2.id
 
         # Should update same record
         self.assertEqual(fortune_id1, fortune_id2)

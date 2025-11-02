@@ -70,17 +70,17 @@
             tools:ignore="MissingClass" />
 
         <!-- 사주 설명 버튼 -->
-        <Button
-            android:id="@+id/btnSajuExplanation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="사주에 기반한 오늘의 운세란?"
-            android:textSize="14sp"
-            android:textColor="#000000"
-            android:backgroundTint="#FFCC4D"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="12dp" />
+<!--        <Button-->
+<!--            android:id="@+id/btnSajuExplanation"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_marginTop="16dp"-->
+<!--            android:text="사주에 기반한 오늘의 운세란?"-->
+<!--            android:textSize="14sp"-->
+<!--            android:textColor="#000000"-->
+<!--            android:backgroundTint="#FFCC4D"-->
+<!--            android:paddingHorizontal="20dp"-->
+<!--            android:paddingVertical="12dp" />-->
 
     </LinearLayout>
 

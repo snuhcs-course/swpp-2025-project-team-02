@@ -8,9 +8,7 @@ from django.test import TestCase
 import json
 from ..services.fortune import (
     FortuneService,
-    FortuneAIResponse,
-    ChakraReading,
-    DailyGuidance
+    FortuneAIResponse
 )
 
 
@@ -175,13 +173,17 @@ class TestFortuneService(TestCase):
             hourly_ganji='임오'
         )
 
-        # Mock OpenAI response
+        # Mock OpenAI response with parsed structure
+        mock_parsed = FortuneAIResponse(
+            today_element_balance_description="당신의 토행과 오늘의 목행이 만나 조화를 이룹니다. 긍정적인 하루가 될 것입니다.",
+            today_daily_guidance="새로운 시작에 좋은 날입니다. 창의적인 활동을 시도해보세요."
+        )
         mock_response = Mock()
         mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = "긍정적인 하루가 될 것입니다. 새로운 시작에 좋은 날입니다."
+        mock_response.choices[0].message.parsed = mock_parsed
 
         mock_client = Mock()
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.parse.return_value = mock_response
         self.service.client = mock_client
 
         # Test data
@@ -202,16 +204,41 @@ class TestFortuneService(TestCase):
             "tomorrow_ganji": "갑자",
             "message": "긍정적인 에너지가 당신을 도울 것입니다."
         }
-        photo_contexts = [{"filename": "test.jpg", "metadata": {"timestamp": self.test_date.isoformat(), "location": {"latitude": 37.5, "longitude": 127.0}}}]
+
+        # Create fortune_score mock
+        from core.services.fortune import FortuneScore, ElementDistribution
+        fortune_score = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=4, percentage=26.7),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=2, percentage=13.3)
+            },
+            interpretation="Test interpretation",
+            needed_element="수"
+        )
 
         result = self.service.generate_fortune_with_ai(
-            user_saju, tomorrow_date, tomorrow_day_ganji, compatibility, photo_contexts
+            user_saju, tomorrow_date, tomorrow_day_ganji, compatibility, fortune_score
         )
 
         self.assertIsInstance(result, FortuneAIResponse)
-        self.assertEqual(result.tomorrow_date, "2024-01-02")
-        self.assertEqual(result.overall_fortune, 75)
-        self.assertEqual(result.needed_element, "목")
+        self.assertIsNotNone(result.today_element_balance_description)
+        self.assertIsNotNone(result.today_daily_guidance)
+        self.assertIn("토행", result.today_element_balance_description)
+        self.assertIn("목행", result.today_element_balance_description)
 
     def test_generate_fortune_with_ai_failure(self):
         """Test AI fortune generation with error."""
@@ -249,81 +276,42 @@ class TestFortuneService(TestCase):
             "tomorrow_ganji": "갑자",
             "message": "평온한 하루가 될 것입니다."
         }
-        photo_contexts = []
+
+        # Create fortune_score mock
+        from core.services.fortune import FortuneScore, ElementDistribution
+        fortune_score = FortuneScore(
+            entropy_score=50.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=3, percentage=20.0),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=3, percentage=20.0)
+            },
+            interpretation="Test interpretation",
+            needed_element="목"
+        )
 
         result = self.service.generate_fortune_with_ai(
-            user_saju, tomorrow_date, tomorrow_day_ganji, compatibility, photo_contexts
+            user_saju, tomorrow_date, tomorrow_day_ganji, compatibility, fortune_score
         )
 
         # Should return default fortune on error
         self.assertIsInstance(result, FortuneAIResponse)
-        self.assertEqual(result.overall_fortune, compatibility['score'])
-
-    @patch.object(FortuneService, 'generate_fortune_with_ai')
-    @patch.object(FortuneService, 'prepare_photo_context')
-    @patch.object(FortuneService, 'analyze_saju_compatibility')
-    def test_generate_tomorrow_fortune_success(
-        self, mock_compat, mock_photo, mock_ai
-    ):
-        """Test complete tomorrow fortune generation."""
-        from django.contrib.auth import get_user_model
-        from core.utils.saju_concepts import Saju
-
-        User = get_user_model()
-
-        # Create user for FK constraint with complete saju data
-        user = User.objects.create_user(
-            email='fortunetest@example.com',
-            password='testpass123',
-            yearly_ganji='갑자',
-            monthly_ganji='병인',
-            daily_ganji='무신',
-            hourly_ganji='임오'
-        )
-
-        # Setup mocks
-        mock_compat.return_value = {
-            'score': 80,
-            'level': '좋음',
-            'element_relation': '상생 (相生)',
-            'relation_detail': '목이 화를 도와줍니다',
-            'user_element': '토',
-            'user_element_color': '노란',
-            'tomorrow_element': '목',
-            'tomorrow_element_color': '푸른',
-            'user_ganji': '무신',
-            'tomorrow_ganji': '갑자'
-        }
-        mock_photo.return_value = [{'filename': 'test.jpg'}]
-        from core.services.fortune import ElementType
-        mock_fortune = FortuneAIResponse(
-            tomorrow_date="2024-01-02",
-            saju_compatibility="좋음",
-            overall_fortune=80,
-            fortune_summary="좋은 날",
-            element_balance="균형",
-            chakra_readings=[],
-            daily_guidance=DailyGuidance(
-                best_time="오전",
-                lucky_direction="동",
-                lucky_color="청색",
-                activities_to_embrace=["시작"],
-                activities_to_avoid=["논쟁"],
-                key_advice="화이팅"
-            ),
-            special_message="행운",
-            needed_element=ElementType.WOOD
-        )
-        mock_ai.return_value = mock_fortune
-
-        result = self.service.generate_tomorrow_fortune(
-            user.id, self.test_date, include_photos=True
-        )
-
-        self.assertEqual(result['status'], 'success')
-        self.assertEqual(result['data']['user_id'], user.id)
-        self.assertIn('fortune', result['data'])
-        self.assertIn('tomorrow_gapja', result['data'])
+        self.assertIsNotNone(result.today_element_balance_description)
+        self.assertIsNotNone(result.today_daily_guidance)
+        self.assertIn(compatibility['user_element'], result.today_element_balance_description)
+        self.assertIn(compatibility['tomorrow_element'], result.today_element_balance_description)
 
 class TestFortuneServiceIntegration(TestCase):
     """Integration tests for FortuneService."""

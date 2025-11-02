@@ -173,7 +173,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=3, percentage=20.0),
                 "수": ElementDistribution(count=4, percentage=26.7)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="화"
         )
 
         url = reverse('core:needed_element')
@@ -210,7 +211,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=3, percentage=20.0),
                 "수": ElementDistribution(count=4, percentage=26.7)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="목"
         )
 
         url = reverse('core:needed_element')
@@ -247,7 +249,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=1, percentage=6.7),  # Minimum
                 "수": ElementDistribution(count=4, percentage=26.7)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="금"
         )
 
         url = reverse('core:needed_element')
@@ -283,7 +286,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=2, percentage=13.3),  # Minimum
                 "수": ElementDistribution(count=3, percentage=20.0)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="금"
         )
 
         url = reverse('core:needed_element')
@@ -449,112 +453,6 @@ class TestFortuneAPIEndpoints(APITestCase):
             HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}'
         )
 
-    def test_generate_tomorrow_fortune_success(self):
-        """Test successful tomorrow fortune retrieval."""
-        from core.models import FortuneResult
-
-        # Create a fortune result for tomorrow
-        target_date = timezone.make_aware(datetime(2024, 1, 1))
-        tomorrow = target_date + timedelta(days=1)
-
-        fortune = FortuneResult.objects.create(
-            user=self.user,
-            for_date=tomorrow.date(),
-            status='completed',
-            gapja_code=1,
-            gapja_name='갑자',
-            gapja_element='목',
-            fortune_data={
-                'overall_fortune': 85,
-                'fortune_summary': '좋은 날입니다.',
-                'daily_guidance': {
-                    'best_time': '오전 9-11시',
-                    'lucky_color': '청색'
-                }
-            }
-        )
-
-        url = reverse('core:tomorrow_fortune')
-        response = self.client.get(url, {'date': '2024-01-01'})
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['status'], 'success')
-        self.assertIn('fortune', response.data['data'])
-        self.assertEqual(
-            response.data['data']['fortune']['overall_fortune'], 85
-        )
-
-    @patch('core.services.fortune.FortuneService.generate_tomorrow_fortune')
-    def test_generate_tomorrow_fortune_post(self, mock_generate):
-        """Test tomorrow fortune generation with POST request."""
-        mock_generate.return_value = {
-            'status': 'success',
-            'data': {'fortune': {'overall_fortune': 75}}
-        }
-
-        url = reverse('core:tomorrow_fortune')
-        response = self.client.post(
-            url,
-            {'date': '2024-01-01', 'include_photos': False},
-            format='json'
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # The endpoint parses the date string, no need for timezone-aware comparison here
-        self.assertTrue(mock_generate.called)
-        call_kwargs = mock_generate.call_args.kwargs
-        self.assertEqual(call_kwargs['user_id'], self.user.id)
-        self.assertEqual(call_kwargs['date'].date(), datetime(2024, 1, 1).date())
-        self.assertEqual(call_kwargs['include_photos'], False)
-
-    def test_generate_tomorrow_fortune_invalid_date(self):
-        """Test fortune generation with invalid date."""
-        url = reverse('core:tomorrow_fortune')
-        response = self.client.get(url, {'date': 'not-a-date'})
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('Invalid date format', response.data['message'])
-
-    @patch('core.services.fortune.FortuneService.generate_tomorrow_fortune')
-    def test_generate_tomorrow_fortune_default_date(self, mock_generate):
-        """Test fortune generation without date (uses today)."""
-        mock_generate.return_value = {'status': 'success', 'data': {}}
-
-        url = reverse('core:tomorrow_fortune')
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Should be called with today's date
-        self.assertTrue(mock_generate.called)
-        call_args = mock_generate.call_args
-        self.assertIsInstance(call_args.kwargs['date'], datetime)
-
-    @patch('core.services.fortune.FortuneService.generate_tomorrow_fortune')
-    def test_generate_tomorrow_fortune_error(self, mock_generate):
-        """Test fortune generation with service error."""
-        mock_generate.return_value = {
-            'status': 'error',
-            'message': 'Service error'
-        }
-
-        url = reverse('core:tomorrow_fortune')
-        response = self.client.get(url)
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-        self.assertEqual(response.data['status'], 'error')
-
-    @override_settings(DEVELOPMENT_MODE=False)
-    def test_fortune_endpoints_unauthenticated(self):
-        """Test fortune endpoints without authentication."""
-        self.client.credentials()  # Remove credentials
-
-        # Test tomorrow fortune
-        url1 = reverse('core:tomorrow_fortune')
-        response1 = self.client.get(url1)
-        self.assertEqual(response1.status_code, status.HTTP_401_UNAUTHORIZED)
 
 class TestAPIIntegration(APITestCase):
     """Integration tests for API workflow."""
@@ -623,31 +521,21 @@ class TestAPIIntegration(APITestCase):
         fortune.gapja_name = '을축'
         fortune.gapja_element = '토'
         fortune.fortune_data = {
-            'overall_fortune': 90,
-            'chakra_readings': [
-                {
-                    'chakra_type': 'fire',
-                    'strength': 85,
-                    'message': 'Strong energy detected'
-                }
-            ]
+            'today_element_balance_description': '좋은 운세입니다.',
+            'today_daily_guidance': '긍정적인 하루를 보내세요.'
+        }
+        fortune.fortune_score = {
+            'entropy_score': 90.0,
+            'elements': {},
+            'element_distribution': {},
+            'interpretation': 'Test',
+            'needed_element': '목'
         }
         fortune.save()
 
-        fortune_url = reverse('core:tomorrow_fortune')
-        fortune_response = self.client.get(
-            fortune_url,
-            {'date': '2024-01-01', 'include_photos': 'true'}
-        )
-
-        self.assertEqual(fortune_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            fortune_response.data['data']['fortune']['overall_fortune'],
-            90
-        )
-        # Verify gapja info is included in response
-        self.assertIn('tomorrow_gapja', fortune_response.data['data'])
-        self.assertEqual(fortune_response.data['data']['tomorrow_gapja']['code'], 1)
+        # Verify fortune was created
+        self.assertEqual(fortune.for_date, tomorrow.date())
+        self.assertIsNotNone(fortune.fortune_data)
 
     def create_test_image(self):
         """Helper method to create test image."""

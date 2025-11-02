@@ -29,14 +29,6 @@ import numpy as np
 
 T = TypeVar("T", bound=BaseModel)
 
-class ElementType(str, Enum):
-    """Simple element type for AI responses (목화토금수)"""
-    WOOD = "목"
-    FIRE = "화"
-    EARTH = "토"
-    METAL = "금"
-    WATER = "수"
-
 class ErrorInfo(BaseModel):
     code: str
     message: str
@@ -46,36 +38,13 @@ class Response(BaseModel, Generic[T]):
     data: Optional[T] = None
     error: Optional[ErrorInfo] = None
 
-class ChakraReading(BaseModel):
-    """사용자가 촬영한 사진과 그 위치를 기반으로 감지된 오늘의 에너지(차크라) 판독 결과. 하루 운세와 연결하여 해석한다."""
-    chakra_type: str = Field(description="감지된 에너지의 주요 유형 (예: '안정', '활력', '창의성')")
-    strength: int = Field(description="에너지의 강도 (1-100 사이의 정수)")
-    message: str = Field(description="감지된 에너지에 대한 명리학적 해석. 오늘의 운세와 연결하여 1-2 문장으로 설명한다.")
-    location_significance: str = Field(description="사진이 촬영된 장소가 오늘의 운세에 갖는 의미를 간략하게 설명한다.")
-
-
-class DailyGuidance(BaseModel):
-    """내일 하루의 운을 좋게 만들기 위한 구체적이고 실용적인 행동 지침(개운법)."""
-    best_time: str = Field(description="하루 중 가장 기운이 좋은 시간대를 십이시진(十二時辰) 원리를 응용하여 '오전/오후 O-O시' 형태로 제시한다.")
-    lucky_direction: str = Field(description="오행 이론에 기반하여 내일의 운을 좋게 하는 행운의 방향 (예: 동쪽, 남쪽).")
-    lucky_color: str = Field(description="사용자의 오행과 내일의 오행을 조화롭게 만드는 행운의 색상.")
-    activities_to_embrace: List[str] = Field(description="오늘의 긍정적인 기운을 증폭시키거나 부족한 기운을 보충할 수 있는 추천 활동 3-5가지 리스트.")
-    activities_to_avoid: List[str] = Field(description="오늘의 기운에 따라 충돌을 일으키거나 에너지를 뺏길 수 있어 주의해야 할 활동 2-3가지 리스트.")
-    key_advice: str = Field(description="내일 하루를 위해 가장 마음에 새겨야 할 핵심 조언 한 문장.")
-
-
 class FortuneAIResponse(BaseModel):
     """사용자의 사주와 일진을 종합적으로 분석한 하루 운세 응답 구조."""
-    tomorrow_date: str = Field(description="운세가 적용되는 날짜. 'YYYY-MM-DD' 형식.")
-    saju_compatibility: str = Field(description="사용자의 일주(日柱)와 내일의 일진(日辰) 간의 오행 관계를 기반으로 한 조화 정도를 설명하는 텍스트. (예: '당신의 나무 기운과 오늘의 물 기운은 서로 돕는 관계입니다.')")
-    overall_fortune: int = Field(description="사주와 일진의 조화 점수를 기반으로 산출된 내일의 전반적인 운세 점수 (1-100 사이의 정수).")
-    fortune_summary: str = Field(description="내일 운세의 핵심적인 흐름과 가장 중요한 포인트를 2-3 문장으로 요약.")
-    element_balance: str = Field(description="사용자의 일간 오행과 내일의 일진 오행 간의 상생/상극 관계를 풀어서 설명한다. 이것이 하루의 에너지 균형과 주요 활동(인간관계, 재물, 업무 등)에 어떤 영향을 미치는지 십신 관계를 기능적으로 서술한다.")
-    chakra_readings: List[ChakraReading] = Field(description="사용자가 오늘 수집한 에너지(차크라)에 대한 분석 결과 리스트.")
-    daily_guidance: DailyGuidance = Field(description="내일의 운을 더 좋게 만들기 위한 실용적인 개운법 가이드.")
-    special_message: str = Field(description="분석 결과를 바탕으로 사용자에게 힘과 용기를 주는 따뜻하고 개인화된 격려 메시지.")
-    needed_element: ElementType = Field(
-        description="하루의 element 기운과 유저의 기운(element) 조화를 이루기 위해 유저에게 필요한 element (목/화/토/금/수)"
+    today_element_balance_description: str = Field(
+        description="오늘 하루 운기의 오행 분포와 사용자의 사주 오행 분포를 기반으로 오늘 오행 분포에 대한 설명. 설명에는, 사용자에게 필요한 오행과 그 이유가 포함되어야힙니다. 알아듣기 쉽게 친절하게 4-5 문장으로 작성."
+    )
+    today_daily_guidance: str = Field(
+        description="부족한 오행 요소를 보강할 수 있는 일상 속 행동들을 today_element_balance_description을 기반으로 설명. 알아듣기 쉽게 4-5문장으로 작성."
     )
 
 class TomorrowGapja(BaseModel):
@@ -104,6 +73,7 @@ class FortuneScore(BaseModel):
         description="Distribution of 5 elements: 목, 화, 토, 금, 수"
     )
     interpretation: str = Field(description="Human-readable interpretation of balance score")
+    needed_element: str = Field(description="Needed element (목/화/토/금/수) to harmonize user's energy with today's energy")
 
 class FortuneResponse(BaseModel):
     """Response model for today's fortune endpoint."""
@@ -362,7 +332,7 @@ class FortuneService:
         tomorrow_date: datetime,
         tomorrow_day_ganji: GanJi,
         compatibility: Dict[str, Any],
-        photo_contexts: List[Dict[str, Any]]
+        fortune_score: FortuneScore
     ) -> FortuneAIResponse:
         """
         Generate fortune using OpenAI API with structured output.
@@ -384,80 +354,80 @@ class FortuneService:
         # Prepare context for AI
         context = f"""
         # Role & Persona
-        당신은 GenZ를 위한 사주 기반 라이프 가이드 서비스 '포르투나(Fortuna)'에서 활동하는, 40년 경력의 사주 명리학 분석가 '혜안'입니다. 당신의 역할은 사용자의 사주와 오늘의 일진을 명리학적 원리에 따라 분석하고, 오행의 균형을 통해 운을 개선하는 '개운(開運)'의 관점에서 따뜻하고 실용적인 하루 운세를 제공하는 것입니다.
+        당신은 GenZ를 위한 사주 기반 라이프 가이드 서비스 '포르투나(Fortuna)'의 명리학 분석가입니다.
+        사용자의 사주와 오늘의 일진을 명리학적 원리에 따라 분석하고, 오행의 균형을 통해 운을 개선하는 '개운(開運)' 조언을 제공합니다.
 
         # Instructions
-        1.  **쉬운 언어 사용:** 사용자는 GenZ입니다. 겁재, 식신, 편관 등 어려운 십신 용어나 전문 한자어는 절대 사용하지 마세요. 대신 그 의미를 기능적으로 풀어서 설명해주세요. (예: "오늘은 나의 에너지를 표현하고 싶은 창의적인 기운이 강해져요." 또는 "나를 돕는 기운과 나의 힘을 빼는 기운이 조화를 이루네요.")
-        2.  **오행 중심 해석:** 사용자의 일간 오행과 오늘의 일진 오행 간의 관계를 **아래 [오행의 핵심 원리] 섹션을 참조하여** '상생(서로 돕는 관계)'과 '상극(서로 견제하는 관계)'으로 설명해주세요. (예: "당신의 '나무' 기운에 오늘의 '물' 기운이 더해져, 마치 나무가 물을 만나 쑥쑥 자라나는 것처럼 성장과 활력이 넘치는 하루가 될 거예요.")
-        3.  **십신 관계 반영 (기능적 설명):** 사용자의 일간(日干)과 오늘의 천간(天干)이 만나 형성되는 관계(십신)를 바탕으로 하루의 주요 이슈(인간관계, 재물, 업무 등)를 예측해주세요. 아래 예시처럼 기능적으로 설명합니다.
-            *   나와 같은 기운(비견/겁재): 주변 사람들과의 협력 또는 경쟁 이슈, 주체성 강화
-            *   내가 생하는 기운(식신/상관): 나의 재능, 창의력, 표현력 발휘, 에너지 소모
-            *   내가 극하는 기운(정재/편재): 재물, 성취, 결과물, 통제력에 대한 이슈
-            *   나를 극하는 기운(정관/편관): 직장, 책임감, 스트레스, 명예, 규칙에 대한 이슈
-            *   나를 생하는 기운(정인/편인): 학업, 문서, 계약, 주변의 도움, 생각과 고민
-        4.  **'개운' 관점의 조언:** **[오행의 핵심 원리]에 따라**, 부족한 기운은 상생 관계로 보충하고, 과한 기운은 상극 관계로 조절하는 '개운법'을 DailyGuidance에 구체적으로 제시해주세요.
-        5.  **엄격한 출력 형식:** 반드시 아래에 명시된 Output Schema에 맞춰 JSON 형식으로만 응답해야 합니다. 다른 설명은 추가하지 마세요.
+        1. **쉬운 언어 사용:** GenZ 사용자를 위해 겁재, 식신, 편관 등 어려운 십신 용어나 전문 한자어는 사용하지 마세요.
+           오행(목화토금수)의 관계를 쉽게 풀어서 설명해주세요.
+
+        2. **2개의 필드만 출력:**
+           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석. 사용자에게 필요한 오행이 왜 <{fortune_score.needed_element}>행인지, 알기 쉽게 설명해주세요.  (4-5문장)
+           - today_daily_guidance: 부족한 오행을 보충할 수 있는 실용적인 일상 행동 조언 (4-5문장)
 
         ---
-        # 오행의 핵심 원리 (Core Principles of Five Elements)
+        # 사주 & 오행 이론 요약
+        1. 천간‧지지의 구조: 오행과 음양
+            천간(天干) — 10개
+                글자	오행	음양
+                갑	목	양(+)
+                을	목	음(-)
+                병	화	양(+)
+                정	화	음(-)
+                무	토	양(+)
+                기	토	음(-)
+                경	금	양(+)
+                신	금	음(-)
+                임	수	양(+)
+                계	수	음(-)
+            지지(地支) — 12개
+                글자	오행	음양
+                자	수	양(+)
+                축	토	음(-)
+                인	목	양(+)
+                묘	목	음(-)
+                진	토	양(+)
+                사	화	음(-)
+                오	화	양(+)
+                미	토	음(-)
+                신	금	양(+)
+                유	금	음(-)
+                술	토	양(+)
+                해	수	음(-)
 
-        ### [상생(相生): 서로 돕고 살려주는 순환의 관계]
-        *   **목생화(木生火):** 나무는 불을 일으키는 땔감이 됩니다. (나무 -> 불)
-        *   **화생토(火生土):** 불이 타고 남은 재는 흙으로 돌아갑니다. (불 -> 흙)
-        *   **토생금(土生金):** 흙 속에서 금속과 광물이 생겨납니다. (흙 -> 금속)
-        *   **금생수(金生水):** 금속 표면에 물방울이 맺히거나, 바위에서 물이 솟아납니다. (금속 -> 물)
-        *   **수생목(水生木):** 물은 나무를 자라게 하는 생명의 근원입니다. (물 -> 나무)
-
-        ### [상극(相剋): 서로 견제하고 조절하는 균형의 관계]
-        *   **목극토(木剋土):** 나무는 뿌리로 흙을 파고들며 양분을 흡수합니다. (나무가 흙을 제어)
-        *   **토극수(土剋水):** 흙은 둑이 되어 물의 흐름을 막거나 가둡니다. (흙이 물을 제어)
-        *   **수극화(水剋火):** 물은 불을 꺼서 제어합니다. (물이 불을 제어)
-        *   **화극금(火剋金):** 불은 금속을 녹여 형태를 바꿉니다. (불이 금속을 제어)
-        *   **금극목(金剋木):** 금속은 도끼가 되어 나무를 자릅니다. (금속이 나무를 제어)
+        2. **오행의 핵심 원리를 반영:**
+           - 상생(相生): 목→화→토→금→수→목 (서로 돕는 관계)
+           - 상극(相剋): 목극토, 토극수, 수극화, 화극금, 금극목 (서로 견제하는 관계)
+        3. 운세를 보는 방식
+            a. 가장 먼저, 사주팔자(8글자) 내에서 명주(命主) 자신을 상징하는 **일간(日干)의 오행이 현재 운(運)을 포함한 총 16개 기운 속에서 강한지(旺) 약한지(衰)**를 판단해야 합니다.
+            b. 단순 로직에서는 이 16개 글자 분포를 통해 일간을 돕는 기운(인성/비겁)이 과도하게 많아졌는지, 혹은 일간을 제어하는 기운(관살/재성/식상)이 너무 과다해졌는지를 비교하여 **오행의 치우침(過猶不及)**을 파악합니다.
+            c. 만약 일간이 신약(身弱)한데 유입된 운의 오행 분포가 일간을 생조(生助)하거나 방조(幇助)하는 기운(인성/비겁)으로 채워져 균형을 맞추면 긍정적인 운세로 보고, 반대로 이미 강한 일간에 동일한 오행이 과다하게 겹치면 독불장군이나 이기적 성향이 강화되어 흉운으로 해석합니다.
+            d. 이러한 분포 분석은 사주에 원래 부족하거나(無) 너무 많은(過多) 오행이 운에서 들어와서 길흉을 예측하는 기본 논리가 되며, 이는 타고난 명(命)에 운(運)이 더해져 심리적 문제 해결이나 미래 상황을 예측하는 데 활용될 수 있습니다.
 
         ---
         # Input Data
 
         [사용자 사주 정보]
         - 년주: {user_saju.yearly.two_letters} ({user_saju.yearly.stem.element.chinese}행)
-        - 월주: {user_saju.monthly.two_letters} ({user_saju.monthly.stem.element.chinese}행
+        - 월주: {user_saju.monthly.two_letters} ({user_saju.monthly.stem.element.chinese}행)
         - 일주: {user_saju.daily.two_letters} (당신의 대표 오행: {user_day_element.chinese}행)
         - 시주: {user_saju.hourly.two_letters} ({user_saju.hourly.stem.element.chinese}행)
 
         [분석 날짜 정보]
         - 분석 날짜: {tomorrow_date.strftime('%Y년 %m월 %d일')}
-        - 해당 날짜의 일진: {tomorrow_day_ganji.two_letters} (오늘의 대표 오행: {tomorrow_day_element.chinese}행)
+        - 해당 날짜의 일진:
+            - 대운: {fortune_score.elements['대운']['two_letters'] if fortune_score.elements.get('대운') else 'N/A'}
+            - 세운: {fortune_score.elements['세운']['two_letters']}
+            - 월운: {fortune_score.elements['월운']['two_letters']}
+            - 일운: {fortune_score.elements['일운']['two_letters']} (해당 날짜의 대표 오행: {tomorrow_day_element.chinese}행)
 
-        [사주와 일진의 조화 분석]
-        - 조화 점수: {compatibility['score']}/100
-        - 오행 관계: {compatibility['element_relation']} (예: 상생, 상극, 비화)
-        - 관계 상세: {compatibility['relation_detail']} (예: 수생목, 화극금)
-        - 당신의 오행: {compatibility['user_element']} ({compatibility['user_element_color']} 기운)
-        - 해당 날짜의 오행: {compatibility['tomorrow_element']} ({compatibility['tomorrow_element_color']} 기운)
-        - 한 줄 요약: {compatibility['message']}
+        [오행 균형 점수]
+        - 오행 균형 점수: {fortune_score.entropy_score} / 100
+        - 사용자에게 필요한 오행: {fortune_score.needed_element}
+
+        ---
+        위 정보를 바탕으로 오늘의 오행 균형 설명과 개운 조언을 2-3문장씩 간결하게 작성해주세요.
         """
-
-        # for i, photo in enumerate(photo_contexts, 1):
-        #     if photo['metadata']['location']:
-        #         context += f"""
-        # 차크라 {i}:
-        # - 시간: {photo['metadata']['timestamp']}
-        # - 위치: 위도 {photo['metadata']['location']['latitude']}, 경도 {photo['metadata']['location']['longitude']}
-        # """
-        #     else:
-        #         context += f"""
-        # 차크라 {i}:
-        # - 시간: {photo['metadata']['timestamp']}
-        # - 위치: 정보 없음
-        # """
-
-        context += """
-
-        위 정보를 바탕으로 GenZ 사용자가 쉽게 이해할 수 있는 내일의 운세를 작성해주세요.
-        전통적인 사주 해석을 현대적이고 실용적으로 풀어서 설명하고,
-        구체적이고 실천 가능한 조언을 제공해주세요.
-        """
-
         # Generate fortune using OpenAI
         try:
             if not self.client:
@@ -480,29 +450,8 @@ class FortuneService:
             logger.error(f"Failed to generate fortune with AI: {e}")
             # Return default fortune on error
             return FortuneAIResponse(
-                tomorrow_date=tomorrow_date.strftime('%Y-%m-%d'),
-                saju_compatibility=f"{compatibility['level']} ({compatibility['score']}/100)",
-                overall_fortune=compatibility['score'],
-                fortune_summary=compatibility['message'],
-                element_balance=f"{compatibility['user_element']}행과 {compatibility['tomorrow_element']}행의 조화",
-                chakra_readings=[
-                    ChakraReading(
-                        chakra_type="기본",
-                        strength=50,
-                        message="오늘 하루의 에너지가 모였습니다.",
-                        location_significance="일상의 소중함"
-                    )
-                ],
-                daily_guidance=DailyGuidance(
-                    best_time="오전 9-11시",
-                    lucky_direction="동쪽",
-                    lucky_color="청색",
-                    activities_to_embrace=["새로운 시작", "대화와 소통", "창의적 활동"],
-                    activities_to_avoid=["큰 결정", "논쟁"],
-                    key_advice="오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
-                ),
-                special_message="당신의 내일이 밝고 희망찬 날이 되기를 기원합니다.",
-                needed_element=ElementType.WOOD
+                today_element_balance_description=f"당신의 {compatibility['user_element']}행과 오늘의 {compatibility['tomorrow_element']}행이 만나 {compatibility['element_relation']} 관계를 형성합니다. {compatibility['message']}",
+                today_daily_guidance="오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
     def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
@@ -510,128 +459,13 @@ class FortuneService:
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
         return FortuneAIResponse(
-            tomorrow_date=tomorrow_date.strftime('%Y-%m-%d'),
-            saju_compatibility=f"{compatibility['level']} ({compatibility['score']}/100)",
-            overall_fortune=compatibility['score'],
-            fortune_summary=content[:200] + "..." if len(content) > 200 else content,
-            element_balance=f"{compatibility['user_element']}행과 {compatibility['tomorrow_element']}행의 조화",
-            chakra_readings=[
-                ChakraReading(
-                    chakra_type="AI 해석",
-                    strength=75,
-                    message="AI가 생성한 종합적인 해석입니다.",
-                    location_significance="전체적인 에너지 흐름"
-                )
-            ],
-            daily_guidance=DailyGuidance(
-                best_time="오전 9-11시",
-                lucky_direction="동쪽",
-                lucky_color="청색",
-                activities_to_embrace=["새로운 시작", "대화와 소통"],
-                activities_to_avoid=["큰 결정", "논쟁"],
-                key_advice=content[-100:] if len(content) > 100 else "오늘의 작은 노력이 내일의 큰 성과로 이어집니다."
-            ),
-            special_message="AI가 생성한 맞춤형 운세입니다.",
-            needed_element=ElementType.WOOD
+            today_element_balance_description=content[:200] + "..." if len(content) > 200 else content,
+            today_daily_guidance=content[-200:] if len(content) > 200 else "오늘은 평온한 마음으로 균형을 유지하세요."
         )
 
     ### public methods ###
-    
-    # todo - fade out.
-    def generate_tomorrow_fortune(
-        self,
-        user_id: int,
-        date: datetime,
-        include_photos: bool = True
-    ) -> Dict[str, Any]:
-        """
-        Generate complete tomorrow's fortune for a user.
 
-        Args:
-            user_id: User ID
-            date: Date for which to generate fortune (photos from this date)
-            include_photos: Whether to include photo analysis
-
-        Returns:
-            Complete fortune response
-        """
-        try:
-            # Get tomorrow's date
-            tomorrow_date = date + timedelta(days=1)
-
-            # Get user's Saju information (returns Saju object)
-            user_saju = self.get_user_saju_info(user_id)
-
-            # Calculate tomorrow's day pillar (일주)
-            tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
-
-            # Analyze compatibility between user's day pillar and tomorrow's day pillar
-            compatibility = self.analyze_saju_compatibility(
-                user_saju.daily,  # User's day pillar
-                tomorrow_day_ganji  # Tomorrow's day pillar
-            )
-
-            # Get photo contexts if requested
-            photo_contexts = []
-            if include_photos:
-                photo_contexts = self.prepare_photo_context(user_id, date)
-
-            # Generate fortune with AI
-            fortune = self.generate_fortune_with_ai(
-                user_saju,
-                tomorrow_date,
-                tomorrow_day_ganji,
-                compatibility,
-                photo_contexts
-            )
-
-            # Get index of tomorrow's ganji in 60-ganji cycle for storage
-            cached_ganji_list = GanJi._get_cached()
-            tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
-
-            # Save to database
-            fortune_result, created = FortuneResult.objects.update_or_create(
-                user_id=user_id,
-                for_date=tomorrow_date.date(),
-                defaults={
-                    'gapja_code': tomorrow_ganji_index,
-                    'gapja_name': tomorrow_day_ganji.two_letters,
-                    'gapja_element': tomorrow_day_ganji.stem.element.chinese,
-                    'fortune_data': fortune.model_dump() if fortune else {}
-                }
-            )
-
-            # Prepare final response (dict format for backward compatibility)
-            response = {
-                "status": "success",
-                "data": {
-                    "fortune_id": fortune_result.id,
-                    "user_id": user_id,
-                    "generated_at": fortune_result.created_at.isoformat(),
-                    "for_date": tomorrow_date.strftime('%Y-%m-%d'),
-                    "tomorrow_gapja": {
-                        "code": tomorrow_ganji_index,
-                        "name": tomorrow_day_ganji.two_letters,
-                        "stem": tomorrow_day_ganji.stem.korean_name,
-                        "branch": tomorrow_day_ganji.branch.korean_name,
-                        "element": tomorrow_day_ganji.stem.element.chinese,
-                        "element_color": tomorrow_day_ganji.stem.element.color,
-                        "animal": tomorrow_day_ganji.branch.animal
-                    },
-                    "fortune": fortune.model_dump() if fortune else None
-                }
-            }
-
-            return response
-
-        except Exception as e:
-            logger.error(f"Failed to generate fortune: {e}")
-            return {
-                "status": "error",
-                "message": str(e)
-            }
-
-    # new method for fetching fortune.
+    # Main method for fetching fortune.
     def generate_fortune(
         self,
         user: User,
@@ -653,8 +487,9 @@ class FortuneService:
                 tomorrow_day_ganji  # Tomorrow's day pillar
             )
 
-            # Don't include photos for today's fortune
-            photo_contexts = []
+
+             # Calculate fortune score
+            fortune_score = self.calculate_fortune_balance(user, date)
 
             # Generate fortune with AI
             fortune = self.generate_fortune_with_ai(
@@ -662,15 +497,14 @@ class FortuneService:
                 tomorrow_date,
                 tomorrow_day_ganji,
                 compatibility,
-                photo_contexts
+                fortune_score
             )
 
             # Get index of tomorrow's ganji in 60-ganji cycle for storage
             cached_ganji_list = GanJi._get_cached()
             tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
-            # Calculate fortune score
-            fortune_score = self.calculate_fortune_balance(user, date)
+           
 
             # Save to database
             fortune_result, created = FortuneResult.objects.update_or_create(
@@ -687,11 +521,11 @@ class FortuneService:
 
             # Prepare final response
             response_data = FortuneResponse(
-                date=date.strftime('%Y-%m-%d'),
+                date=tomorrow_date.strftime('%Y-%m-%d'),
                 user_id=user.id,
                 fortune=fortune,
                 fortune_score=fortune_score,
-                saju_date=Saju.from_date(date.date() if isinstance(date, datetime) else date, user._convert_time_units_to_time(user.birth_time_units)),
+                saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, user._convert_time_units_to_time(user.birth_time_units)),
                 saju_user=user.saju(),
                 daewoon=DaewoonCalculator.calculate_daewoon(user)
             )
@@ -790,6 +624,38 @@ class FortuneService:
             for element in all_five_elements
         }
 
+        # Calculate needed element (minimum count element with 상생 priority)
+        min_count = min(element_distribution.values(), key=lambda x: x.count).count
+        min_elements = [elem for elem, dist in element_distribution.items() if dist.count == min_count]
+
+        if len(min_elements) == 1:
+            needed_element = min_elements[0]
+        else:
+            # Multiple elements with same min count - prioritize by 상생 relation with user's day stem
+            user_day_element = ganji_from_user.daily.stem.element
+
+            # Map element names to FiveElements objects
+            element_map = {
+                "목": FiveElements.WOOD,
+                "화": FiveElements.FIRE,
+                "토": FiveElements.EARTH,
+                "금": FiveElements.METAL,
+                "수": FiveElements.WATER
+            }
+
+            # Find element that empowers (생) user's day element
+            # 상생: 수생목, 목생화, 화생토, 토생금, 금생수
+            needed_element = None
+            for elem_name in min_elements:
+                elem_obj = element_map[elem_name]
+                if elem_obj.empowers(user_day_element):
+                    needed_element = elem_name
+                    break
+
+            # If no element empowers user (shouldn't happen but failsafe), use first one
+            if not needed_element:
+                needed_element = min_elements[0]
+
         # Helper function to convert GanJi to full dict
         def ganji_to_dict(ganji: Optional[GanJi]) -> Optional[Dict[str, Any]]:
             if ganji is None:
@@ -824,7 +690,8 @@ class FortuneService:
                 "시주": ganji_to_dict(ganji_from_user.hourly),
             },
             element_distribution=element_distribution,
-            interpretation=self._interpret_balance_score(entropy_score)
+            interpretation=self._interpret_balance_score(entropy_score),
+            needed_element=needed_element
         )
 
     def _five_element_entropy_score(self, counts: List[int]) -> float:
