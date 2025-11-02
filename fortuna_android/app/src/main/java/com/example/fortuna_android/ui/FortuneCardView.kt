@@ -97,9 +97,8 @@ class FortuneCardView @JvmOverloads constructor(
 
         // Fetch needed element (deficient element) from API and display
         fetchAndDisplayNeededElement()
+        val fortuneScore = fortuneData.fortuneScore.entropyScore.toInt()
 
-        // 전체 운세 점수 (entropyScore / 100)
-        val fortuneScore = (fortuneData.fortuneScore.entropyScore / 100.0).toInt()
         binding.tvOverallFortune.text = fortuneScore.toString()
 
         // 새로운 섹션: 오행 균형 설명
