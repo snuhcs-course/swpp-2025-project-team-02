@@ -222,14 +222,43 @@
 
             </LinearLayout>
 
-
-
-            <!-- 사주팔자 카드 (커스텀 View) -->
-            <com.example.fortuna_android.ui.SajuPaljaView
-                android:id="@+id/sajuPaljaView"
+            <!-- 프로필 수정하기 버튼 -->
+            <Button
+                android:id="@+id/btn_edit_profile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/button_default"
+                android:paddingVertical="14dp"
+                android:text="프로필 수정하기"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- 로그아웃 버튼 -->
+            <Button
+                android:id="@+id/btn_logout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/button_default"
+                android:paddingVertical="14dp"
+                android:text="로그아웃"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <!-- 회원 탈퇴 버튼 -->
+            <Button
+                android:id="@+id/btn_delete_account"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/button_default"
+                android:paddingVertical="14dp"
+                android:text="회원 탈퇴"
+                android:textColor="#F93E3E"
+                android:textSize="16sp" />
 
         </LinearLayout>
 

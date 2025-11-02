@@ -1,6 +1,5 @@
 package com.example.fortuna_android.ui
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,7 +8,6 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
-import com.example.fortuna_android.IntroActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
 
@@ -45,13 +43,7 @@ class TodayFortuneFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        val binding = _binding ?: return
-
-        // 사주 설명 버튼
-        binding.btnSajuExplanation.setOnClickListener {
-            val intent = Intent(requireContext(), IntroActivity::class.java)
-            startActivity(intent)
-        }
+        // No click listeners needed - all functionality handled by FortuneCardView
     }
 
     private fun setupObservers() {
@@ -79,7 +71,7 @@ class TodayFortuneFragment : Fragment() {
                     // Access parent fragment's ViewPager to switch to detail analysis tab
                     (parentFragment as? HomeFragment)?.let { homeFragment ->
                         homeFragment.view?.findViewById<androidx.viewpager2.widget.ViewPager2>(
-                            com.example.fortuna_android.R.id.viewPager
+                            R.id.viewPager
                         )?.currentItem = 1
                     }
                 }

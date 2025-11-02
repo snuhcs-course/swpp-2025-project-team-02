@@ -358,3 +358,24 @@ data class CollectionStatusData(
     @SerializedName("collected_elements")
     val collectedElements: CollectedElements
 )
+
+// GET /api/chakra/collection-history
+data class CollectionHistoryResponse(
+    val status: String,
+    val data: CollectionHistoryData
+)
+
+data class CollectionHistoryData(
+    @SerializedName("chakra_type")
+    val chakraType: String,
+    val collections: List<CollectionHistoryItem>,
+    @SerializedName("total_count")
+    val totalCount: Int
+)
+
+data class CollectionHistoryItem(
+    val id: Int,
+    @SerializedName("collected_at")
+    val collectedAt: String,
+    val date: String
+)

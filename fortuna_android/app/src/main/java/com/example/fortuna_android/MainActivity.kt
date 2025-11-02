@@ -71,6 +71,9 @@ class MainActivity : AppCompatActivity() {
         }
         val navController = navHostFragment.navController
 
+        // Set up bottom navigation
+        setupBottomNavigation(navController)
+
         // Check permissions on startup
         requestPermissions()
 
@@ -352,6 +355,29 @@ class MainActivity : AppCompatActivity() {
 
             Log.d(TAG, "로컬 로그아웃 완료 - 모든 토큰 제거됨")
             navigateToSignIn()
+        }
+    }
+
+    private fun setupBottomNavigation(navController: androidx.navigation.NavController) {
+        // Hide text labels - show only icons
+        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.bottomnavigation.LabelVisibilityMode.LABEL_VISIBILITY_UNLABELED
+
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    navController.navigate(R.id.homeFragment)
+                    true
+                }
+                R.id.nav_camera -> {
+                    navController.navigate(R.id.arFragment)
+                    true
+                }
+                R.id.nav_profile -> {
+                    navController.navigate(R.id.profileFragment)
+                    true
+                }
+                else -> false
+            }
         }
     }
 
