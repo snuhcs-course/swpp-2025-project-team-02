@@ -173,7 +173,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=3, percentage=20.0),
                 "수": ElementDistribution(count=4, percentage=26.7)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="화"
         )
 
         url = reverse('core:needed_element')
@@ -210,7 +211,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=3, percentage=20.0),
                 "수": ElementDistribution(count=4, percentage=26.7)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="목"
         )
 
         url = reverse('core:needed_element')
@@ -247,7 +249,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=1, percentage=6.7),  # Minimum
                 "수": ElementDistribution(count=4, percentage=26.7)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="금"
         )
 
         url = reverse('core:needed_element')
@@ -283,7 +286,8 @@ class TestImageAPIEndpoints(APITestCase):
                 "금": ElementDistribution(count=2, percentage=13.3),  # Minimum
                 "수": ElementDistribution(count=3, percentage=20.0)
             },
-            interpretation="Test interpretation"
+            interpretation="Test interpretation",
+            needed_element="금"
         )
 
         url = reverse('core:needed_element')

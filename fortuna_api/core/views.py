@@ -402,54 +402,14 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         else:
             today_date = datetime.now().date()
 
-        # Calculate fortune balance to get element distribution
+        # Calculate fortune balance which now includes needed_element
         fortune_score = fortune_service.calculate_fortune_balance(user, datetime.combine(today_date, datetime.min.time()))
-
-        # Get element_distribution from fortune_score
-        element_dist = fortune_score.element_distribution
-
-        # Find minimum count
-        min_count = min(element_dist.values(), key=lambda x: x.count).count
-
-        # Get all elements with minimum count
-        min_elements = [elem for elem, dist in element_dist.items() if dist.count == min_count]
-
-        # If only one element with min count, use it
-        if len(min_elements) == 1:
-            needed_element = min_elements[0]
-        else:
-            # Multiple elements with same min count - prioritize by 상생 relation with user's day stem
-            user_saju = user.saju()
-            user_day_element = user_saju.daily.stem.element
-
-            # Map element names to FiveElements objects
-            from core.utils.saju_concepts import FiveElements
-            element_map = {
-                "목": FiveElements.WOOD,
-                "화": FiveElements.FIRE,
-                "토": FiveElements.EARTH,
-                "금": FiveElements.METAL,
-                "수": FiveElements.WATER
-            }
-
-            # Find element that empowers (생) user's day element
-            # 상생: 수생목, 목생화, 화생토, 토생금, 금생수
-            needed_element = None
-            for elem_name in min_elements:
-                elem_obj = element_map[elem_name]
-                if elem_obj.empowers(user_day_element):
-                    needed_element = elem_name
-                    break
-
-            # If no element empowers user (shouldn't happen but failsafe), use first one
-            if not needed_element:
-                needed_element = min_elements[0]
 
         return Response({
             'status': 'success',
             'data': {
                 'date': today_date.isoformat(),
-                'needed_element': needed_element
+                'needed_element': fortune_score.needed_element
             }
         }, status=status.HTTP_200_OK)
 

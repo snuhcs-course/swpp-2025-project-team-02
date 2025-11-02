@@ -41,10 +41,10 @@ class Response(BaseModel, Generic[T]):
 class FortuneAIResponse(BaseModel):
     """사용자의 사주와 일진을 종합적으로 분석한 하루 운세 응답 구조."""
     today_element_balance_description: str = Field(
-        description="오늘 하루 운기의 오행 분포와 사용자의 사주 오행 분포를 기반으로 오늘 오행 분포에 대한 설명. 알아듣기 쉽게 친절하게 2-3 문장으로 작성."
+        description="오늘 하루 운기의 오행 분포와 사용자의 사주 오행 분포를 기반으로 오늘 오행 분포에 대한 설명. 설명에는, 사용자에게 필요한 오행과 그 이유가 포함되어야힙니다. 알아듣기 쉽게 친절하게 4-5 문장으로 작성."
     )
     today_daily_guidance: str = Field(
-        description="부족한 오행 요소를 보강할 수 있는 일상 속 행동들을 today_element_balance_description을 기반으로 설명. 2-3문장으로 작성."
+        description="부족한 오행 요소를 보강할 수 있는 일상 속 행동들을 today_element_balance_description을 기반으로 설명. 알아듣기 쉽게 4-5문장으로 작성."
     )
 
 class TomorrowGapja(BaseModel):
@@ -73,6 +73,7 @@ class FortuneScore(BaseModel):
         description="Distribution of 5 elements: 목, 화, 토, 금, 수"
     )
     interpretation: str = Field(description="Human-readable interpretation of balance score")
+    needed_element: str = Field(description="Needed element (목/화/토/금/수) to harmonize user's energy with today's energy")
 
 class FortuneResponse(BaseModel):
     """Response model for today's fortune endpoint."""
@@ -331,7 +332,7 @@ class FortuneService:
         tomorrow_date: datetime,
         tomorrow_day_ganji: GanJi,
         compatibility: Dict[str, Any],
-        photo_contexts: List[Dict[str, Any]]
+        fortune_score: FortuneScore
     ) -> FortuneAIResponse:
         """
         Generate fortune using OpenAI API with structured output.
@@ -361,12 +362,47 @@ class FortuneService:
            오행(목화토금수)의 관계를 쉽게 풀어서 설명해주세요.
 
         2. **2개의 필드만 출력:**
-           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석 (2-3문장)
-           - today_daily_guidance: 부족한 오행을 보충할 수 있는 실용적인 일상 행동 조언 (2-3문장)
+           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석. 사용자에게 필요한 오행이 왜 <{fortune_score.needed_element}>행인지, 알기 쉽게 설명해주세요.  (4-5문장)
+           - today_daily_guidance: 부족한 오행을 보충할 수 있는 실용적인 일상 행동 조언 (4-5문장)
 
-        3. **오행의 핵심 원리를 반영:**
+        ---
+        # 사주 & 오행 이론 요약
+        1. 천간‧지지의 구조: 오행과 음양
+            천간(天干) — 10개
+                글자	오행	음양
+                갑	목	양(+)
+                을	목	음(-)
+                병	화	양(+)
+                정	화	음(-)
+                무	토	양(+)
+                기	토	음(-)
+                경	금	양(+)
+                신	금	음(-)
+                임	수	양(+)
+                계	수	음(-)
+            지지(地支) — 12개
+                글자	오행	음양
+                자	수	양(+)
+                축	토	음(-)
+                인	목	양(+)
+                묘	목	음(-)
+                진	토	양(+)
+                사	화	음(-)
+                오	화	양(+)
+                미	토	음(-)
+                신	금	양(+)
+                유	금	음(-)
+                술	토	양(+)
+                해	수	음(-)
+
+        2. **오행의 핵심 원리를 반영:**
            - 상생(相生): 목→화→토→금→수→목 (서로 돕는 관계)
            - 상극(相剋): 목극토, 토극수, 수극화, 화극금, 금극목 (서로 견제하는 관계)
+        3. 운세를 보는 방식
+            a. 가장 먼저, 사주팔자(8글자) 내에서 명주(命主) 자신을 상징하는 **일간(日干)의 오행이 현재 운(運)을 포함한 총 16개 기운 속에서 강한지(旺) 약한지(衰)**를 판단해야 합니다.
+            b. 단순 로직에서는 이 16개 글자 분포를 통해 일간을 돕는 기운(인성/비겁)이 과도하게 많아졌는지, 혹은 일간을 제어하는 기운(관살/재성/식상)이 너무 과다해졌는지를 비교하여 **오행의 치우침(過猶不及)**을 파악합니다.
+            c. 만약 일간이 신약(身弱)한데 유입된 운의 오행 분포가 일간을 생조(生助)하거나 방조(幇助)하는 기운(인성/비겁)으로 채워져 균형을 맞추면 긍정적인 운세로 보고, 반대로 이미 강한 일간에 동일한 오행이 과다하게 겹치면 독불장군이나 이기적 성향이 강화되어 흉운으로 해석합니다.
+            d. 이러한 분포 분석은 사주에 원래 부족하거나(無) 너무 많은(過多) 오행이 운에서 들어와서 길흉을 예측하는 기본 논리가 되며, 이는 타고난 명(命)에 운(運)이 더해져 심리적 문제 해결이나 미래 상황을 예측하는 데 활용될 수 있습니다.
 
         ---
         # Input Data
@@ -379,19 +415,20 @@ class FortuneService:
 
         [분석 날짜 정보]
         - 분석 날짜: {tomorrow_date.strftime('%Y년 %m월 %d일')}
-        - 해당 날짜의 일진: {tomorrow_day_ganji.two_letters} (오늘의 대표 오행: {tomorrow_day_element.chinese}행)
+        - 해당 날짜의 일진:
+            - 대운: {fortune_score.elements['대운']['two_letters'] if fortune_score.elements.get('대운') else 'N/A'}
+            - 세운: {fortune_score.elements['세운']['two_letters']}
+            - 월운: {fortune_score.elements['월운']['two_letters']}
+            - 일운: {fortune_score.elements['일운']['two_letters']} (해당 날짜의 대표 오행: {tomorrow_day_element.chinese}행)
 
-        [사주와 일진의 조화 분석]
-        - 조화 점수: {compatibility['score']}/100
-        - 오행 관계: {compatibility['element_relation']}
-        - 관계 상세: {compatibility['relation_detail']}
-        - 당신의 오행: {compatibility['user_element']} ({compatibility['user_element_color']} 기운)
-        - 해당 날짜의 오행: {compatibility['tomorrow_element']} ({compatibility['tomorrow_element_color']} 기운)
+        [오행 균형 점수]
+        - 오행 균형 점수: {fortune_score.entropy_score} / 100
+        - 사용자에게 필요한 오행: {fortune_score.needed_element}
 
         ---
         위 정보를 바탕으로 오늘의 오행 균형 설명과 개운 조언을 2-3문장씩 간결하게 작성해주세요.
         """
-
+        print(context)
         # Generate fortune using OpenAI
         try:
             if not self.client:
@@ -428,7 +465,7 @@ class FortuneService:
         )
 
     ### public methods ###
-    
+
     # todo - fade out.
     def generate_tomorrow_fortune(
         self,
@@ -545,8 +582,9 @@ class FortuneService:
                 tomorrow_day_ganji  # Tomorrow's day pillar
             )
 
-            # Don't include photos for today's fortune
-            photo_contexts = []
+
+             # Calculate fortune score
+            fortune_score = self.calculate_fortune_balance(user, date)
 
             # Generate fortune with AI
             fortune = self.generate_fortune_with_ai(
@@ -554,15 +592,14 @@ class FortuneService:
                 tomorrow_date,
                 tomorrow_day_ganji,
                 compatibility,
-                photo_contexts
+                fortune_score
             )
 
             # Get index of tomorrow's ganji in 60-ganji cycle for storage
             cached_ganji_list = GanJi._get_cached()
             tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
-            # Calculate fortune score
-            fortune_score = self.calculate_fortune_balance(user, date)
+           
 
             # Save to database
             fortune_result, created = FortuneResult.objects.update_or_create(
@@ -682,6 +719,38 @@ class FortuneService:
             for element in all_five_elements
         }
 
+        # Calculate needed element (minimum count element with 상생 priority)
+        min_count = min(element_distribution.values(), key=lambda x: x.count).count
+        min_elements = [elem for elem, dist in element_distribution.items() if dist.count == min_count]
+
+        if len(min_elements) == 1:
+            needed_element = min_elements[0]
+        else:
+            # Multiple elements with same min count - prioritize by 상생 relation with user's day stem
+            user_day_element = ganji_from_user.daily.stem.element
+
+            # Map element names to FiveElements objects
+            element_map = {
+                "목": FiveElements.WOOD,
+                "화": FiveElements.FIRE,
+                "토": FiveElements.EARTH,
+                "금": FiveElements.METAL,
+                "수": FiveElements.WATER
+            }
+
+            # Find element that empowers (생) user's day element
+            # 상생: 수생목, 목생화, 화생토, 토생금, 금생수
+            needed_element = None
+            for elem_name in min_elements:
+                elem_obj = element_map[elem_name]
+                if elem_obj.empowers(user_day_element):
+                    needed_element = elem_name
+                    break
+
+            # If no element empowers user (shouldn't happen but failsafe), use first one
+            if not needed_element:
+                needed_element = min_elements[0]
+
         # Helper function to convert GanJi to full dict
         def ganji_to_dict(ganji: Optional[GanJi]) -> Optional[Dict[str, Any]]:
             if ganji is None:
@@ -716,7 +785,8 @@ class FortuneService:
                 "시주": ganji_to_dict(ganji_from_user.hourly),
             },
             element_distribution=element_distribution,
-            interpretation=self._interpret_balance_score(entropy_score)
+            interpretation=self._interpret_balance_score(entropy_score),
+            needed_element=needed_element
         )
 
     def _five_element_entropy_score(self, counts: List[int]) -> float:

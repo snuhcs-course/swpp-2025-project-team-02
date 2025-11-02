@@ -192,24 +192,10 @@ class TestFortuneServicePersistence(TestCase):
     @patch.object(FortuneService, 'generate_fortune_with_ai')
     def test_fortune_generation_saves_to_db(self, mock_ai):
         """Test that fortune generation saves to database."""
-        from core.services.fortune import FortuneAIResponse, ChakraReading, DailyGuidance, ElementType
+        from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
-            tomorrow_date='2024-01-02',
-            saju_compatibility='좋음',
-            overall_fortune=85,
-            fortune_summary='Good fortune',
-            element_balance='Balance',
-            chakra_readings=[],
-            daily_guidance=DailyGuidance(
-                best_time='9-11',
-                lucky_direction='East',
-                lucky_color='Blue',
-                activities_to_embrace=['Work'],
-                activities_to_avoid=['Fight'],
-                key_advice='Be calm'
-            ),
-            special_message='Stay positive',
-            needed_element=ElementType.WOOD
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 균형잡힌 좋은 날입니다.",
+            today_daily_guidance="동쪽으로의 활동이 좋으며, 침착함을 유지하세요. 일에 집중하기 좋은 시간입니다."
         )
 
         result = self.service.generate_tomorrow_fortune(
@@ -230,24 +216,10 @@ class TestFortuneServicePersistence(TestCase):
     @patch.object(FortuneService, 'generate_fortune_with_ai')
     def test_fortune_regeneration_updates_existing(self, mock_ai):
         """Test that regenerating fortune updates existing record."""
-        from core.services.fortune import FortuneAIResponse, DailyGuidance, ElementType
+        from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
-            tomorrow_date='2024-01-02',
-            saju_compatibility='좋음',
-            overall_fortune=80,
-            fortune_summary='First fortune',
-            element_balance='Balance',
-            chakra_readings=[],
-            daily_guidance=DailyGuidance(
-                best_time='9-11',
-                lucky_direction='East',
-                lucky_color='Blue',
-                activities_to_embrace=['Work'],
-                activities_to_avoid=['Fight'],
-                key_advice='Be calm'
-            ),
-            special_message='Stay positive',
-            needed_element=ElementType.FIRE
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 첫 번째 운세입니다.",
+            today_daily_guidance="동쪽으로의 활동이 좋으며, 침착함을 유지하세요."
         )
 
         # Generate first fortune
@@ -259,7 +231,10 @@ class TestFortuneServicePersistence(TestCase):
         fortune_id1 = result1['data']['fortune_id']
 
         # Generate again for same date
-        mock_ai.return_value.overall_fortune = 90
+        mock_ai.return_value = FortuneAIResponse(
+            today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 업데이트된 운세입니다.",
+            today_daily_guidance="남쪽으로의 활동이 좋으며, 긍정적인 마음을 유지하세요."
+        )
         result2 = self.service.generate_tomorrow_fortune(
             user_id=self.user.id,
             date=datetime(2024, 1, 1),
