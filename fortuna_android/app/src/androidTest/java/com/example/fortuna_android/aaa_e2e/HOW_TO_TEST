@@ -1,4 +1,12 @@
 ./gradlew clean
+
+./gradlew :app:testDebugUnitTest :app:connectedDebugAndroidTest :app:jacocoFullReport
+
+open app/build/reports/jacoco/jacocoFullReport/html/index.html
+
+End-to-end test executed first, manual login and interaction.
+
+if device permission problem:
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk
 adb shell pm grant com.example.fortuna_android android.permission.CAMERA
@@ -7,9 +15,3 @@ adb shell pm grant com.example.fortuna_android android.permission.ACCESS_FINE_LO
 adb shell pm grant com.example.fortuna_android android.permission.ACCESS_COARSE_LOCATION
 adb shell pm grant com.example.fortuna_android android.permission.READ_EXTERNAL_STORAGE
 adb shell pm grant com.example.fortuna_android android.permission.POST_NOTIFICATIONS
-
-./gradlew :app:testDebugUnitTest :app:connectedDebugAndroidTest :app:jacocoFullReport
-
-open app/build/reports/jacoco/jacocoFullReport/html/index.html
-
-End-to-end test executed first, manual login and interaction.
