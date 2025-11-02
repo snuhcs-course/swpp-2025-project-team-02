@@ -428,7 +428,6 @@ class FortuneService:
         ---
         위 정보를 바탕으로 오늘의 오행 균형 설명과 개운 조언을 2-3문장씩 간결하게 작성해주세요.
         """
-        print(context)
         # Generate fortune using OpenAI
         try:
             if not self.client:

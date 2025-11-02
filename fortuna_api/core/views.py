@@ -443,7 +443,6 @@ class FortuneViewSet(viewsets.GenericViewSet):
         """Get today's fortune with balance score (DB cached)."""
         user = request.user
         today_date = datetime.now().date()
-        tomorrow_date = today_date + timedelta(days=1)
 
         # Helper functions to convert GanJi/Saju objects (used in both branches)
         def ganji_to_dict(ganji):
@@ -480,7 +479,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
         try:
             fortune_result = FortuneResult.objects.get(
                 user=user,
-                for_date=tomorrow_date
+                for_date=today_date
             )
 
             # If fortune exists in DB, return it directly (fast! 두 번째 요청부터 빠름)
@@ -512,9 +511,10 @@ class FortuneViewSet(viewsets.GenericViewSet):
             pass  # Generate new fortune below
 
         # If not in DB, generate new fortune
+        yesterday = today_date - timedelta(days=1)
         result = fortune_service.generate_fortune(
             user=user,
-            date=datetime.now()
+            date=datetime.combine(yesterday, datetime.min.time())
         )
 
         # Convert Response[FortuneResponse] to dict
