@@ -521,11 +521,11 @@ class FortuneService:
 
             # Prepare final response
             response_data = FortuneResponse(
-                date=date.strftime('%Y-%m-%d'),
+                date=tomorrow_date.strftime('%Y-%m-%d'),
                 user_id=user.id,
                 fortune=fortune,
                 fortune_score=fortune_score,
-                saju_date=Saju.from_date(date.date() if isinstance(date, datetime) else date, user._convert_time_units_to_time(user.birth_time_units)),
+                saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, user._convert_time_units_to_time(user.birth_time_units)),
                 saju_user=user.saju(),
                 daewoon=DaewoonCalculator.calculate_daewoon(user)
             )
