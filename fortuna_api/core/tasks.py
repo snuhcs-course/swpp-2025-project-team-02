@@ -57,6 +57,14 @@ async def update_fortune_async(user_id: int, image_date_str: str) -> None:
             )
             return
 
+        # Get user object
+        from user.models import User
+        try:
+            user = await sync_to_async(User.objects.get)(id=user_id)
+        except User.DoesNotExist:
+            logger.error(f"User {user_id} not found")
+            return
+
         # Update FortuneResult status to processing
         try:
             fortune_result = await sync_to_async(FortuneResult.objects.get)(
@@ -74,10 +82,9 @@ async def update_fortune_async(user_id: int, image_date_str: str) -> None:
             return
 
         # Generate/update the fortune (this might involve AI calls, so keep it sync for now)
-        result = await sync_to_async(fortune_service.generate_tomorrow_fortune)(
-            user_id=user_id,
-            date=image_date,
-            include_photos=True
+        result = await sync_to_async(fortune_service.generate_fortune)(
+            user=user,
+            date=image_date
         )
 
         # Update status based on result
@@ -86,8 +93,8 @@ async def update_fortune_async(user_id: int, image_date_str: str) -> None:
                 user_id=user_id,
                 for_date=tomorrow.date()
             )
-            
-            if result['status'] == 'success':
+
+            if result.status == 'success':
                 if hasattr(fortune_result, 'status'):
                     fortune_result.status = 'completed' # FIXME : 하루에 여러 번 올리는 걸 쪼개 받는 식으로 나눠 구현해야 함.
                     await sync_to_async(fortune_result.save)(update_fields=['status'])
@@ -97,14 +104,15 @@ async def update_fortune_async(user_id: int, image_date_str: str) -> None:
                     f"for_date={tomorrow.date()}, images_used={images_count}"
                 )
             else:
+                error_message = result.error.message if result.error else 'Unknown error'
                 logger.error(
-                    f"Failed to generate fortune: {result.get('message', 'Unknown error')}"
+                    f"Failed to generate fortune: {error_message}"
                 )
                 # Mark as pending so it can be retried
                 if hasattr(fortune_result, 'status'):
                     fortune_result.status = 'pending'
                     await sync_to_async(fortune_result.save)(update_fields=['status'])
-                    
+
         except FortuneResult.DoesNotExist:
             logger.error(
                 f"FortuneResult disappeared during update for user {user_id}"
