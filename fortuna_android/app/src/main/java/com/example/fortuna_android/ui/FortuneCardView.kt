@@ -98,28 +98,15 @@ class FortuneCardView @JvmOverloads constructor(
         // Fetch needed element (deficient element) from API and display
         fetchAndDisplayNeededElement()
 
-        // 전체 운세 점수
-        binding.tvOverallFortune.text = fortuneData.fortune.overallFortune.toString()
+        // 전체 운세 점수 (entropyScore / 100)
+        val fortuneScore = (fortuneData.fortuneScore.entropyScore / 100.0).toInt()
+        binding.tvOverallFortune.text = fortuneScore.toString()
 
-        // 특별 메시지 & 운세 요약
-//        binding.tvSpecialMessage.text = fortuneData.fortune.specialMessage
-//        binding.tvFortuneSummary.text = fortuneData.fortune.fortuneSummary
+        // 새로운 섹션: 오행 균형 설명
+        binding.tvElementBalanceDescription.text = fortuneData.fortune.todayElementBalanceDescription
 
-        // 행운의 키워드 (keyAdvice 기반)
-        val guidance = fortuneData.fortune.dailyGuidance
-//        binding.tvKeywords.text = generateKeywords(guidance.keyAdvice)
-
-        // 오행 균형
-        binding.tvElementBalance.text = fortuneData.fortune.elementBalance
-
-        // 일일 가이던스
-        binding.tvKeyAdvice.text = "💡 ${guidance.keyAdvice}"
-        binding.tvBestTime.text = "⏰ ${guidance.bestTime}"
-        binding.tvLuckyDirection.text = "🧭 ${guidance.luckyDirection}"
-        binding.tvLuckyColor.text = "🎨 ${guidance.luckyColor}"
-
-        // 차크라 리딩
-        displayChakraReadings(fortuneData.fortune.chakraReadings)
+        // 새로운 섹션: 일일 가이던스
+        binding.tvDailyGuidance.text = fortuneData.fortune.todayDailyGuidance
     }
 
     /**
@@ -146,6 +133,10 @@ class FortuneCardView @JvmOverloads constructor(
                         // Update button text dynamically based on deficient element
                         val buttonText = getWhyDeficientButtonText(neededElementKorean)
                         binding.btnWhyDeficient.text = buttonText
+
+                        // Update "왜 부족한가요?" title dynamically
+                        val whyDeficientTitle = getWhyDeficientTitle(neededElementKorean)
+                        binding.tvWhyDeficientTitle.text = whyDeficientTitle
                     }
 
                     Log.d("FortuneCardView", "Needed element displayed: $neededElementKorean")
@@ -172,79 +163,6 @@ class FortuneCardView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * 차크라 리딩 동적 표시
-     */
-    private fun displayChakraReadings(chakraReadings: List<ChakraReading>) {
-        binding.llChakraReadings.removeAllViews()
-
-        chakraReadings.forEach { reading ->
-            val chakraView = createChakraReadingView(reading)
-            binding.llChakraReadings.addView(chakraView)
-        }
-    }
-
-    /**
-     * 개별 차크라 리딩 뷰 생성
-     */
-    private fun createChakraReadingView(reading: ChakraReading): LinearLayout {
-        val layout = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 20)
-            }
-            setPadding(20, 16, 20, 16)
-            setBackgroundColor(Color.parseColor("#2A2A2A"))
-        }
-
-        // 차크라 타입 및 강도
-        val headerText = TextView(context).apply {
-            val chakraEmoji = getChakraEmoji(reading.chakraType)
-            text = "$chakraEmoji ${getChakraName(reading.chakraType)} - 강도: ${reading.strength}/10"
-            textSize = 14f
-            setTextColor(getChakraColor(reading.chakraType))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 10)
-            }
-        }
-
-        // 메시지
-        val messageText = TextView(context).apply {
-            text = reading.message
-            textSize = 13f
-            setTextColor(Color.parseColor("#EEEEEE"))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 6)
-            }
-        }
-
-        // 위치 의미
-        val locationText = TextView(context).apply {
-            text = "📍 ${reading.locationSignificance}"
-            textSize = 12f
-            setTextColor(Color.parseColor("#AAAAAA"))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        layout.addView(headerText)
-        layout.addView(messageText)
-        layout.addView(locationText)
-
-        return layout
-    }
 
     /**
      * 오행 원소에 따른 이모지 반환
@@ -288,19 +206,6 @@ class FortuneCardView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * 차크라 타입에 따른 이모지 반환
-     */
-    private fun getChakraEmoji(chakraType: String): String {
-        return when (chakraType.lowercase()) {
-            "wood", "나무", "목" -> "🌳"
-            "fire", "불", "화" -> "🔥"
-            "earth", "흙", "토" -> "🌏"
-            "metal", "쇠", "금" -> "⚔️"
-            "water", "물", "수" -> "💧"
-            else -> "🔵"
-        }
-    }
 
     /**
      * 오행에 따른 기운 메시지 반환
@@ -345,30 +250,17 @@ class FortuneCardView @JvmOverloads constructor(
     }
 
     /**
-     * 차크라 타입 한글 이름 반환
+     * 부족한 원소에 따라 제목을 동적으로 생성
      */
-    private fun getChakraName(chakraType: String): String {
-        return when (chakraType.lowercase()) {
-            "wood" -> "목(木)"
-            "fire" -> "화(火)"
-            "earth" -> "토(土)"
-            "metal" -> "금(金)"
-            "water" -> "수(水)"
-            else -> chakraType
+    private fun getWhyDeficientTitle(element: String): String {
+        return when (element.lowercase()) {
+            "wood", "나무", "목" -> "나무가 왜 부족한가요?"
+            "fire", "불", "화" -> "불이 왜 부족한가요?"
+            "earth", "흙", "토" -> "흙이 왜 부족한가요?"
+            "metal", "쇠", "금" -> "쇠가 왜 부족한가요?"
+            "water", "물", "수" -> "물이 왜 부족한가요?"
+            else -> "왜 이 기운이 필요한가요?"
         }
     }
 
-    /**
-     * 차크라 타입에 따른 색상 반환
-     */
-    private fun getChakraColor(chakraType: String): Int {
-        return when (chakraType.lowercase()) {
-            "wood", "나무", "목" -> Color.parseColor("#0BEFA0")  // 초록
-            "fire", "불", "화" -> Color.parseColor("#F93E3E")     // 빨강
-            "earth", "흙", "토" -> Color.parseColor("#FF9500")    // 노랑
-            "metal", "쇠", "금" -> Color.parseColor("#C0C0C0")    // 은색
-            "water", "물", "수" -> Color.parseColor("#2BB3FC")    // 파랑
-            else -> Color.parseColor("#FFFFFF")
-        }
-    }
 }

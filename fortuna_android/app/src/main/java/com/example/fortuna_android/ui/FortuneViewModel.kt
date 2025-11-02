@@ -92,9 +92,10 @@ class FortuneViewModel : ViewModel() {
 
                     // Check if fortune data is complete
                     val fortune = fortuneResponse.data.fortune
-                    if (!fortune.fortuneSummary.isNullOrEmpty()) {
+                    if (!fortune.todayDailyGuidance.isNullOrEmpty()) {
                         // Update success state
-                        val fortuneText = "${fortuneResponse.data.forDate}\n${fortune.fortuneSummary}\nOverall Fortune: ${fortune.overallFortune}\n${fortune.specialMessage}"
+                        val fortuneScore = (fortuneResponse.data.fortuneScore.entropyScore / 100.0).toInt()
+                        val fortuneText = "${fortuneResponse.data.forDate}\nOverall Fortune: $fortuneScore\n\n${fortune.todayElementBalanceDescription}\n\n${fortune.todayDailyGuidance}"
                         _fortuneResult.postValue(fortuneText)
 
                         // Post TodayFortuneData for navigation to detail page
