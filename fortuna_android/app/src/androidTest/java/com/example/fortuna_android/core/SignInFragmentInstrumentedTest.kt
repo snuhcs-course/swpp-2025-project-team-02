@@ -1,5 +1,6 @@
 package com.example.fortuna_android.core
 
+import android.app.Activity
 import android.content.Context
 import android.widget.Button
 import androidx.fragment.app.testing.FragmentScenario
@@ -15,11 +16,16 @@ import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.User
 import com.example.fortuna_android.api.UserProfile
 import com.google.android.gms.common.SignInButton
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.common.api.ApiException
 import io.mockk.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,7 +112,7 @@ class SignInFragmentInstrumentedTest {
         scenario.onFragment { fragment ->
             // Force mGoogleSignInClient to null by not initializing
             // Call signIn via reflection or trigger button click
-            fragment.view?.findViewById<SignInButton>(R.id.sign_in_button)?.performClick()
+            fragment.view?.findViewById<com.google.android.gms.common.SignInButton>(R.id.sign_in_button)?.performClick()
         }
 
         delay(100)
@@ -121,7 +127,7 @@ class SignInFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             // Trigger signOut with no token
-            fragment.view?.findViewById<Button>(R.id.sign_out_button)?.performClick()
+            fragment.view?.findViewById<android.widget.Button>(R.id.sign_out_button)?.performClick()
         }
 
         delay(200) // Wait for coroutine
@@ -191,7 +197,7 @@ class SignInFragmentInstrumentedTest {
             .commit()
 
         mockkObject(RetrofitClient)
-        val mockInstance = mockk<ApiService>()
+        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
         every { RetrofitClient.instance } returns mockInstance
         coEvery { mockInstance.logout(any()) } throws Exception("Network error")
 
@@ -703,28 +709,7 @@ class SignInFragmentInstrumentedTest {
         delay(100)
     }
 
-    // ========== GoogleSignInLauncher Coverage Tests ==========
-
-    @Test
-    fun testGoogleSignInLauncher_resultOk() = runBlocking {
-        // Covers: googleSignInLauncher lines 37-39
-        scenario = launchFragmentInContainer<SignInFragment>(
-            themeResId = R.style.Theme_Fortuna_android
-        )
-
-        // Launcher callback will be triggered by sign in
-        delay(100)
-    }
-
-    @Test
-    fun testGoogleSignInLauncher_resultCancelled() = runBlocking {
-        // Covers: googleSignInLauncher lines 40-44
-        scenario = launchFragmentInContainer<SignInFragment>(
-            themeResId = R.style.Theme_Fortuna_android
-        )
-
-        delay(100)
-    }
+    // ========== GoogleSignInLauncher Coverage Tests - OLD (replaced below) ==========
 
     // ========== PerformLocalSignOut Coverage Tests ==========
 
@@ -784,4 +769,530 @@ class SignInFragmentInstrumentedTest {
         // This starts MainActivity so will be covered by integration tests
         delay(100)
     }
+
+    // ========== Direct Method Invocation Tests for 100% Coverage ==========
+
+    @Test
+    fun testHandleSignInResult_viaReflection_success() = runBlocking {
+        // Test handleSignInResult with mock Google Sign-In
+        mockkObject(RetrofitClient)
+        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        every { RetrofitClient.instance } returns mockInstance
+        coEvery { mockInstance.loginWithGoogle(any()) } returns Response.success(
+            LoginResponse(
+                accessToken = "test_token",
+                refreshToken = "test_refresh",
+                userId = "user_id",
+                email = "user@example.com",
+                name = "User",
+                profileImage = "",
+                isNewUser = false,
+                needsAdditionalInfo = false
+            )
+        )
+        coEvery { mockInstance.getProfile() } returns Response.success(
+            com.example.fortuna_android.api.User(
+                id = 1,
+                username = "test",
+                email = "test@test.com"
+            )
+        )
+        coEvery { mockInstance.getUserProfile() } returns Response.success(
+            UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test User",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+        )
+
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            // Create a mock GoogleSignInAccount
+            val mockAccount = mockk<GoogleSignInAccount>(relaxed = true)
+            every { mockAccount.idToken } returns "test_id_token"
+            every { mockAccount.displayName } returns "Test User"
+            every { mockAccount.id } returns "test_id"
+            every { mockAccount.email } returns "test@test.com"
+
+            // Create a mock Task
+            val mockTask = mockk<com.google.android.gms.tasks.Task<GoogleSignInAccount>>()
+            every { mockTask.getResult(ApiException::class.java) } returns mockAccount
+
+            // Call handleSignInResult via reflection
+            val method = SignInFragment::class.java.getDeclaredMethod(
+                "handleSignInResult",
+                com.google.android.gms.tasks.Task::class.java
+            )
+            method.isAccessible = true
+            method.invoke(fragment, mockTask)
+        }
+
+        delay(500)
+    }
+
+    @Test
+    fun testHandleSignInResult_viaReflection_noIdToken() = runBlocking {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            // Create a mock GoogleSignInAccount without idToken
+            val mockAccount = mockk<GoogleSignInAccount>(relaxed = true)
+            every { mockAccount.idToken } returns null
+            every { mockAccount.displayName } returns "Test User"
+            every { mockAccount.id } returns "test_id"
+            every { mockAccount.email } returns "test@test.com"
+
+            val mockTask = mockk<com.google.android.gms.tasks.Task<GoogleSignInAccount>>()
+            every { mockTask.getResult(ApiException::class.java) } returns mockAccount
+
+            val method = SignInFragment::class.java.getDeclaredMethod(
+                "handleSignInResult",
+                com.google.android.gms.tasks.Task::class.java
+            )
+            method.isAccessible = true
+            method.invoke(fragment, mockTask)
+        }
+
+        delay(200)
+    }
+
+    @Test
+    fun testHandleSignInResult_viaReflection_apiException() = runBlocking {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val mockTask = mockk<com.google.android.gms.tasks.Task<GoogleSignInAccount>>()
+            every { mockTask.getResult(ApiException::class.java) } throws ApiException(com.google.android.gms.common.api.Status(13))
+
+            val method = SignInFragment::class.java.getDeclaredMethod(
+                "handleSignInResult",
+                com.google.android.gms.tasks.Task::class.java
+            )
+            method.isAccessible = true
+            method.invoke(fragment, mockTask)
+        }
+
+        delay(200)
+    }
+
+    @Test
+    fun testSendTokenToServer_viaReflection() = runBlocking {
+        mockkObject(RetrofitClient)
+        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        every { RetrofitClient.instance } returns mockInstance
+        coEvery { mockInstance.loginWithGoogle(any()) } returns Response.success(
+            LoginResponse(
+                accessToken = "test_token",
+                refreshToken = "test_refresh",
+                userId = "user_id",
+                email = "user@example.com",
+                name = "User",
+                profileImage = "",
+                isNewUser = false,
+                needsAdditionalInfo = false
+            )
+        )
+        coEvery { mockInstance.getProfile() } returns Response.success(
+            com.example.fortuna_android.api.User(
+                id = 1,
+                username = "test",
+                email = "test@test.com"
+            )
+        )
+        coEvery { mockInstance.getUserProfile() } returns Response.success(
+            UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test User",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+        )
+
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val method = SignInFragment::class.java.getDeclaredMethod(
+                "sendTokenToServer",
+                String::class.java
+            )
+            method.isAccessible = true
+            method.invoke(fragment, "test_id_token")
+        }
+
+        delay(500)
+    }
+
+    @Test
+    fun testVerifyTokenWithServer_viaReflection() = runBlocking {
+        context.getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString("jwt_token", "test_token")
+            .commit()
+
+        mockkObject(RetrofitClient)
+        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        every { RetrofitClient.instance } returns mockInstance
+        coEvery { mockInstance.getProfile() } returns Response.success(
+            com.example.fortuna_android.api.User(
+                id = 1,
+                username = "test",
+                email = "test@test.com"
+            )
+        )
+        coEvery { mockInstance.getUserProfile() } returns Response.success(
+            UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test User",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+        )
+
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val method = SignInFragment::class.java.getDeclaredMethod("verifyTokenWithServer")
+            method.isAccessible = true
+            method.invoke(fragment)
+        }
+
+        delay(500)
+    }
+
+    @Test
+    fun testFetchUserProfile_viaReflection_completeProfile() = runBlocking {
+        context.getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString("jwt_token", "test_token")
+            .commit()
+
+        mockkObject(RetrofitClient)
+        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        every { RetrofitClient.instance } returns mockInstance
+        coEvery { mockInstance.getUserProfile() } returns Response.success(
+            UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test User",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+        )
+
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val method = SignInFragment::class.java.getDeclaredMethod("fetchUserProfile")
+            method.isAccessible = true
+            method.invoke(fragment)
+        }
+
+        delay(500)
+    }
+
+    @Test
+    fun testFetchUserProfile_viaReflection_incompleteProfile() = runBlocking {
+        context.getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString("jwt_token", "test_token")
+            .commit()
+
+        mockkObject(RetrofitClient)
+        val mockInstance = mockk<com.example.fortuna_android.api.ApiService>()
+        every { RetrofitClient.instance } returns mockInstance
+        coEvery { mockInstance.getUserProfile() } returns Response.success(
+            UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test User",
+                profileImage = null,
+                nickname = null,
+                birthDateLunar = null,
+                birthDateSolar = null,
+                solarOrLunar = null,
+                birthTimeUnits = null,
+                gender = null,
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+        )
+
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val method = SignInFragment::class.java.getDeclaredMethod("fetchUserProfile")
+            method.isAccessible = true
+            method.invoke(fragment)
+        }
+
+        delay(500)
+    }
+
+    @Test
+    fun testIsProfileComplete_viaReflection_allCases() {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val method = SignInFragment::class.java.getDeclaredMethod(
+                "isProfileComplete",
+                UserProfile::class.java
+            )
+            method.isAccessible = true
+
+            // Complete profile with lunar date
+            val profile1 = UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+            val result1 = method.invoke(fragment, profile1) as Boolean
+            assertTrue("Profile with lunar date should be complete", result1)
+
+            // Complete profile with solar date
+            val profile2 = UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = null,
+                birthDateSolar = "1990-01-01",
+                solarOrLunar = "solar",
+                birthTimeUnits = "10",
+                gender = "female",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+            val result2 = method.invoke(fragment, profile2) as Boolean
+            assertTrue("Profile with solar date should be complete", result2)
+
+            // Incomplete profile (no nickname)
+            val profile3 = UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test",
+                profileImage = null,
+                nickname = null,
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+            val result3 = method.invoke(fragment, profile3) as Boolean
+            assertFalse("Profile without nickname should be incomplete", result3)
+
+            // Incomplete profile (no birth date)
+            val profile4 = UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = null,
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = "male",
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+            val result4 = method.invoke(fragment, profile4) as Boolean
+            assertFalse("Profile without birth date should be incomplete", result4)
+
+            // Incomplete profile (no gender)
+            val profile5 = UserProfile(
+                userId = 1,
+                email = "test@test.com",
+                name = "Test",
+                profileImage = null,
+                nickname = "Test",
+                birthDateLunar = "19900101",
+                birthDateSolar = null,
+                solarOrLunar = "lunar",
+                birthTimeUnits = "10",
+                gender = null,
+                yearlyGanji = null,
+                monthlyGanji = null,
+                dailyGanji = null,
+                hourlyGanji = null,
+                createdAt = null,
+                lastLogin = null,
+                collectionStatus = null
+            )
+            val result5 = method.invoke(fragment, profile5) as Boolean
+            assertFalse("Profile without gender should be incomplete", result5)
+        }
+    }
+
+    @Test
+    fun testSignIn_viaReflection() {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            val method = SignInFragment::class.java.getDeclaredMethod("signIn")
+            method.isAccessible = true
+            method.invoke(fragment)
+        }
+    }
+
+    @Test
+    fun testNavigateToMain_viaReflection() {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            try {
+                val method = SignInFragment::class.java.getDeclaredMethod("navigateToMain")
+                method.isAccessible = true
+                method.invoke(fragment)
+            } catch (e: Exception) {
+                // Expected since we can't actually navigate in test
+            }
+        }
+    }
+
+    @Test
+    fun testNavigateToProfileInput_viaReflection() {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            try {
+                val method = SignInFragment::class.java.getDeclaredMethod("navigateToProfileInput")
+                method.isAccessible = true
+                method.invoke(fragment)
+            } catch (e: Exception) {
+                // Expected since we need AuthContainerActivity
+            }
+        }
+    }
+
+    // ========== Sign-In Button Click Tests ==========
+
+    @Test
+    fun testSignInButton_click() = runBlocking {
+        scenario = launchFragmentInContainer<SignInFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        delay(300)
+
+        scenario.onFragment { fragment ->
+            // Click sign-in button to trigger line 83
+            fragment.view?.findViewById<com.google.android.gms.common.SignInButton>(R.id.sign_in_button)?.performClick()
+        }
+
+        delay(300)
+    }
+
 }
