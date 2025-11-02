@@ -487,9 +487,8 @@ class FortuneService:
                 tomorrow_day_ganji  # Tomorrow's day pillar
             )
 
-
-             # Calculate fortune score
-            fortune_score = self.calculate_fortune_balance(user, date)
+            # Calculate fortune score (use tomorrow_date for consistency)
+            fortune_score = self.calculate_fortune_balance(user, tomorrow_date)
 
             # Generate fortune with AI
             fortune = self.generate_fortune_with_ai(
