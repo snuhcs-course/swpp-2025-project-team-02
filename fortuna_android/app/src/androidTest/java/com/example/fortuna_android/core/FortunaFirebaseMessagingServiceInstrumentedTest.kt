@@ -155,6 +155,16 @@ class FortunaFirebaseMessagingServiceInstrumentedTest {
     }
 
     @Test
+    fun testOnNewTokenWithValidToken() {
+        val testToken = "test_firebase_token_123456"
+
+        service.onNewToken(testToken)
+
+        // The method just logs, so we verify it doesn't crash
+        assertTrue(true)
+    }
+
+    @Test
     fun testOnNewTokenWithEmptyString() {
         val testToken = ""
 
