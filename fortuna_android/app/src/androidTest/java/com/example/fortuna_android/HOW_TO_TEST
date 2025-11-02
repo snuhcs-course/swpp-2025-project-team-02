@@ -2,7 +2,7 @@
 
 ./gradlew :app:testDebugUnitTest :app:connectedDebugAndroidTest :app:jacocoFullReport
 
-open app/build/reports/jacoco/jacocoFullReport/html/index.html
+open app/build/reports/index.html
 
 End-to-end test executed first, manual login and interaction.
 

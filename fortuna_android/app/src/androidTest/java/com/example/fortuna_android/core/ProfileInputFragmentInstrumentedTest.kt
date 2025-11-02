@@ -1,27 +1,26 @@
-package com.example.fortuna_android
+package com.example.fortuna_android.core
 
 import android.content.Context
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.RadioButton
+import android.widget.Spinner
+import android.widget.TextView
 import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.*
-import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.fortuna_android.api.RetrofitClient
-import com.example.fortuna_android.api.UpdateProfileRequest
+import com.example.fortuna_android.ProfileInputFragment
+import com.example.fortuna_android.R
 import com.example.fortuna_android.api.UserProfile
 import io.mockk.*
-import kotlinx.coroutines.runBlocking
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import retrofit2.Response
 
 /**
  * Instrumented tests for ProfileInputFragment
@@ -97,7 +96,7 @@ class ProfileInputFragmentInstrumentedTest {
             assertNotNull("View should exist", view)
 
             // Verify UI is initialized for step 1
-            val stepIndicator = view?.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view?.findViewById<TextView>(R.id.step_indicator)
             assertEquals("STEP 1 / 4", stepIndicator?.text)
         }
     }
@@ -112,7 +111,7 @@ class ProfileInputFragmentInstrumentedTest {
             assertNotNull("View should exist before destroy", fragment.view)
         }
 
-        scenario.moveToState(androidx.lifecycle.Lifecycle.State.DESTROYED)
+        scenario.moveToState(Lifecycle.State.DESTROYED)
 
         // Fragment is destroyed, can't access it anymore
         Thread.sleep(100)
@@ -130,9 +129,9 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val birthYearSpinner = view.findViewById<android.widget.Spinner>(R.id.birth_year_spinner)
-            val birthMonthSpinner = view.findViewById<android.widget.Spinner>(R.id.birth_month_spinner)
-            val birthDaySpinner = view.findViewById<android.widget.Spinner>(R.id.birth_day_spinner)
+            val birthYearSpinner = view.findViewById<Spinner>(R.id.birth_year_spinner)
+            val birthMonthSpinner = view.findViewById<Spinner>(R.id.birth_month_spinner)
+            val birthDaySpinner = view.findViewById<Spinner>(R.id.birth_day_spinner)
 
             // Verify spinners have adapters
             assertNotNull("Year spinner should have adapter", birthYearSpinner.adapter)
@@ -204,7 +203,7 @@ class ProfileInputFragmentInstrumentedTest {
             val view = fragment.view!!
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val lunarButton = view.findViewById<Button>(R.id.lunar_button)
-            val solarRadioButton = view.findViewById<android.widget.RadioButton>(R.id.solar_radio_button)
+            val solarRadioButton = view.findViewById<RadioButton>(R.id.solar_radio_button)
 
             solarButton.performClick()
 
@@ -226,7 +225,7 @@ class ProfileInputFragmentInstrumentedTest {
             val view = fragment.view!!
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val lunarButton = view.findViewById<Button>(R.id.lunar_button)
-            val lunarRadioButton = view.findViewById<android.widget.RadioButton>(R.id.lunar_radio_button)
+            val lunarRadioButton = view.findViewById<RadioButton>(R.id.lunar_radio_button)
 
             lunarButton.performClick()
 
@@ -248,8 +247,8 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
-            val mainTitle = view.findViewById<android.widget.TextView>(R.id.main_title)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
+            val mainTitle = view.findViewById<TextView>(R.id.main_title)
             val nextButton = view.findViewById<Button>(R.id.next_button)
             val step1Container = view.findViewById<View>(R.id.step1_container)
 
@@ -270,7 +269,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
             // Enter nickname and click next
@@ -279,8 +278,8 @@ class ProfileInputFragmentInstrumentedTest {
 
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
-            val mainTitle = view.findViewById<android.widget.TextView>(R.id.main_title)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
+            val mainTitle = view.findViewById<TextView>(R.id.main_title)
             val step2Container = view.findViewById<View>(R.id.step2_container)
 
             assertEquals("STEP 2 / 4", stepIndicator.text)
@@ -299,7 +298,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
@@ -314,8 +313,8 @@ class ProfileInputFragmentInstrumentedTest {
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
-            val mainTitle = view.findViewById<android.widget.TextView>(R.id.main_title)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
+            val mainTitle = view.findViewById<TextView>(R.id.main_title)
             val step3Container = view.findViewById<View>(R.id.step3_container)
 
             assertEquals("STEP 3 / 4", stepIndicator.text)
@@ -334,7 +333,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
@@ -353,8 +352,8 @@ class ProfileInputFragmentInstrumentedTest {
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
-            val mainTitle = view.findViewById<android.widget.TextView>(R.id.main_title)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
+            val mainTitle = view.findViewById<TextView>(R.id.main_title)
             val step4Container = view.findViewById<View>(R.id.step4_container)
 
             assertEquals("STEP 4 / 4", stepIndicator.text)
@@ -377,7 +376,7 @@ class ProfileInputFragmentInstrumentedTest {
         scenario.onFragment { fragment ->
             val view = fragment.view!!
             val nextButton = view.findViewById<Button>(R.id.next_button)
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
 
             // Click next without entering nickname
             nextButton.performClick()
@@ -398,14 +397,14 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
             nicknameEditText.setText("ValidName")
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
             assertEquals("STEP 2 / 4", stepIndicator.text)
         }
     }
@@ -420,7 +419,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
             // Move to step 2
@@ -432,7 +431,7 @@ class ProfileInputFragmentInstrumentedTest {
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
             // Should still be on step 2
             assertEquals("STEP 2 / 4", stepIndicator.text)
         }
@@ -448,7 +447,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
@@ -463,7 +462,7 @@ class ProfileInputFragmentInstrumentedTest {
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
             assertEquals("STEP 3 / 4", stepIndicator.text)
         }
     }
@@ -478,7 +477,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val lunarButton = view.findViewById<Button>(R.id.lunar_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
@@ -497,7 +496,7 @@ class ProfileInputFragmentInstrumentedTest {
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
             assertEquals("STEP 4 / 4", stepIndicator.text)
         }
     }
@@ -512,7 +511,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
@@ -527,7 +526,7 @@ class ProfileInputFragmentInstrumentedTest {
             nextButton.performClick()
             Thread.sleep(300)
 
-            val stepIndicator = view.findViewById<android.widget.TextView>(R.id.step_indicator)
+            val stepIndicator = view.findViewById<TextView>(R.id.step_indicator)
             assertEquals("STEP 4 / 4", stepIndicator.text)
 
             // Try to submit without gender - should stay on step 4
@@ -550,7 +549,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val maleButton = view.findViewById<Button>(R.id.male_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
@@ -588,7 +587,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
             // Only fill nickname
@@ -610,7 +609,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
@@ -645,7 +644,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val birthTimeSpinner = view.findViewById<android.widget.Spinner>(R.id.birth_time_spinner)
+            val birthTimeSpinner = view.findViewById<Spinner>(R.id.birth_time_spinner)
 
             // The spinner should have birth time options
             assertNotNull("Birth time spinner should exist", birthTimeSpinner)
@@ -668,7 +667,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val maleButton = view.findViewById<Button>(R.id.male_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
@@ -702,7 +701,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val femaleButton = view.findViewById<Button>(R.id.female_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
@@ -758,7 +757,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val lunarButton = view.findViewById<Button>(R.id.lunar_button)
             val maleButton = view.findViewById<Button>(R.id.male_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
@@ -792,7 +791,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val femaleButton = view.findViewById<Button>(R.id.female_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
@@ -828,31 +827,31 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val solarButton = view.findViewById<Button>(R.id.solar_button)
             val maleButton = view.findViewById<Button>(R.id.male_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
 
             // Step 1: Nickname
-            assertEquals("STEP 1 / 4", view.findViewById<android.widget.TextView>(R.id.step_indicator).text)
+            assertEquals("STEP 1 / 4", view.findViewById<TextView>(R.id.step_indicator).text)
             nicknameEditText.setText("MaleUser")
             nextButton.performClick()
             Thread.sleep(300)
 
             // Step 2: Solar/Lunar
-            assertEquals("STEP 2 / 4", view.findViewById<android.widget.TextView>(R.id.step_indicator).text)
+            assertEquals("STEP 2 / 4", view.findViewById<TextView>(R.id.step_indicator).text)
             solarButton.performClick()
             Thread.sleep(100)
             nextButton.performClick()
             Thread.sleep(300)
 
             // Step 3: Birth time
-            assertEquals("STEP 3 / 4", view.findViewById<android.widget.TextView>(R.id.step_indicator).text)
+            assertEquals("STEP 3 / 4", view.findViewById<TextView>(R.id.step_indicator).text)
             nextButton.performClick()
             Thread.sleep(300)
 
             // Step 4: Gender
-            assertEquals("STEP 4 / 4", view.findViewById<android.widget.TextView>(R.id.step_indicator).text)
+            assertEquals("STEP 4 / 4", view.findViewById<TextView>(R.id.step_indicator).text)
             assertEquals("프로필 저장", nextButton.text)
             maleButton.performClick()
             Thread.sleep(100)
@@ -873,7 +872,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             val lunarButton = view.findViewById<Button>(R.id.lunar_button)
             val femaleButton = view.findViewById<Button>(R.id.female_button)
             val nextButton = view.findViewById<Button>(R.id.next_button)
@@ -908,7 +907,7 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val nicknameEditText = view.findViewById<android.widget.EditText>(R.id.nickname_edit_text)
+            val nicknameEditText = view.findViewById<EditText>(R.id.nickname_edit_text)
             nicknameEditText.setText("TestUser")
         }
 
@@ -931,9 +930,9 @@ class ProfileInputFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val birthYearSpinner = view.findViewById<android.widget.Spinner>(R.id.birth_year_spinner)
-            val birthMonthSpinner = view.findViewById<android.widget.Spinner>(R.id.birth_month_spinner)
-            val birthDaySpinner = view.findViewById<android.widget.Spinner>(R.id.birth_day_spinner)
+            val birthYearSpinner = view.findViewById<Spinner>(R.id.birth_year_spinner)
+            val birthMonthSpinner = view.findViewById<Spinner>(R.id.birth_month_spinner)
+            val birthDaySpinner = view.findViewById<Spinner>(R.id.birth_day_spinner)
 
             // Select different values
             birthYearSpinner.setSelection(50) // Around 1950
