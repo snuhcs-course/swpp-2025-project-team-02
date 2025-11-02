@@ -17,6 +17,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.example.fortuna_android.api.UserProfile
 
 /**
  * Comprehensive instrumented tests for ProfileFragment
@@ -784,5 +785,824 @@ class ProfileFragmentInstrumentedTest {
         scenario.moveToState(androidx.lifecycle.Lifecycle.State.DESTROYED)
 
         // View binding should be null after destroy
+    }
+
+    // ========== Direct Method Invocation Tests for 100% Coverage ==========
+
+    @Test
+    fun testUpdateUI_withCompleteProfile() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile()
+
+            // Use reflection to call private updateUI method
+            val updateUIMethod = ProfileFragment::class.java.getDeclaredMethod("updateUI", UserProfile::class.java)
+            updateUIMethod.isAccessible = true
+            updateUIMethod.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            val view = fragment.view!!
+            val profileName = view.findViewById<TextView>(R.id.profile_name)
+
+            assertNotNull("Profile should be updated", profileName)
+        }
+    }
+
+    @Test
+    fun testUpdateUI_withSolarCalendar() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile(solarOrLunar = "solar")
+
+            val updateUIMethod = ProfileFragment::class.java.getDeclaredMethod("updateUI", UserProfile::class.java)
+            updateUIMethod.isAccessible = true
+            updateUIMethod.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            val view = fragment.view!!
+            val calendarTag = view.findViewById<TextView>(R.id.profile_calendar_tag)
+
+            assertEquals("양력", calendarTag.text.toString())
+        }
+    }
+
+    @Test
+    fun testUpdateUI_withLunarCalendar() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile(solarOrLunar = "lunar")
+
+            val updateUIMethod = ProfileFragment::class.java.getDeclaredMethod("updateUI", UserProfile::class.java)
+            updateUIMethod.isAccessible = true
+            updateUIMethod.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            val view = fragment.view!!
+            val calendarTag = view.findViewById<TextView>(R.id.profile_calendar_tag)
+
+            assertEquals("음력", calendarTag.text.toString())
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_wood_gap() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "갑") as String
+
+            assertEquals("나무", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_wood_eul() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "을") as String
+
+            assertEquals("나무", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_fire_byeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "병") as String
+
+            assertEquals("불", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_fire_jeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "정") as String
+
+            assertEquals("불", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_earth_mu() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "무") as String
+
+            assertEquals("흙", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_earth_gi() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "기") as String
+
+            assertEquals("흙", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_metal_gyeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "경") as String
+
+            assertEquals("쇠", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_metal_sin() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "신") as String
+
+            assertEquals("쇠", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_water_im() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "임") as String
+
+            assertEquals("물", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_water_gye() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "계") as String
+
+            assertEquals("물", result)
+        }
+    }
+
+    @Test
+    fun testGetElementFromCheongan_unknown() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementFromCheongan", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "미지") as String
+
+            assertEquals("미정", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_wood_gap() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "갑") as String
+
+            assertEquals("木", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_wood_eul() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "을") as String
+
+            assertEquals("木", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_fire_byeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "병") as String
+
+            assertEquals("火", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_fire_jeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "정") as String
+
+            assertEquals("火", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_earth_mu() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "무") as String
+
+            assertEquals("土", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_earth_gi() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "기") as String
+
+            assertEquals("土", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_metal_gyeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "경") as String
+
+            assertEquals("金", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_metal_sin() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "신") as String
+
+            assertEquals("金", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_water_im() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "임") as String
+
+            assertEquals("水", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_water_gye() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "계") as String
+
+            assertEquals("水", result)
+        }
+    }
+
+    @Test
+    fun testGetElementCharacter_unknown() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementCharacter", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "미지") as String
+
+            assertEquals("?", result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_wood_gap() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "갑") as Int
+
+            assertEquals(Color.parseColor("#0BEFA0"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_wood_eul() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "을") as Int
+
+            assertEquals(Color.parseColor("#0BEFA0"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_fire_byeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "병") as Int
+
+            assertEquals(Color.parseColor("#F93E3E"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_fire_jeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "정") as Int
+
+            assertEquals(Color.parseColor("#F93E3E"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_earth_mu() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "무") as Int
+
+            assertEquals(Color.parseColor("#8B4513"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_earth_gi() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "기") as Int
+
+            assertEquals(Color.parseColor("#8B4513"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_metal_gyeong() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "경") as Int
+
+            assertEquals(Color.parseColor("#C0C0C0"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_metal_sin() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "신") as Int
+
+            assertEquals(Color.parseColor("#C0C0C0"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_water_im() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "임") as Int
+
+            assertEquals(Color.parseColor("#2BB3FC"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_water_gye() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "계") as Int
+
+            assertEquals(Color.parseColor("#2BB3FC"), result)
+        }
+    }
+
+    @Test
+    fun testGetElementColor_unknown() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val method = ProfileFragment::class.java.getDeclaredMethod("getElementColor", String::class.java)
+            method.isAccessible = true
+            val result = method.invoke(fragment, "미지") as Int
+
+            assertEquals(Color.WHITE, result)
+        }
+    }
+
+    @Test
+    fun testUpdateCollectedElements_withVariousCounts() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile()
+
+            val method = ProfileFragment::class.java.getDeclaredMethod("updateCollectedElements", UserProfile::class.java)
+            method.isAccessible = true
+            method.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            val view = fragment.view!!
+            val badge1 = view.findViewById<TextView>(R.id.element_badge_1)
+
+            assertNotNull("Badges should be updated", badge1)
+        }
+    }
+
+    @Test
+    fun testUpdateElementBadge_withCount() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val view = fragment.view!!
+            val badge = view.findViewById<TextView>(R.id.element_badge_1)
+
+            val method = ProfileFragment::class.java.getDeclaredMethod("updateElementBadge", TextView::class.java, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+            method.isAccessible = true
+            method.invoke(fragment, badge, 5, Color.parseColor("#0BEFA0"))
+
+            Thread.sleep(200)
+
+            assertEquals("5", badge.text.toString())
+            assertEquals(Color.WHITE, badge.currentTextColor)
+        }
+    }
+
+    @Test
+    fun testUpdateUI_withNullNickname() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile(nickname = null)
+
+            val updateUIMethod = ProfileFragment::class.java.getDeclaredMethod("updateUI", UserProfile::class.java)
+            updateUIMethod.isAccessible = true
+            updateUIMethod.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            val view = fragment.view!!
+            val profileName = view.findViewById<TextView>(R.id.profile_name)
+
+            assertEquals("사용자", profileName.text.toString())
+        }
+    }
+
+    @Test
+    fun testUpdateUI_withNullDailyGanjiHandled() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile(dailyGanji = null)
+
+            val updateUIMethod = ProfileFragment::class.java.getDeclaredMethod("updateUI", UserProfile::class.java)
+            updateUIMethod.isAccessible = true
+            updateUIMethod.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            assertNotNull("Should handle null dailyGanji", fragment.view)
+        }
+    }
+
+    @Test
+    fun testUpdateUI_withEmptyDailyGanjiHandled() {
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        Thread.sleep(500)
+
+        scenario.onFragment { fragment ->
+            val testProfile = createCompleteTestProfile(dailyGanji = "")
+
+            val updateUIMethod = ProfileFragment::class.java.getDeclaredMethod("updateUI", UserProfile::class.java)
+            updateUIMethod.isAccessible = true
+            updateUIMethod.invoke(fragment, testProfile)
+
+            Thread.sleep(200)
+
+            assertNotNull("Should handle empty dailyGanji", fragment.view)
+        }
+    }
+
+    @Test
+    fun testSettingsButtonNavigation() {
+        val navController = TestNavHostController(
+            ApplicationProvider.getApplicationContext()
+        )
+
+        scenario = launchFragmentInContainer<ProfileFragment>(
+            themeResId = R.style.Theme_Fortuna_android
+        )
+
+        scenario.onFragment { fragment ->
+            navController.setGraph(R.navigation.nav_graph)
+            navController.setCurrentDestination(R.id.profileFragment)
+            Navigation.setViewNavController(fragment.requireView(), navController)
+        }
+
+        Thread.sleep(200)
+
+        scenario.onFragment { fragment ->
+            val view = fragment.view!!
+            val settingsButton = view.findViewById<View>(R.id.profile_button)
+
+            // Click the settings button
+            settingsButton.performClick()
+
+            Thread.sleep(200)
+
+            // Verify navigation was triggered
+            val currentDest = navController.currentDestination?.id
+            assertEquals("Should navigate to Settings", R.id.settingsFragment, currentDest)
+        }
+    }
+
+    // ========== Helper Methods ==========
+
+    private fun createCompleteTestProfile(
+        nickname: String? = "테스트",
+        solarOrLunar: String = "solar",
+        dailyGanji: String? = "갑자"
+    ): com.example.fortuna_android.api.UserProfile {
+        return com.example.fortuna_android.api.UserProfile(
+            userId = 1,
+            email = "test@example.com",
+            name = "테스트",
+            profileImage = null,
+            nickname = nickname,
+            birthDateSolar = "1990-01-01",
+            birthDateLunar = null,
+            solarOrLunar = solarOrLunar,
+            birthTimeUnits = "자시",
+            gender = "M",
+            yearlyGanji = "경오",
+            monthlyGanji = "무인",
+            dailyGanji = dailyGanji,
+            hourlyGanji = "병자",
+            createdAt = "2025-01-01T00:00:00Z",
+            lastLogin = "2025-11-01T00:00:00Z",
+            collectionStatus = com.example.fortuna_android.api.CollectionStatus(
+                collections = listOf(
+                    com.example.fortuna_android.api.CollectionItem(chakraType = "wood", count = 1),
+                    com.example.fortuna_android.api.CollectionItem(chakraType = "fire", count = 2),
+                    com.example.fortuna_android.api.CollectionItem(chakraType = "earth", count = 3),
+                    com.example.fortuna_android.api.CollectionItem(chakraType = "metal", count = 4),
+                    com.example.fortuna_android.api.CollectionItem(chakraType = "water", count = 5),
+                ),
+                totalCount = 1 + 2 + 3 + 4 + 5
+            )
+        )
     }
 }

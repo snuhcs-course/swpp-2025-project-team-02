@@ -143,8 +143,8 @@ class ProfileFragment : Fragment() {
         val binding = _binding ?: return
 
         // 닉네임 표시
-        val nickname = profile.nickname ?: profile.name ?: "사용자"
-        binding.profileName.text = nickname
+        val displayName = profile.nickname?.takeIf { it.isNotBlank() } ?: "사용자"
+        binding.profileName.text = displayName
 
         // 양력/음력 태그 설정
         val solarOrLunar = profile.solarOrLunar

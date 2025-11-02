@@ -267,7 +267,7 @@ tasks.register<JacocoReport>("jacocoFullReport") {
         xml.required.set(true)
         html.required.set(true)
         csv.required.set(false)
-        html.outputLocation.set(file("${buildDir}/reports/jacoco/jacocoFullReport/html"))
+        html.outputLocation.set(file("${buildDir}/reports"))
     }
 
     val fileFilter = listOf(
