@@ -80,7 +80,24 @@
                     android:textColor="#CCCCCC"
                     android:textSize="15sp"
                     android:gravity="center"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="16dp" />
+
+                <!-- 오늘의 기운 보충하러가기 버튼 -->
+                <Button
+                    android:id="@+id/btnRefreshFortune"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="오늘의 기운 보충하러가기"
+                    android:textColor="#000000"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#FFCC4D"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:maxLines="1"
+                    android:ellipsize="none" />
 
             </LinearLayout>
 
@@ -200,7 +217,7 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <!-- 오행 균형 -->
+                <!-- 왜 부족한가요 섹션 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -208,25 +225,26 @@
                     android:layout_marginBottom="28dp">
 
                     <TextView
+                        android:id="@+id/tvWhyDeficientTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🌟 오행 균형"
+                        android:text="물이 왜 부족한가요?"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="12dp" />
 
                     <TextView
-                        android:id="@+id/tvElementBalance"
+                        android:id="@+id/tvElementBalanceDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="화(火)의 기운이 강합니다."
+                        android:text="오행 균형 설명이 여기에 표시됩니다."
                         android:textColor="#CCCCCC"
                         android:textSize="14sp"
                         android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
-                <!-- 일일 가이던스 -->
+                <!-- 사주를 좋게 만드는 방법 섹션 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -236,70 +254,20 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🎯 오늘의 가이드"
+                        android:text="당신의 사주를 좋게 만드는 방법"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="16dp" />
+                        android:layout_marginBottom="12dp" />
 
                     <TextView
-                        android:id="@+id/tvKeyAdvice"
+                        android:id="@+id/tvDailyGuidance"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="💡 긍정적인 마음가짐을 유지하세요"
+                        android:text="오늘의 가이드가 여기에 표시됩니다."
                         android:textColor="#CCCCCC"
                         android:textSize="14sp"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:id="@+id/tvBestTime"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="⏰ 오전 10시 ~ 12시"
-                        android:textColor="#CCCCCC"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:id="@+id/tvLuckyDirection"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="🧭 동쪽"
-                        android:textColor="#CCCCCC"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:id="@+id/tvLuckyColor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="🎨 빨간색"
-                        android:textColor="#CCCCCC"
-                        android:textSize="14sp" />
-
-                </LinearLayout>
-
-                <!-- 차크라 리딩 섹션 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="28dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🔮 오늘의 원소"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="16dp" />
-
-                    <LinearLayout
-                        android:id="@+id/llChakraReadings"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
+                        android:lineSpacingExtra="4dp" />
 
                 </LinearLayout>
 
@@ -330,19 +298,6 @@
                 android:paddingTop="16dp"
                 android:paddingBottom="16dp"
                 android:layout_marginBottom="16dp" />
-
-            <!-- 오늘의 기운 보충하러가기 버튼 -->
-            <Button
-                android:id="@+id/btnRefreshFortune"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="오늘의 기운 보충하러가기"
-                android:textColor="#000000"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:backgroundTint="#FFCC4D"
-                android:paddingTop="16dp"
-                android:paddingBottom="16dp" />
 
         </LinearLayout>
 

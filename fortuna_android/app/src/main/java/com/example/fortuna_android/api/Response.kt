@@ -272,20 +272,10 @@ data class TodayFortuneData(
 )
 
 data class TodayFortune(
-    @SerializedName("saju_compatibility")
-    val sajuCompatibility: String,
-    @SerializedName("overall_fortune")
-    val overallFortune: Int,
-    @SerializedName("fortune_summary")
-    val fortuneSummary: String,
-    @SerializedName("element_balance")
-    val elementBalance: String,
-    @SerializedName("chakra_readings")
-    val chakraReadings: List<ChakraReading>,
-    @SerializedName("daily_guidance")
-    val dailyGuidance: DailyGuidance,
-    @SerializedName("special_message")
-    val specialMessage: String
+    @SerializedName("today_daily_guidance")
+    val todayDailyGuidance: String,
+    @SerializedName("today_element_balance_description")
+    val todayElementBalanceDescription: String
 )
 
 data class FortuneScore(
