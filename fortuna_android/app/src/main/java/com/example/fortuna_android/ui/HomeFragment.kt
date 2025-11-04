@@ -1,6 +1,5 @@
 package com.example.fortuna_android.ui
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,8 +8,6 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.example.fortuna_android.IntroActivity
-import com.example.fortuna_android.R
 import com.example.fortuna_android.api.CollectElementRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.FragmentHomeBinding
@@ -51,13 +48,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        val binding = _binding ?: return
-
-        // 사주 기반 운세 가이드 버튼 (헤더) - IntroActivity로 이동
-        binding.root.findViewById<View>(R.id.fortune_guide_button)?.setOnClickListener {
-            val intent = Intent(requireContext(), IntroActivity::class.java)
-            startActivity(intent)
-        }
+        // No click listeners needed for header anymore
     }
 
     private fun loadTodayFortune() {

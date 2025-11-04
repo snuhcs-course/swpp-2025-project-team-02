@@ -368,12 +368,20 @@ class MainActivity : AppCompatActivity() {
                     navController.navigate(R.id.homeFragment)
                     true
                 }
+                R.id.nav_guide -> {
+                    navController.navigate(R.id.sajuGuideFragment)
+                    true
+                }
                 R.id.nav_camera -> {
                     navController.navigate(R.id.arFragment)
                     true
                 }
                 R.id.nav_profile -> {
                     navController.navigate(R.id.profileFragment)
+                    true
+                }
+                R.id.nav_menu -> {
+                    navController.navigate(R.id.settingsFragment)
                     true
                 }
                 else -> false

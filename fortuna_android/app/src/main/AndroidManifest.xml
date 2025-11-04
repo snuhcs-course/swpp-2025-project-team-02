@@ -49,6 +49,12 @@
             android:exported="true"
             android:label="SmolVLM Test" />
 
+        <!-- Required for Fragment testing with Robolectric -->
+        <activity
+            android:name="androidx.fragment.app.testing.EmptyFragmentActivity"
+            android:theme="@style/Theme.AppCompat"
+            tools:replace="android:theme" />
+
         <service
             android:name=".FortunaFirebaseMessagingService"
             android:exported="false">
