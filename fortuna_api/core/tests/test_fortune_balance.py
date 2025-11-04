@@ -162,6 +162,7 @@ class TestFortuneBalance(TestCase):
 
         # Mock AI response
         mock_generate_ai.return_value = FortuneAIResponse(
+            today_fortune_summary="오늘은 균형잡힌 날! 긍정적인 마음으로 시작해보세요.",
             today_element_balance_description="당신의 오행과 오늘의 기운이 조화롭습니다. 균형잡힌 오행이 좋은 날을 만듭니다.",
             today_daily_guidance="긍정적인 마음으로 운동이나 공부에 집중해보세요. 동쪽으로의 활동이 좋습니다."
         )

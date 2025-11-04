@@ -158,14 +158,15 @@ class DailyGuidanceSerializer(serializers.Serializer):
 class FortuneAIResponseSerializer(serializers.Serializer):
     """Serializer for complete AI fortune response."""
 
-    tomorrow_date = serializers.DateField(format='%Y-%m-%d')
-    saju_compatibility = serializers.CharField()
-    overall_fortune = serializers.IntegerField(min_value=1, max_value=100)
-    fortune_summary = serializers.CharField()
-    element_balance = serializers.CharField()
-    chakra_readings = ChakraReadingSerializer(many=True)
-    daily_guidance = DailyGuidanceSerializer()
-    special_message = serializers.CharField()
+    today_fortune_summary = serializers.CharField(
+        help_text="한 줄 운세 요약 (필요한 원소 포함)"
+    )
+    today_element_balance_description = serializers.CharField(
+        help_text="오늘의 오행 균형 설명"
+    )
+    today_daily_guidance = serializers.CharField(
+        help_text="오늘의 일상 가이드"
+    )
 
 
 class StemSerializer(serializers.Serializer):
