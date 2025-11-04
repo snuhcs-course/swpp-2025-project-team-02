@@ -30,6 +30,7 @@ from .serializers import (
     APIResponseSerializer,
     NeededElementResponseSerializer,
     TodayProgressResponseSerializer,
+    MonthlyHistoryResponseSerializer,
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
@@ -493,6 +494,143 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 'target_count': target_count,
                 'is_completed': is_completed,
                 'progress_percentage': progress_percentage
+            }
+        }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Get Monthly Collection History",
+        description="Get chakra collection history for a specific month (only days with FortuneResult)",
+        parameters=[
+            OpenApiParameter(
+                name='month',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Month in YYYY-MM format (e.g., 2025-09)',
+                required=True
+            )
+        ],
+        responses={
+            200: MonthlyHistoryResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='monthly-history')
+    def monthly_history(self, request):
+        """
+        Get monthly chakra collection history.
+        Returns collection progress for each day that has a FortuneResult.
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Parse month parameter (YYYY-MM format)
+        month_param = request.query_params.get('month')
+        if not month_param:
+            return Response({
+                'status': 'error',
+                'message': 'Month parameter is required (format: YYYY-MM)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year, month = month_param.split('-')
+            year = int(year)
+            month = int(month)
+            if not (1 <= month <= 12):
+                raise ValueError("Month must be between 1 and 12")
+        except (ValueError, AttributeError):
+            return Response({
+                'status': 'error',
+                'message': 'Invalid month format. Use YYYY-MM (e.g., 2025-09)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Calculate date range for the month
+        from calendar import monthrange
+        _, last_day = monthrange(year, month)
+        start_date = datetime(year, month, 1).date()
+        end_date = datetime(year, month, last_day).date()
+
+        # Only include days up to today
+        today = datetime.now().date()
+        if end_date > today:
+            end_date = today
+
+        # Get all FortuneResults for the month
+        fortune_results = FortuneResult.objects.filter(
+            user=user,
+            for_date__gte=start_date,
+            for_date__lte=end_date
+        ).order_by('for_date')
+
+        # Build day-by-day history
+        days_data = []
+        total_collected = 0
+        completed_days = 0
+
+        for fortune in fortune_results:
+            # Extract needed element
+            if not fortune.fortune_score or 'needed_element' not in fortune.fortune_score:
+                continue  # Skip if incomplete
+
+            needed_element_kr = fortune.fortune_score['needed_element']
+            needed_element_en = element_kr_to_en(needed_element_kr)
+
+            # Count collected chakras for this day
+            collected_count = ChakraImage.objects.filter(
+                user=user,
+                date=fortune.for_date,
+                chakra_type=needed_element_en
+            ).count()
+
+            target_count = 5
+            is_completed = collected_count >= target_count
+            progress_percentage = min(100.0, round((collected_count / target_count) * 100, 1))
+
+            if is_completed:
+                completed_days += 1
+            total_collected += collected_count
+
+            days_data.append({
+                'date': fortune.for_date.isoformat(),
+                'needed_element': needed_element_kr,
+                'needed_element_en': needed_element_en,
+                'target_count': target_count,
+                'collected_count': collected_count,
+                'is_completed': is_completed,
+                'progress_percentage': progress_percentage
+            })
+
+        # Calculate summary
+        total_days = len(days_data)
+        completion_rate = round((completed_days / total_days * 100), 1) if total_days > 0 else 0.0
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'year': year,
+                'month': month,
+                'days': days_data,
+                'summary': {
+                    'total_days': total_days,
+                    'completed_days': completed_days,
+                    'completion_rate': completion_rate,
+                    'total_collected': total_collected
+                }
             }
         }, status=status.HTTP_200_OK)
 

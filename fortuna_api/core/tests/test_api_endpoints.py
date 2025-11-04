@@ -612,6 +612,105 @@ class TestImageAPIEndpoints(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_monthly_history_success(self):
+        """Test getting monthly history with multiple days."""
+        from core.models import FortuneResult, ChakraImage
+        from django.utils import timezone
+
+        # Create fortune results for September 2025
+        base_date = datetime(2025, 9, 1).date()
+
+        for day in range(1, 6):  # 5 days
+            date = datetime(2025, 9, day).date()
+            element = ['목', '화', '토', '금', '수'][day % 5]
+
+            FortuneResult.objects.create(
+                user=self.user,
+                for_date=date,
+                gapja_code=day,
+                gapja_name='test',
+                gapja_element=element,
+                fortune_data={'test': 'data'},
+                fortune_score={
+                    'entropy_score': 75.0,
+                    'elements': {},
+                    'element_distribution': {},
+                    'interpretation': 'Test',
+                    'needed_element': element
+                }
+            )
+
+            # Collect some chakras
+            element_en = {'목': 'wood', '화': 'fire', '토': 'earth', '금': 'metal', '수': 'water'}[element]
+            for _ in range(day):  # day 1: 1개, day 2: 2개, ...
+                ChakraImage.objects.create(
+                    user=self.user,
+                    image=None,
+                    chakra_type=element_en,
+                    date=date,
+                    timestamp=timezone.now(),
+                    device_make='PoC',
+                    device_model='PoC'
+                )
+
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-09'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['year'], 2025)
+        self.assertEqual(response.data['data']['month'], 9)
+        self.assertEqual(len(response.data['data']['days']), 5)
+        self.assertEqual(response.data['data']['summary']['total_days'], 5)
+        self.assertEqual(response.data['data']['summary']['completed_days'], 1)  # Only day 5 has 5+ chakras
+        self.assertEqual(response.data['data']['summary']['total_collected'], 1+2+3+4+5)  # 15
+
+    def test_monthly_history_no_fortune_results(self):
+        """Test monthly history when no fortune results exist."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-10'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(len(response.data['data']['days']), 0)
+        self.assertEqual(response.data['data']['summary']['total_days'], 0)
+        self.assertEqual(response.data['data']['summary']['total_collected'], 0)
+
+    def test_monthly_history_no_month_param(self):
+        """Test monthly history without month parameter."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Month parameter is required', response.data['message'])
+
+    def test_monthly_history_invalid_month_format(self):
+        """Test monthly history with invalid month format."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': 'invalid'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Invalid month format', response.data['message'])
+
+    def test_monthly_history_invalid_month_number(self):
+        """Test monthly history with invalid month number."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-13'})  # Month 13 doesn't exist
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_monthly_history_unauthenticated(self):
+        """Test monthly history without authentication."""
+        self.client.credentials()  # Remove credentials
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-09'})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class TestFortuneAPIEndpoints(APITestCase):
     """Test cases for fortune-related API endpoints."""
