@@ -165,7 +165,7 @@
                         android:layout_margin="4dp"
                         android:background="@drawable/button_default"
                         android:gravity="center"
-                        android:text="4"
+                        android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -177,7 +177,7 @@
                         android:layout_margin="4dp"
                         android:background="@drawable/button_default"
                         android:gravity="center"
-                        android:text="15"
+                        android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -189,7 +189,7 @@
                         android:layout_margin="4dp"
                         android:background="@drawable/button_default"
                         android:gravity="center"
-                        android:text="1"
+                        android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -213,7 +213,7 @@
                         android:layout_margin="4dp"
                         android:background="@drawable/button_default"
                         android:gravity="center"
-                        android:text="22"
+                        android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold" />
