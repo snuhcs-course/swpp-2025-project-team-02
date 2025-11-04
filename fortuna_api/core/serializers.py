@@ -158,14 +158,15 @@ class DailyGuidanceSerializer(serializers.Serializer):
 class FortuneAIResponseSerializer(serializers.Serializer):
     """Serializer for complete AI fortune response."""
 
-    tomorrow_date = serializers.DateField(format='%Y-%m-%d')
-    saju_compatibility = serializers.CharField()
-    overall_fortune = serializers.IntegerField(min_value=1, max_value=100)
-    fortune_summary = serializers.CharField()
-    element_balance = serializers.CharField()
-    chakra_readings = ChakraReadingSerializer(many=True)
-    daily_guidance = DailyGuidanceSerializer()
-    special_message = serializers.CharField()
+    today_fortune_summary = serializers.CharField(
+        help_text="한 줄 운세 요약 (필요한 원소 포함)"
+    )
+    today_element_balance_description = serializers.CharField(
+        help_text="오늘의 오행 균형 설명"
+    )
+    today_daily_guidance = serializers.CharField(
+        help_text="오늘의 일상 가이드"
+    )
 
 
 class StemSerializer(serializers.Serializer):
@@ -372,3 +373,59 @@ class NeededElementResponseSerializer(serializers.Serializer):
 
     status = serializers.CharField()
     data = NeededElementDataSerializer()
+
+
+class TodayProgressDataSerializer(serializers.Serializer):
+    """Serializer for today's chakra collection progress data."""
+
+    date = serializers.DateField(format='%Y-%m-%d', help_text="Today's date")
+    needed_element = serializers.CharField(help_text="Needed element in Korean (목/화/토/금/수)")
+    needed_element_en = serializers.CharField(help_text="Needed element in English (wood/fire/earth/metal/water)")
+    current_count = serializers.IntegerField(help_text="Current count of collected target elements")
+    target_count = serializers.IntegerField(help_text="Target count (default: 5)")
+    is_completed = serializers.BooleanField(help_text="Whether target is achieved")
+    progress_percentage = serializers.FloatField(help_text="Progress percentage (0-100)")
+
+
+class TodayProgressResponseSerializer(serializers.Serializer):
+    """Serializer for today's progress response."""
+
+    status = serializers.CharField()
+    data = TodayProgressDataSerializer()
+
+
+class MonthlyHistoryDaySerializer(serializers.Serializer):
+    """Serializer for a single day in monthly history."""
+
+    date = serializers.DateField(format='%Y-%m-%d', help_text="Date")
+    needed_element = serializers.CharField(help_text="Needed element in Korean (목/화/토/금/수)")
+    needed_element_en = serializers.CharField(help_text="Needed element in English")
+    target_count = serializers.IntegerField(help_text="Target count (default: 5)")
+    collected_count = serializers.IntegerField(help_text="Number of collected target elements")
+    is_completed = serializers.BooleanField(help_text="Whether target is achieved")
+    progress_percentage = serializers.FloatField(help_text="Progress percentage (0-100)")
+
+
+class MonthlyHistorySummarySerializer(serializers.Serializer):
+    """Serializer for monthly history summary statistics."""
+
+    total_days = serializers.IntegerField(help_text="Total number of days with fortune results")
+    completed_days = serializers.IntegerField(help_text="Number of days where target was achieved")
+    completion_rate = serializers.FloatField(help_text="Completion rate percentage (0-100)")
+    total_collected = serializers.IntegerField(help_text="Total number of chakras collected")
+
+
+class MonthlyHistoryDataSerializer(serializers.Serializer):
+    """Serializer for monthly history data."""
+
+    year = serializers.IntegerField(help_text="Year")
+    month = serializers.IntegerField(help_text="Month (1-12)")
+    days = MonthlyHistoryDaySerializer(many=True, help_text="List of days with collection data")
+    summary = MonthlyHistorySummarySerializer(help_text="Summary statistics for the month")
+
+
+class MonthlyHistoryResponseSerializer(serializers.Serializer):
+    """Serializer for monthly history response."""
+
+    status = serializers.CharField()
+    data = MonthlyHistoryDataSerializer()

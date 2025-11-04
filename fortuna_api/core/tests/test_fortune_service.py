@@ -175,6 +175,7 @@ class TestFortuneService(TestCase):
 
         # Mock OpenAI response with parsed structure
         mock_parsed = FortuneAIResponse(
+            today_fortune_summary="오늘은 조화로운 날! 수의 기운을 모아 균형을 찾아보세요.",
             today_element_balance_description="당신의 토행과 오늘의 목행이 만나 조화를 이룹니다. 긍정적인 하루가 될 것입니다.",
             today_daily_guidance="새로운 시작에 좋은 날입니다. 창의적인 활동을 시도해보세요."
         )

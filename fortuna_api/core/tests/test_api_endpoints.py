@@ -428,6 +428,289 @@ class TestImageAPIEndpoints(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_today_progress_success(self):
+        """Test getting today's collection progress with fortune result."""
+        from core.models import FortuneResult
+        from django.utils import timezone
+
+        today = timezone.now().date()
+
+        # Create FortuneResult for today
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=today,
+            gapja_code=1,
+            gapja_name='을축',
+            gapja_element='토',
+            fortune_data={'test': 'data'},
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '목'
+            }
+        )
+
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['date'], today.isoformat())
+        self.assertEqual(response.data['data']['needed_element'], '목')
+        self.assertEqual(response.data['data']['needed_element_en'], 'wood')
+        self.assertEqual(response.data['data']['current_count'], 0)
+        self.assertEqual(response.data['data']['target_count'], 5)
+        self.assertEqual(response.data['data']['is_completed'], False)
+        self.assertEqual(response.data['data']['progress_percentage'], 0.0)
+
+    def test_today_progress_with_collected_chakras(self):
+        """Test today's progress with some collected chakras."""
+        from core.models import FortuneResult, ChakraImage
+        from django.utils import timezone
+
+        today = timezone.now().date()
+        now = timezone.now()
+
+        # Create FortuneResult for today (needed element: 화 = fire)
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=today,
+            gapja_code=1,
+            gapja_name='병인',
+            gapja_element='화',
+            fortune_data={'test': 'data'},
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '화'
+            }
+        )
+
+        # Collect 3 fire chakras
+        for _ in range(3):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='fire',
+                date=today,
+                timestamp=now,
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        # Collect 1 water chakra (wrong element)
+        ChakraImage.objects.create(
+            user=self.user,
+            image=None,
+            chakra_type='water',
+            date=today,
+            timestamp=now,
+            device_make='PoC',
+            device_model='PoC'
+        )
+
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['needed_element'], '화')
+        self.assertEqual(response.data['data']['needed_element_en'], 'fire')
+        self.assertEqual(response.data['data']['current_count'], 3)  # Only fire counted
+        self.assertEqual(response.data['data']['is_completed'], False)
+        self.assertEqual(response.data['data']['progress_percentage'], 60.0)
+
+    def test_today_progress_completed(self):
+        """Test today's progress when target is achieved."""
+        from core.models import FortuneResult, ChakraImage
+        from django.utils import timezone
+
+        today = timezone.now().date()
+        now = timezone.now()
+
+        # Create FortuneResult
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=today,
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='수',
+            fortune_data={'test': 'data'},
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '수'
+            }
+        )
+
+        # Collect 7 water chakras (exceeds target of 5)
+        for _ in range(7):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='water',
+                date=today,
+                timestamp=now,
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['data']['current_count'], 7)
+        self.assertEqual(response.data['data']['is_completed'], True)
+        self.assertEqual(response.data['data']['progress_percentage'], 100.0)  # Capped at 100
+
+    def test_today_progress_no_fortune_result(self):
+        """Test today's progress when no fortune result exists."""
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Fortune not generated for today', response.data['message'])
+
+    def test_today_progress_incomplete_fortune_score(self):
+        """Test today's progress with incomplete fortune score data."""
+        from core.models import FortuneResult
+        from django.utils import timezone
+
+        today = timezone.now().date()
+
+        # Create FortuneResult without needed_element in fortune_score
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=today,
+            gapja_code=1,
+            gapja_name='을축',
+            gapja_element='토',
+            fortune_data={'test': 'data'},
+            fortune_score={}  # Empty fortune_score
+        )
+
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Fortune score data is incomplete', response.data['message'])
+
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_today_progress_unauthenticated(self):
+        """Test today's progress without authentication."""
+        self.client.credentials()  # Remove credentials
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_monthly_history_success(self):
+        """Test getting monthly history with multiple days."""
+        from core.models import FortuneResult, ChakraImage
+        from django.utils import timezone
+
+        # Create fortune results for September 2025
+        base_date = datetime(2025, 9, 1).date()
+
+        for day in range(1, 6):  # 5 days
+            date = datetime(2025, 9, day).date()
+            element = ['목', '화', '토', '금', '수'][day % 5]
+
+            FortuneResult.objects.create(
+                user=self.user,
+                for_date=date,
+                gapja_code=day,
+                gapja_name='test',
+                gapja_element=element,
+                fortune_data={'test': 'data'},
+                fortune_score={
+                    'entropy_score': 75.0,
+                    'elements': {},
+                    'element_distribution': {},
+                    'interpretation': 'Test',
+                    'needed_element': element
+                }
+            )
+
+            # Collect some chakras
+            element_en = {'목': 'wood', '화': 'fire', '토': 'earth', '금': 'metal', '수': 'water'}[element]
+            for _ in range(day):  # day 1: 1개, day 2: 2개, ...
+                ChakraImage.objects.create(
+                    user=self.user,
+                    image=None,
+                    chakra_type=element_en,
+                    date=date,
+                    timestamp=timezone.now(),
+                    device_make='PoC',
+                    device_model='PoC'
+                )
+
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-09'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['year'], 2025)
+        self.assertEqual(response.data['data']['month'], 9)
+        self.assertEqual(len(response.data['data']['days']), 5)
+        self.assertEqual(response.data['data']['summary']['total_days'], 5)
+        self.assertEqual(response.data['data']['summary']['completed_days'], 1)  # Only day 5 has 5+ chakras
+        self.assertEqual(response.data['data']['summary']['total_collected'], 1+2+3+4+5)  # 15
+
+    def test_monthly_history_no_fortune_results(self):
+        """Test monthly history when no fortune results exist."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-10'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(len(response.data['data']['days']), 0)
+        self.assertEqual(response.data['data']['summary']['total_days'], 0)
+        self.assertEqual(response.data['data']['summary']['total_collected'], 0)
+
+    def test_monthly_history_no_month_param(self):
+        """Test monthly history without month parameter."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Month parameter is required', response.data['message'])
+
+    def test_monthly_history_invalid_month_format(self):
+        """Test monthly history with invalid month format."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': 'invalid'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Invalid month format', response.data['message'])
+
+    def test_monthly_history_invalid_month_number(self):
+        """Test monthly history with invalid month number."""
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-13'})  # Month 13 doesn't exist
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_monthly_history_unauthenticated(self):
+        """Test monthly history without authentication."""
+        self.client.credentials()  # Remove credentials
+        url = reverse('core:chakra_monthly_history')
+        response = self.client.get(url, {'month': '2025-09'})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class TestFortuneAPIEndpoints(APITestCase):
     """Test cases for fortune-related API endpoints."""
@@ -548,3 +831,56 @@ class TestAPIIntegration(APITestCase):
             img_io.read(),
             content_type='image/jpeg'
         )
+
+
+class TestElementMappingUtilities(TestCase):
+    """Test cases for element mapping utility functions."""
+
+    def test_element_kr_to_en_all_elements(self):
+        """Test Korean to English element mapping for all elements."""
+        from core.models import element_kr_to_en
+
+        self.assertEqual(element_kr_to_en('목'), 'wood')
+        self.assertEqual(element_kr_to_en('화'), 'fire')
+        self.assertEqual(element_kr_to_en('토'), 'earth')
+        self.assertEqual(element_kr_to_en('금'), 'metal')
+        self.assertEqual(element_kr_to_en('수'), 'water')
+
+    def test_element_kr_to_en_unknown(self):
+        """Test Korean to English mapping with unknown element."""
+        from core.models import element_kr_to_en
+
+        # Unknown element should return as-is
+        self.assertEqual(element_kr_to_en('unknown'), 'unknown')
+        self.assertEqual(element_kr_to_en(''), '')
+
+    def test_element_en_to_kr_all_elements(self):
+        """Test English to Korean element mapping for all elements."""
+        from core.models import element_en_to_kr
+
+        self.assertEqual(element_en_to_kr('wood'), '목')
+        self.assertEqual(element_en_to_kr('fire'), '화')
+        self.assertEqual(element_en_to_kr('earth'), '토')
+        self.assertEqual(element_en_to_kr('metal'), '금')
+        self.assertEqual(element_en_to_kr('water'), '수')
+
+    def test_element_en_to_kr_unknown(self):
+        """Test English to Korean mapping with unknown element."""
+        from core.models import element_en_to_kr
+
+        # Unknown element should return as-is
+        self.assertEqual(element_en_to_kr('unknown'), 'unknown')
+        self.assertEqual(element_en_to_kr(''), '')
+
+    def test_element_mapping_bidirectional(self):
+        """Test bidirectional element mapping."""
+        from core.models import element_kr_to_en, element_en_to_kr
+
+        elements_kr = ['목', '화', '토', '금', '수']
+        elements_en = ['wood', 'fire', 'earth', 'metal', 'water']
+
+        for kr, en in zip(elements_kr, elements_en):
+            # Test kr -> en -> kr
+            self.assertEqual(element_en_to_kr(element_kr_to_en(kr)), kr)
+            # Test en -> kr -> en
+            self.assertEqual(element_kr_to_en(element_en_to_kr(en)), en)

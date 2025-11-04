@@ -200,6 +200,7 @@ class TestFortuneServicePersistence(TestCase):
         """Test that fortune generation saves to database."""
         from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
+            today_fortune_summary="오늘은 조화로운 날! 균형을 유지하며 차분히 시작해보세요.",
             today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 균형잡힌 좋은 날입니다.",
             today_daily_guidance="동쪽으로의 활동이 좋으며, 침착함을 유지하세요. 일에 집중하기 좋은 시간입니다."
         )
@@ -223,6 +224,7 @@ class TestFortuneServicePersistence(TestCase):
         """Test that regenerating fortune updates existing record."""
         from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
+            today_fortune_summary="오늘은 좋은 날! 첫 번째 운세로 하루를 시작해보세요.",
             today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 첫 번째 운세입니다.",
             today_daily_guidance="동쪽으로의 활동이 좋으며, 침착함을 유지하세요."
         )
@@ -238,6 +240,7 @@ class TestFortuneServicePersistence(TestCase):
 
         # Generate again for same date
         mock_ai.return_value = FortuneAIResponse(
+            today_fortune_summary="오늘은 새로운 날! 업데이트된 운세로 다시 시작해보세요.",
             today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 업데이트된 운세입니다.",
             today_daily_guidance="남쪽으로의 활동이 좋으며, 긍정적인 마음을 유지하세요."
         )

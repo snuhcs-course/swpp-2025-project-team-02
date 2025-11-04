@@ -40,6 +40,9 @@ class Response(BaseModel, Generic[T]):
 
 class FortuneAIResponse(BaseModel):
     """사용자의 사주와 일진을 종합적으로 분석한 하루 운세 응답 구조."""
+    today_fortune_summary: str = Field(
+        description="오늘 운세를 한 줄로 요약한 캐치프레이즈. 필요한 오행 원소를 반드시 포함하여 긍정적이고 친근한 톤으로 작성. (예: '오늘은 재물운이 좋은 날! 오늘 토의 기운을 모아 기회를 놓치지 마세요!', '차분한 마음으로 목의 기운을 채워보세요'). 30-40자 내외."
+    )
     today_element_balance_description: str = Field(
         description="오늘 하루 운기의 오행 분포와 사용자의 사주 오행 분포를 기반으로 오늘 오행 분포에 대한 설명. 설명에는, 사용자에게 필요한 오행과 그 이유가 포함되어야힙니다. 알아듣기 쉽게 친절하게 4-5 문장으로 작성."
     )
@@ -361,9 +364,18 @@ class FortuneService:
         1. **쉬운 언어 사용:** GenZ 사용자를 위해 겁재, 식신, 편관 등 어려운 십신 용어나 전문 한자어는 사용하지 마세요.
            오행(목화토금수)의 관계를 쉽게 풀어서 설명해주세요.
 
-        2. **2개의 필드만 출력:**
-           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석. 사용자에게 필요한 오행이 왜 <{fortune_score.needed_element}>행인지, 알기 쉽게 설명해주세요.  (4-5문장)
-           - today_daily_guidance: 부족한 오행을 보충할 수 있는 실용적인 일상 행동 조언 (4-5문장)
+        2. **3개의 필드 출력:**
+           - today_fortune_summary: 오늘 운세를 한 줄로 요약한 캐치프레이즈.
+             * **십신 관계를 활용하여 구체적인 운세 영역(재물, 학업, 연애 등)을 언급**해주세요.
+             * **중요: '{fortune_score.needed_element}'는 부족한 원소이므로, "~의 기운을 모아" 또는 "~의 기운을 채워" 형태로 표현**해주세요.
+             * "~의 기운으로" 같은 표현은 사용하지 마세요 (이미 많은 것처럼 들림).
+             * 30-40자 내외.
+             * 예시:
+               - "오늘은 재물운이 좋은 날! '{fortune_score.needed_element}'의 기운을 모아 기회를 놓치지 마세요!"
+               - "학업에 집중하기 좋은 날, '{fortune_score.needed_element}'의 기운을 채워 균형을 맞춰보세요!"
+               - "연애운이 상승하는 날! '{fortune_score.needed_element}'의 기운을 모아 행운을 잡아보세요!"
+           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석. 사용자에게 **부족한** 오행이 왜 <{fortune_score.needed_element}>행인지, 알기 쉽게 설명해주세요.  (4-5문장)
+           - today_daily_guidance: 부족한 오행 '{fortune_score.needed_element}'를 보충할 수 있는 실용적인 일상 행동 조언 (4-5문장)
 
         ---
         # 사주 & 오행 이론 요약
@@ -398,7 +410,30 @@ class FortuneService:
         2. **오행의 핵심 원리를 반영:**
            - 상생(相生): 목→화→토→금→수→목 (서로 돕는 관계)
            - 상극(相剋): 목극토, 토극수, 수극화, 화극금, 금극목 (서로 견제하는 관계)
-        3. 운세를 보는 방식
+
+        3. **십신(十神) 관계와 운세 영역 (일간 기준):**
+           일간(日干)을 기준으로 다른 오행과의 관계를 십신이라고 하며, 각 십신은 특정 인생 영역을 상징합니다.
+
+           | 십신 | 일간과의 관계 | 대표 운세 영역 | 긍정적 해석 키워드 |
+           |------|---------------|----------------|-------------------|
+           | 정재 | 아극자(음양다름) | 재물, 배우자(남) | 안정적 수입, 알뜰한 저축, 정확한 이익 |
+           | 편재 | 아극자(음양같음) | 사업, 투자 | 큰 재물 획득, 투자 성공, 판단력 발휘 |
+           | 정관 | 극아자(음양다름) | 명예, 직위, 남편(여) | 취업, 진급, 원칙 준수 |
+           | 편관 | 극아자(음양같음) | 성공, 업적 | 어려운 일 완수, 업적 성취, 권위적 성공 |
+           | 식신 | 아생자(음양같음) | 평안, 재능, 건강 | 먹고 사는 일 평안, 재능 발휘, 건강 증진 |
+           | 상관 | 아생자(음양다름) | 변화, 창작, 표현 | 새로운 도전, 뛰어난 표현력, 창의성 |
+           | 정인 | 생아자(음양다름) | 학업, 문서 | 합격, 좋은 문서 획득, 사려 깊은 사고 |
+           | 편인 | 생아자(음양같음) | 창의, 상상 | 창의력 발휘, 독특한 아이디어 |
+           | 비견 | 같음(음양같음) | 동료, 협력 | 동료의 도움, 협력 성공 |
+           | 겁재 | 같음(음양다름) | 횡재, 경쟁 | 투자 성공, 횡재수, 불굴의 의지 |
+
+           **today_fortune_summary 작성 시 활용법:**
+           - 일진(日辰)의 천간/지지가 사용자의 일간(日干)과 어떤 십신 관계를 형성하는지 파악
+           - 해당 십신의 대표 운세 영역(재물, 학업, 연애 등)을 구체적으로 언급
+           - 긍정적 키워드를 활용하여 친근한 톤으로 작성
+           - 예시: "오늘은 재물운이 좋은 날! 토의 기운을 모아 큰 기회를 잡아보세요!" (편재 관계일 때)
+
+        4. 운세를 보는 방식
             a. 가장 먼저, 사주팔자(8글자) 내에서 명주(命主) 자신을 상징하는 **일간(日干)의 오행이 현재 운(運)을 포함한 총 16개 기운 속에서 강한지(旺) 약한지(衰)**를 판단해야 합니다.
             b. 단순 로직에서는 이 16개 글자 분포를 통해 일간을 돕는 기운(인성/비겁)이 과도하게 많아졌는지, 혹은 일간을 제어하는 기운(관살/재성/식상)이 너무 과다해졌는지를 비교하여 **오행의 치우침(過猶不及)**을 파악합니다.
             c. 만약 일간이 신약(身弱)한데 유입된 운의 오행 분포가 일간을 생조(生助)하거나 방조(幇助)하는 기운(인성/비겁)으로 채워져 균형을 맞추면 긍정적인 운세로 보고, 반대로 이미 강한 일간에 동일한 오행이 과다하게 겹치면 독불장군이나 이기적 성향이 강화되어 흉운으로 해석합니다.
@@ -449,9 +484,11 @@ class FortuneService:
         except Exception as e:
             logger.error(f"Failed to generate fortune with AI: {e}")
             # Return default fortune on error
+            needed_element = fortune_score.needed_element if fortune_score else '목'
             return FortuneAIResponse(
-                today_element_balance_description=f"당신의 {compatibility['user_element']}행과 오늘의 {compatibility['tomorrow_element']}행이 만나 {compatibility['element_relation']} 관계를 형성합니다. {compatibility['message']}",
-                today_daily_guidance="오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 자신의 내면에 집중하며 안정적인 선택을 해보세요."
+                today_fortune_summary=f"오늘은 조화로운 날! {needed_element}의 기운을 모아 균형을 찾아보세요.",
+                today_element_balance_description=f"당신의 {compatibility['user_element']}행과 오늘의 {compatibility['tomorrow_element']}행이 만나 {compatibility['element_relation']} 관계를 형성합니다. 부족한 {needed_element}의 기운을 채워 오행의 균형을 맞추면 더욱 좋은 하루가 될 것입니다.",
+                today_daily_guidance=f"오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 부족한 {needed_element}의 기운을 보충하기 위해 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
     def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
@@ -459,6 +496,7 @@ class FortuneService:
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
         return FortuneAIResponse(
+            today_fortune_summary="오늘도 좋은 하루 보내세요!",
             today_element_balance_description=content[:200] + "..." if len(content) > 200 else content,
             today_daily_guidance=content[-200:] if len(content) > 200 else "오늘은 평온한 마음으로 균형을 유지하세요."
         )
