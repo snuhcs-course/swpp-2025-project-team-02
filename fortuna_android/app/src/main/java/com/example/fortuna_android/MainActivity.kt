@@ -362,6 +362,17 @@ class MainActivity : AppCompatActivity() {
         // Hide text labels - show only icons
         binding.bottomNavigation.labelVisibilityMode = com.google.android.material.bottomnavigation.LabelVisibilityMode.LABEL_VISIBILITY_UNLABELED
 
+        // Sync bottom navigation with current destination
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            when (destination.id) {
+                R.id.homeFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_home
+                R.id.sajuGuideFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_guide
+                R.id.arFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_camera
+                R.id.profileFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_profile
+                R.id.settingsFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_menu
+            }
+        }
+
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
