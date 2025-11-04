@@ -367,10 +367,15 @@ class FortuneService:
         2. **3개의 필드 출력:**
            - today_fortune_summary: 오늘 운세를 한 줄로 요약한 캐치프레이즈.
              * **십신 관계를 활용하여 구체적인 운세 영역(재물, 학업, 연애 등)을 언급**해주세요.
-             * **반드시 필요한 원소 '{fortune_score.needed_element}'를 포함**하여 긍정적이고 친근하게 작성해주세요.
-             * 30-40자 내외. (예: "오늘은 재물운이 좋은 날! 오늘 '{fortune_score.needed_element}'의 기운을 모아 기회를 놓치지 마세요!")
-           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석. 사용자에게 필요한 오행이 왜 <{fortune_score.needed_element}>행인지, 알기 쉽게 설명해주세요.  (4-5문장)
-           - today_daily_guidance: 부족한 오행을 보충할 수 있는 실용적인 일상 행동 조언 (4-5문장)
+             * **중요: '{fortune_score.needed_element}'는 부족한 원소이므로, "~의 기운을 모아" 또는 "~의 기운을 채워" 형태로 표현**해주세요.
+             * "~의 기운으로" 같은 표현은 사용하지 마세요 (이미 많은 것처럼 들림).
+             * 30-40자 내외.
+             * 예시:
+               - "오늘은 재물운이 좋은 날! '{fortune_score.needed_element}'의 기운을 모아 기회를 놓치지 마세요!"
+               - "학업에 집중하기 좋은 날, '{fortune_score.needed_element}'의 기운을 채워 균형을 맞춰보세요!"
+               - "연애운이 상승하는 날! '{fortune_score.needed_element}'의 기운을 모아 행운을 잡아보세요!"
+           - today_element_balance_description: 오늘 하루 운기의 오행 분포와 사용자 사주의 오행 분포를 비교 분석. 사용자에게 **부족한** 오행이 왜 <{fortune_score.needed_element}>행인지, 알기 쉽게 설명해주세요.  (4-5문장)
+           - today_daily_guidance: 부족한 오행 '{fortune_score.needed_element}'를 보충할 수 있는 실용적인 일상 행동 조언 (4-5문장)
 
         ---
         # 사주 & 오행 이론 요약
@@ -481,9 +486,9 @@ class FortuneService:
             # Return default fortune on error
             needed_element = fortune_score.needed_element if fortune_score else '목'
             return FortuneAIResponse(
-                today_fortune_summary=f"오늘은 {needed_element}의 기운을 모아 균형을 찾는 하루입니다!",
-                today_element_balance_description=f"당신의 {compatibility['user_element']}행과 오늘의 {compatibility['tomorrow_element']}행이 만나 {compatibility['element_relation']} 관계를 형성합니다. {compatibility['message']}",
-                today_daily_guidance="오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 자신의 내면에 집중하며 안정적인 선택을 해보세요."
+                today_fortune_summary=f"오늘은 조화로운 날! {needed_element}의 기운을 모아 균형을 찾아보세요.",
+                today_element_balance_description=f"당신의 {compatibility['user_element']}행과 오늘의 {compatibility['tomorrow_element']}행이 만나 {compatibility['element_relation']} 관계를 형성합니다. 부족한 {needed_element}의 기운을 채워 오행의 균형을 맞추면 더욱 좋은 하루가 될 것입니다.",
+                today_daily_guidance=f"오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 부족한 {needed_element}의 기운을 보충하기 위해 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
     def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
