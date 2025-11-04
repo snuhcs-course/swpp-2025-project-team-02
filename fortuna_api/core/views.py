@@ -13,7 +13,7 @@ from drf_spectacular.types import OpenApiTypes
 import logging
 
 from user.permissions import DevelopmentOrAuthenticated
-from .models import ChakraImage, FortuneResult
+from .models import ChakraImage, FortuneResult, element_kr_to_en
 from .serializers import (
     ChakraImageSerializer,
     ChakraImageUploadSerializer,
@@ -29,6 +29,7 @@ from .serializers import (
     FortuneResponseSerializer,
     APIResponseSerializer,
     NeededElementResponseSerializer,
+    TodayProgressResponseSerializer,
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
@@ -410,6 +411,88 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             'data': {
                 'date': today_date.isoformat(),
                 'needed_element': fortune_score.needed_element
+            }
+        }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Get Today's Collection Progress",
+        description="Get today's chakra collection progress (needed element and count)",
+        responses={
+            200: TodayProgressResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='today-progress')
+    def today_progress(self, request):
+        """
+        Get today's chakra collection progress.
+        Returns the needed element from FortuneResult and current collection count.
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        today = datetime.now().date()
+
+        # Get today's FortuneResult
+        try:
+            fortune_result = FortuneResult.objects.get(
+                user=user,
+                for_date=today
+            )
+        except FortuneResult.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': f'Fortune not generated for today ({today}). Please call /fortune/today first.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Extract needed element from fortune_score
+        if not fortune_result.fortune_score or 'needed_element' not in fortune_result.fortune_score:
+            return Response({
+                'status': 'error',
+                'message': 'Fortune score data is incomplete'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        needed_element_kr = fortune_result.fortune_score['needed_element']
+        needed_element_en = element_kr_to_en(needed_element_kr)
+
+        # Count collected chakras of target element today
+        current_count = ChakraImage.objects.filter(
+            user=user,
+            date=today,
+            chakra_type=needed_element_en
+        ).count()
+
+        # Calculate progress
+        target_count = 5  # Default target
+        is_completed = current_count >= target_count
+        progress_percentage = min(100.0, round((current_count / target_count) * 100, 1))
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'date': today.isoformat(),
+                'needed_element': needed_element_kr,
+                'needed_element_en': needed_element_en,
+                'current_count': current_count,
+                'target_count': target_count,
+                'is_completed': is_completed,
+                'progress_percentage': progress_percentage
             }
         }, status=status.HTTP_200_OK)
 

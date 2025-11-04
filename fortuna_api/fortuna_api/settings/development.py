@@ -73,9 +73,9 @@ CORS_ALLOW_HEADERS = [
 
 # Disable CSRF for development API testing
 # Note: Only use this for development!
+# SessionAuthentication 제거 → CSRF 체크 비활성화 (curl 테스트용)
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
     'rest_framework_simplejwt.authentication.JWTAuthentication',
-    'rest_framework.authentication.SessionAuthentication',
 ]
 
 # 개발환경에서는 인증 없이 API 사용 가능

@@ -372,3 +372,22 @@ class NeededElementResponseSerializer(serializers.Serializer):
 
     status = serializers.CharField()
     data = NeededElementDataSerializer()
+
+
+class TodayProgressDataSerializer(serializers.Serializer):
+    """Serializer for today's chakra collection progress data."""
+
+    date = serializers.DateField(format='%Y-%m-%d', help_text="Today's date")
+    needed_element = serializers.CharField(help_text="Needed element in Korean (목/화/토/금/수)")
+    needed_element_en = serializers.CharField(help_text="Needed element in English (wood/fire/earth/metal/water)")
+    current_count = serializers.IntegerField(help_text="Current count of collected target elements")
+    target_count = serializers.IntegerField(help_text="Target count (default: 5)")
+    is_completed = serializers.BooleanField(help_text="Whether target is achieved")
+    progress_percentage = serializers.FloatField(help_text="Progress percentage (0-100)")
+
+
+class TodayProgressResponseSerializer(serializers.Serializer):
+    """Serializer for today's progress response."""
+
+    status = serializers.CharField()
+    data = TodayProgressDataSerializer()

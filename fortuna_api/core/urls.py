@@ -27,6 +27,7 @@ urlpatterns = [
     path('chakra/collect/', ChakraImageViewSet.as_view({'post': 'collect'}), name='collect_chakra'),
     path('chakra/collection-status/', ChakraImageViewSet.as_view({'get': 'collection_status'}), name='chakra_collection_status'),
     path('chakra/needed-element/', ChakraImageViewSet.as_view({'get': 'needed_element'}), name='needed_element'),
+    path('chakra/today-progress/', ChakraImageViewSet.as_view({'get': 'today_progress'}), name='chakra_today_progress'),
 
     path('fortune/today/', FortuneViewSet.as_view({'get': 'today'}), name='today_fortune'),
 ]

@@ -2,6 +2,34 @@ from django.db import models
 from django.conf import settings
 
 
+# Element mapping utilities
+ELEMENT_KR_TO_EN = {
+    '목': 'wood',
+    '화': 'fire',
+    '토': 'earth',
+    '금': 'metal',
+    '수': 'water',
+}
+
+ELEMENT_EN_TO_KR = {
+    'wood': '목',
+    'fire': '화',
+    'earth': '토',
+    'metal': '금',
+    'water': '수',
+}
+
+
+def element_kr_to_en(element_kr: str) -> str:
+    """Convert Korean element name to English."""
+    return ELEMENT_KR_TO_EN.get(element_kr, element_kr)
+
+
+def element_en_to_kr(element_en: str) -> str:
+    """Convert English element name to Korean."""
+    return ELEMENT_EN_TO_KR.get(element_en, element_en)
+
+
 class ChakraImage(models.Model):
     """Stores uploaded chakra images with metadata."""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
