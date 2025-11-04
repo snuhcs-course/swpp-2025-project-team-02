@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:paddingBottom="16dp">
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <TextView
         android:id="@+id/fortuna_logo"
@@ -14,16 +15,5 @@
         android:textColor="#FFFFFF"
         android:textSize="24sp"
         android:textStyle="bold" />
-
-    <ImageButton
-        android:id="@+id/fortune_guide_button"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="사주 가이드"
-        android:src="@android:drawable/ic_menu_help"
-        app:tint="#AAAAAA" />
 
 </RelativeLayout>

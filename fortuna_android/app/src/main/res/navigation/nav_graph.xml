@@ -58,4 +58,14 @@
         android:name="com.example.fortuna_android.ui.ARFragment"
         android:label="AR Object Detection"
         tools:layout="@layout/fragment_ar" />
+    <fragment
+        android:id="@+id/detailAnalysisFragment"
+        android:name="com.example.fortuna_android.ui.DetailAnalysisFragment"
+        android:label="Detail Analysis"
+        tools:layout="@layout/fragment_detail_analysis" />
+    <fragment
+        android:id="@+id/sajuGuideFragment"
+        android:name="com.example.fortuna_android.ui.SajuGuideFragment"
+        android:label="Saju Guide"
+        tools:layout="@layout/fragment_saju_guide" />
 </navigation>

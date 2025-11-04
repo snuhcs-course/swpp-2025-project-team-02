@@ -69,6 +69,22 @@
             android:visibility="gone"
             tools:ignore="MissingClass" />
 
+        <!-- 오늘의 운기 (2x4 table) -->
+        <com.example.fortuna_android.ui.TodaySajuPaljaView
+            android:id="@+id/todaySajuPaljaView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:visibility="gone" />
+
+        <!-- 당신의 사주팔자 (2x4 table) -->
+        <com.example.fortuna_android.ui.SajuPaljaView
+            android:id="@+id/sajuPaljaView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:visibility="gone" />
+
         <!-- 사주 설명 버튼 -->
 <!--        <Button-->
 <!--            android:id="@+id/btnSajuExplanation"-->

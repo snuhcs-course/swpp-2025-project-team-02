@@ -143,11 +143,11 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.navigation:navigation-testing:2.7.6")
+    testImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     androidTestImplementation("org.mockito:mockito-android:5.7.0")
     androidTestImplementation("io.mockk:mockk-android:1.13.12")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     // Dependency for Google ARCore

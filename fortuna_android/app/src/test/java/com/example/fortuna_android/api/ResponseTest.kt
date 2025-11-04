@@ -492,12 +492,10 @@ class ResponseTest {
             generatedAt = "2025-10-24T10:00:00Z",
             forDate = "2025-10-24",
             fortune = TodayFortune(
-                "궁합", 85, "좋음", "균형",
-                emptyList(),
-                DailyGuidance("오전", "조심", "빨강", "동쪽", emptyList(), emptyList()),
-                "특별메시지"
+                todayDailyGuidance = "오늘은 조심하세요. 오전이 좋습니다.",
+                todayElementBalanceDescription = "균형잡힌 오행입니다"
             ),
-            fortuneScore = FortuneScore(0.75, emptyMap(), emptyMap(), "해석")
+            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석")
         )
 
         val response = TodayFortuneResponse("success", fortuneData)
@@ -514,12 +512,10 @@ class ResponseTest {
             generatedAt = null,
             forDate = null,
             fortune = TodayFortune(
-                "궁합", 85, "좋음", "균형",
-                emptyList(),
-                DailyGuidance("오전", "조심", "빨강", "동쪽", emptyList(), emptyList()),
-                "메시지"
+                todayDailyGuidance = "오늘은 조심하세요.",
+                todayElementBalanceDescription = "균형입니다"
             ),
-            fortuneScore = FortuneScore(0.75, emptyMap(), emptyMap(), "해석")
+            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석")
         )
 
         assertNull(data.generatedAt)
@@ -529,24 +525,14 @@ class ResponseTest {
     @Test
     fun `test TodayFortune creation`() {
         val fortune = TodayFortune(
-            sajuCompatibility = "매우 좋음",
-            overallFortune = 90,
-            fortuneSummary = "행운의 날",
-            elementBalance = "완벽한 균형",
-            chakraReadings = listOf(
-                ChakraReading("강함", 10, "wood", "동쪽"),
-                ChakraReading("중간", 5, "fire", "남쪽")
-            ),
-            dailyGuidance = DailyGuidance(
-                "오전 10시", "적극적으로", "금색", "북쪽",
-                listOf("싸움"), listOf("대화", "협력")
-            ),
-            specialMessage = "오늘은 특별한 날입니다"
+            todayDailyGuidance = "오늘은 특별한 날입니다. 적극적으로 행동하세요. 오전 10시가 좋습니다.",
+            todayElementBalanceDescription = "완벽한 균형"
         )
 
-        assertEquals(90, fortune.overallFortune)
-        assertEquals("매우 좋음", fortune.sajuCompatibility)
-        assertEquals(2, fortune.chakraReadings.size)
+        assertNotNull("todayDailyGuidance should not be null", fortune.todayDailyGuidance)
+        assertNotNull("todayElementBalanceDescription should not be null", fortune.todayElementBalanceDescription)
+        assertTrue("todayDailyGuidance should contain text", fortune.todayDailyGuidance.contains("특별한"))
+        assertEquals("완벽한 균형", fortune.todayElementBalanceDescription)
     }
 
     @Test
@@ -560,13 +546,13 @@ class ResponseTest {
         val distribution = ElementDistribution(count = 3, percentage = 37.5)
 
         val score = FortuneScore(
-            entropyScore = 0.85,
+            entropyScore = 85.0,
             elements = mapOf("일운" to pillar),
             elementDistribution = mapOf("목" to distribution),
             interpretation = "균형잡힌 운세"
         )
 
-        assertEquals(0.85, score.entropyScore, 0.001)
+        assertEquals(85.0, score.entropyScore, 0.001)
         assertEquals(1, score.elements.size)
         assertEquals(1, score.elementDistribution.size)
         assertEquals("균형잡힌 운세", score.interpretation)

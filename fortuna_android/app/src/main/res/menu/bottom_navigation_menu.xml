@@ -6,6 +6,11 @@
         android:title="Home" />
 
     <item
+        android:id="@+id/nav_guide"
+        android:icon="@drawable/ic_help"
+        android:title="Guide" />
+
+    <item
         android:id="@+id/nav_camera"
         android:icon="@drawable/ic_camera_highlighted"
         android:title="Camera" />
@@ -13,5 +18,10 @@
     <item
         android:id="@+id/nav_profile"
         android:icon="@drawable/ic_profile"
-        android:title="My Page" />
+        android:title="Profile" />
+
+    <item
+        android:id="@+id/nav_menu"
+        android:icon="@drawable/ic_menu"
+        android:title="Menu" />
 </menu>

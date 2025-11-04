@@ -286,9 +286,6 @@ class ProfileFragment : Fragment() {
         )
 
         Log.d(TAG, "Collected elements updated: 목=${collectionStatus?.wood}, 화=${collectionStatus?.fire}, 토=${collectionStatus?.earth}, 금=${collectionStatus?.metal}, 수=${collectionStatus?.water}")
-
-        // Setup click listeners for badges
-        setupElementBadgeClickListeners()
     }
 
     /**
@@ -307,85 +304,6 @@ class ProfileFragment : Fragment() {
 
         // Set text color to white for better visibility
         badge.setTextColor(Color.WHITE)
-    }
-
-    private fun setupElementBadgeClickListeners() {
-        val binding = _binding ?: return
-
-        // 목 (Wood)
-        binding.elementBadge1.setOnClickListener {
-            showCollectionHistory("wood", "목")
-        }
-
-        // 화 (Fire)
-        binding.elementBadge2.setOnClickListener {
-            showCollectionHistory("fire", "화")
-        }
-
-        // 토 (Earth)
-        binding.elementBadge3.setOnClickListener {
-            showCollectionHistory("earth", "토")
-        }
-
-        // 금 (Metal)
-        binding.elementBadge4.setOnClickListener {
-            showCollectionHistory("metal", "금")
-        }
-
-        // 수 (Water)
-        binding.elementBadge5.setOnClickListener {
-            showCollectionHistory("water", "수")
-        }
-    }
-
-    private fun showCollectionHistory(chakraType: String, koreanName: String) {
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.instance.getCollectionHistory(chakraType)
-
-                if (response.isSuccessful && response.body() != null) {
-                    val historyData = response.body()!!.data
-
-                    if (historyData.collections.isEmpty()) {
-                        AlertDialog.Builder(requireContext())
-                            .setTitle("$koreanName 원소 수집 내역")
-                            .setMessage("수집한 원소가 없습니다.")
-                            .setPositiveButton("확인", null)
-                            .show()
-                    } else {
-                        // Format dates for display
-                        val dateList = historyData.collections.map { item ->
-                            val dateTime = try {
-                                // Parse ISO timestamp and format to readable date
-                                val instant = java.time.Instant.parse(item.collectedAt)
-                                val localDateTime = java.time.LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())
-                                "${localDateTime.year}년 ${localDateTime.monthValue}월 ${localDateTime.dayOfMonth}일 ${localDateTime.hour}시 ${localDateTime.minute}분"
-                            } catch (e: Exception) {
-                                // Fallback to date field if timestamp parsing fails
-                                item.date
-                            }
-                            dateTime
-                        }.toTypedArray()
-
-                        AlertDialog.Builder(requireContext())
-                            .setTitle("$koreanName 원소 수집 내역 (총 ${historyData.totalCount}개)")
-                            .setItems(dateList, null)
-                            .setPositiveButton("확인", null)
-                            .show()
-                    }
-                } else {
-                    Log.e(TAG, "Failed to load collection history: ${response.code()}")
-                    if (isAdded) {
-                        CustomToast.show(requireContext(), "수집 내역을 불러올 수 없습니다.")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading collection history", e)
-                if (isAdded) {
-                    CustomToast.show(requireContext(), "오류가 발생했습니다: ${e.message}")
-                }
-            }
-        }
     }
 
     private fun getElementFromCheongan(cheongan: String): String {

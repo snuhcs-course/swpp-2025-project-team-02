@@ -56,31 +56,26 @@ class FortuneCardViewTest {
         val fortuneData = createSampleFortuneData()
 
         assertNotNull(fortuneData)
-        assertEquals(85, fortuneData.fortune.overallFortune)
-        assertEquals("오행의 균형이 잘 맞습니다", fortuneData.fortune.elementBalance)
-        assertEquals(2, fortuneData.fortune.chakraReadings.size)
+        assertEquals("새로운 시작에 좋은 날입니다. 오전 9시-11시가 가장 좋습니다.", fortuneData.fortune.todayDailyGuidance)
+        assertEquals("오행의 균형이 잘 맞습니다", fortuneData.fortune.todayElementBalanceDescription)
     }
 
     @Test
     fun `test fortune data structure`() {
         val fortuneData = createSampleFortuneData()
 
-        assertEquals("새로운 시작에 좋은 날입니다", fortuneData.fortune.dailyGuidance.keyAdvice)
-        assertEquals("오전 9시 - 11시", fortuneData.fortune.dailyGuidance.bestTime)
-        assertEquals("동쪽", fortuneData.fortune.dailyGuidance.luckyDirection)
-        assertEquals("초록색", fortuneData.fortune.dailyGuidance.luckyColor)
-
-        val chakraReading = fortuneData.fortune.chakraReadings[0]
-        assertEquals("wood", chakraReading.chakraType)
-        assertEquals(8, chakraReading.strength)
-        assertEquals("나무의 기운이 강합니다", chakraReading.message)
+        // Test TodayFortune fields
+        assertNotNull("todayDailyGuidance should not be null", fortuneData.fortune.todayDailyGuidance)
+        assertNotNull("todayElementBalanceDescription should not be null", fortuneData.fortune.todayElementBalanceDescription)
+        assertTrue("todayDailyGuidance should not be empty", fortuneData.fortune.todayDailyGuidance.isNotEmpty())
+        assertTrue("todayElementBalanceDescription should not be empty", fortuneData.fortune.todayElementBalanceDescription.isNotEmpty())
     }
 
     @Test
     fun `test fortune score elements`() {
         val fortuneData = createSampleFortuneData()
 
-        assertEquals(0.75, fortuneData.fortuneScore.entropyScore, 0.01)
+        assertEquals(85.0, fortuneData.fortuneScore.entropyScore, 0.01)
         assertTrue(fortuneData.fortuneScore.elements.containsKey("일운"))
 
         val dayPillar = fortuneData.fortuneScore.elements["일운"]
@@ -162,30 +157,11 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with empty chakra readings`() {
+    fun `test setFortuneData with different guidance text`() {
         val fortuneData = createSampleFortuneData().copy(
-            fortune = createSampleFortuneData().fortune.copy(
-                chakraReadings = emptyList()
-            )
-        )
-
-        fortuneCardView.setFortuneData(fortuneData)
-        assertNotNull(fortuneCardView)
-    }
-
-    @Test
-    fun `test setFortuneData with multiple chakra readings`() {
-        val chakraReadings = listOf(
-            ChakraReading("wood", 8, "나무 기운", "동쪽"),
-            ChakraReading("fire", 7, "불 기운", "남쪽"),
-            ChakraReading("earth", 6, "흙 기운", "중앙"),
-            ChakraReading("metal", 5, "쇠 기운", "서쪽"),
-            ChakraReading("water", 9, "물 기운", "북쪽")
-        )
-
-        val fortuneData = createSampleFortuneData().copy(
-            fortune = createSampleFortuneData().fortune.copy(
-                chakraReadings = chakraReadings
+            fortune = TodayFortune(
+                todayDailyGuidance = "다른 가이던스 텍스트입니다.",
+                todayElementBalanceDescription = "다른 설명입니다."
             )
         )
 
@@ -378,34 +354,7 @@ class FortuneCardViewTest {
         }
     }
 
-    @Test
-    fun `test getChakraEmoji for all chakra types`() {
-        val method = getPrivateMethod("getChakraEmoji", String::class.java)
-
-        val testCases = mapOf(
-            "wood" to "🌳",
-            "나무" to "🌳",
-            "목" to "🌳",
-            "fire" to "🔥",
-            "불" to "🔥",
-            "화" to "🔥",
-            "earth" to "🌏",
-            "흙" to "🌏",
-            "토" to "🌏",
-            "metal" to "⚔️",
-            "쇠" to "⚔️",
-            "금" to "⚔️",
-            "water" to "💧",
-            "물" to "💧",
-            "수" to "💧",
-            "unknown" to "🔵"
-        )
-
-        testCases.forEach { (input, expected) ->
-            val result = method.invoke(fortuneCardView, input) as String
-            assertEquals("getChakraEmoji($input)", expected, result)
-        }
-    }
+    // Removed: getChakraEmoji tests - chakraReadings field no longer exists in TodayFortune
 
     @Test
     fun `test getElementMessage for all element types`() {
@@ -494,104 +443,12 @@ class FortuneCardViewTest {
         }
     }
 
-    @Test
-    fun `test getChakraName for all chakra types`() {
-        val method = getPrivateMethod("getChakraName", String::class.java)
-
-        val testCases = mapOf(
-            "wood" to "목(木)",
-            "fire" to "화(火)",
-            "earth" to "토(土)",
-            "metal" to "금(金)",
-            "water" to "수(水)",
-            "unknown" to "unknown"
-        )
-
-        testCases.forEach { (input, expected) ->
-            val result = method.invoke(fortuneCardView, input) as String
-            assertEquals("getChakraName($input)", expected, result)
-        }
-    }
-
-    @Test
-    fun `test getChakraColor for all chakra types`() {
-        val method = getPrivateMethod("getChakraColor", String::class.java)
-
-        val testCases = mapOf(
-            "wood" to Color.parseColor("#0BEFA0"),
-            "나무" to Color.parseColor("#0BEFA0"),
-            "목" to Color.parseColor("#0BEFA0"),
-            "fire" to Color.parseColor("#F93E3E"),
-            "불" to Color.parseColor("#F93E3E"),
-            "화" to Color.parseColor("#F93E3E"),
-            "earth" to Color.parseColor("#FF9500"),
-            "흙" to Color.parseColor("#FF9500"),
-            "토" to Color.parseColor("#FF9500"),
-            "metal" to Color.parseColor("#C0C0C0"),
-            "쇠" to Color.parseColor("#C0C0C0"),
-            "금" to Color.parseColor("#C0C0C0"),
-            "water" to Color.parseColor("#2BB3FC"),
-            "물" to Color.parseColor("#2BB3FC"),
-            "수" to Color.parseColor("#2BB3FC"),
-            "unknown" to Color.parseColor("#FFFFFF")
-        )
-
-        testCases.forEach { (input, expected) ->
-            val result = method.invoke(fortuneCardView, input) as Int
-            assertEquals("getChakraColor($input)", expected, result)
-        }
-    }
-
-    @Test
-    fun `test createChakraReadingView creates valid view`() {
-        val method = getPrivateMethod("createChakraReadingView", ChakraReading::class.java)
-        val chakraReading = ChakraReading("wood", 8, "나무의 기운", "동쪽")
-
-        val result = method.invoke(fortuneCardView, chakraReading)
-        assertNotNull("createChakraReadingView should return a view", result)
-    }
-
-    @Test
-    fun `test createChakraReadingView for all chakra types`() {
-        val method = getPrivateMethod("createChakraReadingView", ChakraReading::class.java)
-
-        val chakraTypes = listOf("wood", "fire", "earth", "metal", "water")
-        chakraTypes.forEach { chakraType ->
-            val chakraReading = ChakraReading(chakraType, 7, "$chakraType 기운", "방향")
-            val result = method.invoke(fortuneCardView, chakraReading)
-            assertNotNull("createChakraReadingView($chakraType) should return a view", result)
-        }
-    }
-
-    @Test
-    fun `test displayChakraReadings adds views`() {
-        val method = getPrivateMethod("displayChakraReadings", List::class.java)
-
-        val chakraReadings = listOf(
-            ChakraReading("wood", 8, "나무 기운", "동쪽"),
-            ChakraReading("fire", 7, "불 기운", "남쪽"),
-            ChakraReading("earth", 6, "흙 기운", "중앙")
-        )
-
-        method.invoke(fortuneCardView, chakraReadings)
-        assertNotNull(fortuneCardView)
-    }
-
-    @Test
-    fun `test displayChakraReadings with empty list`() {
-        val method = getPrivateMethod("displayChakraReadings", List::class.java)
-        method.invoke(fortuneCardView, emptyList<ChakraReading>())
-        assertNotNull(fortuneCardView)
-    }
-
-    @Test
-    fun `test displayChakraReadings with single reading`() {
-        val method = getPrivateMethod("displayChakraReadings", List::class.java)
-        val chakraReadings = listOf(ChakraReading("wood", 10, "강한 나무 기운", "동쪽"))
-
-        method.invoke(fortuneCardView, chakraReadings)
-        assertNotNull(fortuneCardView)
-    }
+    // Removed: All chakra-related tests - chakraReadings field no longer exists in TodayFortune
+    // Tests removed:
+    // - getChakraName
+    // - getChakraColor
+    // - createChakraReadingView
+    // - displayChakraReadings
 
     @Test
     fun `test fetchAndDisplayNeededElement is called during setFortuneData`() {
@@ -606,46 +463,7 @@ class FortuneCardViewTest {
         assertNotNull(fortuneCardView)
     }
 
-    @Test
-    fun `test all element combinations in chakra readings`() {
-        val elements = listOf("wood", "fire", "earth", "metal", "water")
-
-        elements.forEach { element ->
-            val chakraReadings = listOf(
-                ChakraReading(element, 5, "$element 기운 약함", "위치"),
-                ChakraReading(element, 10, "$element 기운 강함", "위치")
-            )
-
-            val fortuneData = createSampleFortuneData().copy(
-                fortune = createSampleFortuneData().fortune.copy(
-                    chakraReadings = chakraReadings
-                )
-            )
-
-            fortuneCardView.setFortuneData(fortuneData)
-            assertNotNull("Should handle $element chakra readings", fortuneCardView)
-        }
-    }
-
-    @Test
-    fun `test mixed element types in chakra readings`() {
-        val chakraReadings = listOf(
-            ChakraReading("wood", 8, "나무", "동"),
-            ChakraReading("불", 7, "불", "남"),
-            ChakraReading("EARTH", 6, "흙", "중앙"),
-            ChakraReading("쇠", 5, "쇠", "서"),
-            ChakraReading("Water", 9, "물", "북")
-        )
-
-        val fortuneData = createSampleFortuneData().copy(
-            fortune = createSampleFortuneData().fortune.copy(
-                chakraReadings = chakraReadings
-            )
-        )
-
-        fortuneCardView.setFortuneData(fortuneData)
-        assertNotNull(fortuneCardView)
-    }
+    // Removed: chakra readings combination tests - field no longer exists
 
     @Test
     fun `test case insensitivity for all element names`() {
@@ -679,36 +497,11 @@ class FortuneCardViewTest {
             generatedAt = "2025-10-23T08:00:00Z",
             forDate = "2025-10-23",
             fortune = TodayFortune(
-                overallFortune = 85,
-                specialMessage = "좋은 운세입니다",
-                fortuneSummary = "오늘은 행운의 날입니다",
-                elementBalance = "오행의 균형이 잘 맞습니다",
-                sajuCompatibility = "좋음",
-                dailyGuidance = DailyGuidance(
-                    keyAdvice = "새로운 시작에 좋은 날입니다",
-                    bestTime = "오전 9시 - 11시",
-                    luckyDirection = "동쪽",
-                    luckyColor = "초록색",
-                    activitiesToAvoid = listOf("서두르기", "충동적인 결정"),
-                    activitiesToEmbrace = listOf("새로운 도전", "창의적인 활동")
-                ),
-                chakraReadings = listOf(
-                    ChakraReading(
-                        chakraType = "wood",
-                        strength = 8,
-                        message = "나무의 기운이 강합니다",
-                        locationSignificance = "동쪽 방향"
-                    ),
-                    ChakraReading(
-                        chakraType = "fire",
-                        strength = 6,
-                        message = "불의 기운이 있습니다",
-                        locationSignificance = "남쪽 방향"
-                    )
-                )
+                todayDailyGuidance = "새로운 시작에 좋은 날입니다. 오전 9시-11시가 가장 좋습니다.",
+                todayElementBalanceDescription = "오행의 균형이 잘 맞습니다"
             ),
             fortuneScore = FortuneScore(
-                entropyScore = 0.75,
+                entropyScore = 85.0,
                 elements = mapOf(
                     "일운" to ElementPillar(
                         twoLetters = "갑자",
@@ -745,30 +538,11 @@ class FortuneCardViewTest {
             generatedAt = "2025-10-23T08:00:00Z",
             forDate = "2025-10-23",
             fortune = TodayFortune(
-                overallFortune = 85,
-                specialMessage = "좋은 운세입니다",
-                fortuneSummary = "오늘은 행운의 날입니다",
-                elementBalance = "오행의 균형이 잘 맞습니다",
-                sajuCompatibility = "좋음",
-                dailyGuidance = DailyGuidance(
-                    keyAdvice = "새로운 시작에 좋은 날입니다",
-                    bestTime = "오전 9시 - 11시",
-                    luckyDirection = "동쪽",
-                    luckyColor = "초록색",
-                    activitiesToAvoid = listOf("서두르기"),
-                    activitiesToEmbrace = listOf("새로운 도전")
-                ),
-                chakraReadings = listOf(
-                    ChakraReading(
-                        chakraType = element,
-                        strength = 8,
-                        message = "$element 기운이 강합니다",
-                        locationSignificance = "특정 방향"
-                    )
-                )
+                todayDailyGuidance = "새로운 시작에 좋은 날입니다. $element 기운이 강합니다.",
+                todayElementBalanceDescription = "오행의 균형이 잘 맞습니다"
             ),
             fortuneScore = FortuneScore(
-                entropyScore = 0.75,
+                entropyScore = 85.0,
                 elements = mapOf(
                     "일운" to ElementPillar(
                         twoLetters = "갑자",
