@@ -27,7 +27,6 @@ import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.databinding.FragmentArBinding
 import com.example.fortuna_android.util.CustomToast
-import com.example.fortuna_android.util.PendingCollectionManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -405,8 +404,8 @@ class ARFragment(
     }
 
     /**
-     * Handle quest completion - save to SharedPreferences then close AR
-     * The actual POST request will be handled by HomeFragment after AR session closes
+     * Handle quest completion - close AR and return to home
+     * API calls are already made on each sphere collection
      */
     private fun onQuestComplete() {
         if (isAdded) {
@@ -414,26 +413,13 @@ class ARFragment(
         }
         Log.i(TAG, "Daily energy quest completed!")
 
-        // Save pending collection to SharedPreferences
-        neededElement?.let { element ->
-            if (element != ElementMapper.Element.OTHERS) {
-                val englishElement = ElementMapper.toEnglish(element)
-                if (isAdded) {
-                    PendingCollectionManager.savePendingCollection(requireContext(), englishElement, 1)
-                    Log.i(TAG, "Pending collection saved to SharedPreferences: $englishElement")
-                }
-            } else {
-                Log.w(TAG, "OTHERS element not supported by backend, skipping")
-            }
-        }
-
         // Close AR after a short delay to let user see the completion message
         view?.postDelayed({
             if (isAdded) {
                 Log.i(TAG, "Closing AR view after quest completion")
                 findNavController().popBackStack()
             }
-        }, 1500) // 1.5 second delay (reduced from 2s since we're not waiting for API)
+        }, 1500)
     }
 
     /**
@@ -473,7 +459,7 @@ class ARFragment(
 
     /**
      * Called from renderer when a sphere is successfully collected
-     * Only updates local count - API call happens when quest is complete (5/5)
+     * Immediately updates UI and triggers API call in background
      */
     fun onSphereCollected(count: Int) {
         Log.i(TAG, "Sphere collected! Local count: $count")
@@ -490,6 +476,37 @@ class ARFragment(
         // Show feedback to user
         if (isAdded) {
             CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+        }
+
+        // Trigger API call in background
+        collectElementInBackground()
+    }
+
+    /**
+     * Send collectElement API request in background (non-blocking)
+     */
+    private fun collectElementInBackground() {
+        neededElement?.let { element ->
+            if (element != ElementMapper.Element.OTHERS) {
+                val elementEnglish = ElementMapper.toEnglish(element)
+
+                lifecycleScope.launch {
+                    try {
+                        val request = com.example.fortuna_android.api.CollectElementRequest(chakraType = elementEnglish)
+                        val response = RetrofitClient.instance.collectElement(request)
+
+                        if (response.isSuccessful && response.body() != null) {
+                            Log.i(TAG, "✅ Element collected via API: $elementEnglish")
+                        } else {
+                            Log.w(TAG, "⚠️ API call failed but user already saw success: ${response.code()}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "⚠️ API call error but user already saw success", e)
+                    }
+                }
+            } else {
+                Log.w(TAG, "OTHERS element not supported by backend, skipping API call")
+            }
         }
     }
 
