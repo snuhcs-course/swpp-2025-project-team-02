@@ -28,17 +28,7 @@
                 android:textColor="#FFFFFF"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="8dp"
-                android:gravity="center" />
-
-            <!-- 오늘의 운세 타이틀 -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="오늘의 운세"
-                android:textColor="#AAAAAA"
-                android:textSize="14sp"
-                android:layout_marginBottom="32dp"
+                android:layout_marginBottom="24dp"
                 android:gravity="center" />
 
             <!-- 간지 정보 -->
@@ -71,6 +61,16 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="16dp" />
 
+                <!-- 오늘의 운세 타이틀 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="오늘의 운세"
+                    android:textColor="#AAAAAA"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center" />
+
                 <!-- 기운 멘트 -->
                 <TextView
                     android:id="@+id/tvElementMessage"
@@ -80,7 +80,125 @@
                     android:textColor="#CCCCCC"
                     android:textSize="15sp"
                     android:gravity="center"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="24dp" />
+
+                <!-- 가로로 배치: 오늘 보충한 기운 | 운세 점수 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- 왼쪽: 오늘의 기운 수집 상태 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_marginEnd="32dp">
+
+                        <!-- 라벨 텍스트 -->
+                        <TextView
+                            android:id="@+id/tvCollectionLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="오늘 보충한 기운"
+                            android:textColor="#888888"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <!-- 5개 점 -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center">
+
+                            <TextView
+                                android:id="@+id/dotProgress1"
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/dot_empty"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:id="@+id/dotProgress2"
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/dot_empty"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:id="@+id/dotProgress3"
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/dot_empty"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:id="@+id/dotProgress4"
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/dot_empty"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:id="@+id/dotProgress5"
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/dot_empty" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- 오른쪽: 운세 점수 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="end">
+
+                        <!-- 보너스 점수 표시 -->
+                        <TextView
+                            android:id="@+id/tvBonusScore"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="+12↗"
+                            android:textColor="#0BEFA0"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
+                        <!-- 메인 점수 -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:id="@+id/tvOverallFortune"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="85"
+                                android:textColor="#FFD700"
+                                android:textSize="36sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=" / 100"
+                                android:textColor="#AAAAAA"
+                                android:textSize="14sp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
                 <!-- 오늘의 기운 보충하러가기 버튼 -->
                 <androidx.appcompat.widget.AppCompatButton
@@ -99,40 +217,6 @@
                     android:maxLines="1"
                     android:ellipsize="none"
                     android:elevation="12dp" />
-
-            </LinearLayout>
-
-            <!-- 운세 점수 -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="32dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="오늘의 운세"
-                    android:textColor="#CCCCCC"
-                    android:textSize="14sp"
-                    android:layout_marginEnd="12dp" />
-
-                <TextView
-                    android:id="@+id/tvOverallFortune"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="85"
-                    android:textColor="#FFD700"
-                    android:textSize="36sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=" / 100"
-                    android:textColor="#AAAAAA"
-                    android:textSize="14sp" />
 
             </LinearLayout>
 
