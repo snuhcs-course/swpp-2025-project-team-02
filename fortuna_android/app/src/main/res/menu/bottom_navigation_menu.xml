@@ -16,12 +16,12 @@
         android:title="Camera" />
 
     <item
+        android:id="@+id/atomFragment"
+        android:icon="@drawable/ic_atom"
+        android:title="Atom" />
+
+    <item
         android:id="@+id/profileFragment"
         android:icon="@drawable/ic_profile"
         android:title="Profile" />
-
-    <item
-        android:id="@+id/settingsFragment"
-        android:icon="@drawable/ic_menu"
-        android:title="Menu" />
 </menu>

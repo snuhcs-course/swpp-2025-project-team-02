@@ -68,4 +68,9 @@
         android:name="com.example.fortuna_android.ui.SajuGuideFragment"
         android:label="Saju Guide"
         tools:layout="@layout/fragment_saju_guide" />
+    <fragment
+        android:id="@+id/atomFragment"
+        android:name="com.example.fortuna_android.ui.AtomFragment"
+        android:label="Atom"
+        tools:layout="@layout/fragment_atom" />
 </navigation>
