@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <!-- 보라색 그라데이션 -->
+    <gradient
+        android:angle="135"
+        android:startColor="#9C27B0"
+        android:centerColor="#E040FB"
+        android:endColor="#7C4DFF"
+        android:type="linear" />
+
+    <!-- 크기 -->
+    <size
+        android:width="48dp"
+        android:height="48dp" />
+
+    <!-- 금색 테두리 -->
+    <stroke
+        android:width="2dp"
+        android:color="#FFD700" />
+
+</shape>

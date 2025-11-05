@@ -83,21 +83,22 @@
                     android:layout_marginBottom="16dp" />
 
                 <!-- 오늘의 기운 보충하러가기 버튼 -->
-                <Button
+                <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnRefreshFortune"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="오늘의 기운 보충하러가기"
-                    android:textColor="#000000"
-                    android:textSize="14sp"
+                    android:text="✨ 오늘의 기운 보충하러가기 ✨"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
                     android:textStyle="bold"
-                    android:backgroundTint="#FFCC4D"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
+                    android:background="@drawable/button_gradient_purple_ripple"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:paddingStart="28dp"
+                    android:paddingEnd="28dp"
                     android:maxLines="1"
-                    android:ellipsize="none" />
+                    android:ellipsize="none"
+                    android:elevation="12dp" />
 
             </LinearLayout>
 
