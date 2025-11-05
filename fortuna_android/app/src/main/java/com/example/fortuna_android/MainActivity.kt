@@ -54,10 +54,19 @@ class MainActivity : AppCompatActivity() {
 
         // ARCore session lifecycle observer is now managed by ARFragment
 
-        // edge-to-edge handling
+        // edge-to-edge handling - no padding applied to root
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(0, 0, 0, 0)
+            insets
+        }
+
+        // Handle system navigation bar for bottom navigation - prevent overlapping
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { v, insets ->
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val layoutParams = v.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            // Set bottom margin to push bottom navigation above system nav bar
+            layoutParams.bottomMargin = navBars.bottom
+            v.layoutParams = layoutParams
             insets
         }
 

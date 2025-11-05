@@ -29,7 +29,6 @@ class FortuneCardView @JvmOverloads constructor(
     private val binding: CardFortuneBinding
 
     private var onRefreshFortuneClickListener: (() -> Unit)? = null
-    private var onWhyDeficientClickListener: (() -> Unit)? = null
 
     init {
         // Set CardView background to black to prevent white corners
@@ -47,11 +46,6 @@ class FortuneCardView @JvmOverloads constructor(
         binding.btnRefreshFortune.setOnClickListener {
             onRefreshFortuneClickListener?.invoke()
         }
-
-        // 왜 부족한지 설명 버튼 클릭 리스너
-        binding.btnWhyDeficient.setOnClickListener {
-            onWhyDeficientClickListener?.invoke()
-        }
     }
 
     /**
@@ -59,13 +53,6 @@ class FortuneCardView @JvmOverloads constructor(
      */
     fun setOnRefreshFortuneClickListener(listener: () -> Unit) {
         onRefreshFortuneClickListener = listener
-    }
-
-    /**
-     * 왜 부족한지 설명 버튼 클릭 리스너 설정
-     */
-    fun setOnWhyDeficientClickListener(listener: () -> Unit) {
-        onWhyDeficientClickListener = listener
     }
 
     /**
@@ -128,14 +115,6 @@ class FortuneCardView @JvmOverloads constructor(
                         // Update message to indicate this is the deficient element
                         val elementMessage = getDeficientElementMessage(neededElementKorean)
                         binding.tvElementMessage.text = elementMessage
-
-                        // Update button text dynamically based on deficient element
-                        val buttonText = getWhyDeficientButtonText(neededElementKorean)
-                        binding.btnWhyDeficient.text = buttonText
-
-                        // Update "왜 부족한가요?" title dynamically
-                        val whyDeficientTitle = getWhyDeficientTitle(neededElementKorean)
-                        binding.tvWhyDeficientTitle.text = whyDeficientTitle
                     }
 
                     Log.d("FortuneCardView", "Needed element displayed: $neededElementKorean")
@@ -146,7 +125,6 @@ class FortuneCardView @JvmOverloads constructor(
                         binding.tvElementCharacter.text = "運"
                         binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
                         binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
-                        binding.btnWhyDeficient.text = "왜 이 기운이 필요한가요?"
                     }
                 }
             } catch (e: Exception) {
@@ -156,7 +134,6 @@ class FortuneCardView @JvmOverloads constructor(
                     binding.tvElementCharacter.text = "運"
                     binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
                     binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
-                    binding.btnWhyDeficient.text = "왜 이 기운이 필요한가요?"
                 }
             }
         }
@@ -231,34 +208,6 @@ class FortuneCardView @JvmOverloads constructor(
             "metal", "쇠", "금" -> "오늘은 쇠의 기운을 보충해야 합니다"
             "water", "물", "수" -> "오늘은 물의 기운을 보충해야 합니다"
             else -> "오늘의 기운을 느껴보세요"
-        }
-    }
-
-    /**
-     * 부족한 원소에 따라 버튼 텍스트를 동적으로 생성
-     */
-    private fun getWhyDeficientButtonText(element: String): String {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> "나무가 왜 부족한가요?"
-            "fire", "불", "화" -> "불이 왜 부족한가요?"
-            "earth", "흙", "토" -> "흙이 왜 부족한가요?"
-            "metal", "쇠", "금" -> "쇠가 왜 부족한가요?"
-            "water", "물", "수" -> "물이 왜 부족한가요?"
-            else -> "왜 이 기운이 필요한가요?"
-        }
-    }
-
-    /**
-     * 부족한 원소에 따라 제목을 동적으로 생성
-     */
-    private fun getWhyDeficientTitle(element: String): String {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> "나무가 왜 부족한가요?"
-            "fire", "불", "화" -> "불이 왜 부족한가요?"
-            "earth", "흙", "토" -> "흙이 왜 부족한가요?"
-            "metal", "쇠", "금" -> "쇠가 왜 부족한가요?"
-            "water", "물", "수" -> "물이 왜 부족한가요?"
-            else -> "왜 이 기운이 필요한가요?"
         }
     }
 
