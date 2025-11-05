@@ -140,8 +140,47 @@ class ObjectRender {
             return
         }
 
-        // Build model matrix - position and scale
-        pose.toMatrix(modelMatrix, 0)
+        // Build model matrix - position and billboard rotation to face camera
+        Matrix.setIdentityM(modelMatrix, 0)
+
+        // Extract position from pose
+        val translation = pose.translation
+        val objectPos = floatArrayOf(translation[0], translation[1], translation[2])
+
+        // Extract camera position from view matrix (inverse transform)
+        val cameraPos = FloatArray(3)
+        // Create inverse view matrix to get camera world position
+        val inverseViewMatrix = FloatArray(16)
+        Matrix.invertM(inverseViewMatrix, 0, viewMatrix, 0)
+
+        // Camera position is the translation part of the inverse view matrix
+        cameraPos[0] = inverseViewMatrix[12]
+        cameraPos[1] = inverseViewMatrix[13]
+        cameraPos[2] = inverseViewMatrix[14]
+
+        // Calculate direction from object to camera
+        val dirX = cameraPos[0] - objectPos[0]
+        val dirY = cameraPos[1] - objectPos[1]
+        val dirZ = cameraPos[2] - objectPos[2]
+
+        // Normalize direction vector
+        val length = kotlin.math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ).toFloat()
+        if (length > 0.001f) {
+            val normDirX = dirX / length
+            val normDirZ = dirZ / length
+
+            // Calculate rotation angle around Y axis to face camera
+            val angle = kotlin.math.atan2(normDirX, normDirZ) * 180.0f / kotlin.math.PI.toFloat()
+
+            // Apply transformations: translate, rotate to face camera, then scale
+            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1], objectPos[2])
+            Matrix.rotateM(modelMatrix, 0, angle, 0f, 1f, 0f) // Rotate around Y axis
+        } else {
+            // Fallback: just translate if camera position calculation fails
+            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1], objectPos[2])
+        }
+
+        // Apply scale
         Matrix.scaleM(modelMatrix, 0, OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE)
 
         // Calculate model-view matrix
