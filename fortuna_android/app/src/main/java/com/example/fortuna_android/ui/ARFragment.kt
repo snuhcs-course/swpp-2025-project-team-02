@@ -85,7 +85,7 @@ class ARFragment(
         setupARSession()
         setupClickListeners()
         setupTouchDetection()
-        fetchNeededElement()
+        fetchTodayProgress()
     }
 
     private fun setupARSession() {
@@ -333,15 +333,22 @@ class ARFragment(
     }
 
     /**
-     * Fetch the needed element from API and display it
+     * Fetch today's progress from API and display it
+     * Loads current collection count and needed element
      */
-    private fun fetchNeededElement() {
+    private fun fetchTodayProgress() {
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getNeededElement()
+                val response = RetrofitClient.instance.getTodayProgress()
                 if (response.isSuccessful && response.body() != null) {
-                    val koreanElement = response.body()!!.data.neededElement
+                    val progressData = response.body()!!.data
+
+                    // Set needed element
+                    val koreanElement = progressData.neededElement
                     neededElement = ElementMapper.fromKorean(koreanElement)
+
+                    // Initialize local count with server count
+                    localCollectedCount = progressData.currentCount
 
                     // Update UI
                     neededElement?.let { element ->
@@ -353,16 +360,16 @@ class ARFragment(
                         }
                     }
 
-                    Log.i(TAG, "Needed element loaded: ${neededElement?.displayName}")
+                    Log.i(TAG, "Today's progress loaded: ${progressData.currentCount}/${progressData.targetCount} - ${neededElement?.displayName}")
                 } else {
-                    Log.w(TAG, "Failed to fetch needed element: ${response.code()}")
+                    Log.w(TAG, "Failed to fetch today's progress: ${response.code()}")
                     // Show all elements if API fails
                     if (::renderer.isInitialized) {
                         renderer.setNeededElement(null)
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching needed element", e)
+                Log.e(TAG, "Error fetching today's progress", e)
                 // Show all elements if error
                 if (::renderer.isInitialized) {
                     renderer.setNeededElement(null)

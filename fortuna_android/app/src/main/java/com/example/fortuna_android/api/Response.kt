@@ -348,3 +348,25 @@ data class CollectionStatusData(
     @SerializedName("collected_elements")
     val collectedElements: CollectedElements
 )
+
+// GET /api/core/chakras/today-progress/
+data class TodayProgressResponse(
+    val status: String,
+    val data: TodayProgressData
+)
+
+data class TodayProgressData(
+    val date: String,
+    @SerializedName("needed_element")
+    val neededElement: String,
+    @SerializedName("needed_element_en")
+    val neededElementEn: String,
+    @SerializedName("current_count")
+    val currentCount: Int,
+    @SerializedName("target_count")
+    val targetCount: Int,
+    @SerializedName("is_completed")
+    val isCompleted: Boolean,
+    @SerializedName("progress_percentage")
+    val progressPercentage: Int
+)

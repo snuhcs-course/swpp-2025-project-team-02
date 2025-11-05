@@ -66,4 +66,7 @@ interface ApiService {
 
     @GET("api/chakra/collection-status/")
     suspend fun getCollectionStatus(): Response<CollectionStatusResponse>
+
+    @GET("api/core/chakras/today-progress/")
+    suspend fun getTodayProgress(): Response<TodayProgressResponse>
 }
