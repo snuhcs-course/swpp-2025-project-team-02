@@ -386,7 +386,7 @@ class ARFragment(
 
         binding.apply {
             neededElementBanner.visibility = View.VISIBLE
-            neededElementText.text = "Collect: ${ElementMapper.getElementDisplayText(element)}"
+            neededElementText.text = "오늘의 기운 ${ElementMapper.getElementHanja(element)}"
             updateCollectionProgress()
 
             // Set color indicator
@@ -402,7 +402,7 @@ class ARFragment(
     private fun updateCollectionProgress() {
         val binding = _binding ?: return
 
-        binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT collected"
+        binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT 수집"
 
         // Check if quest is complete
         if (localCollectedCount >= TARGET_COLLECTION_COUNT) {
@@ -416,7 +416,7 @@ class ARFragment(
      */
     private fun onQuestComplete() {
         if (isAdded) {
-            CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
+            CustomToast.show(requireContext(), "오늘의 기운 수집 완료!")
         }
         Log.i(TAG, "Daily energy quest completed!")
 
@@ -482,7 +482,7 @@ class ARFragment(
 
         // Show feedback to user
         if (isAdded) {
-            CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+            CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
         }
 
         // Trigger API call in background

@@ -31,13 +31,13 @@
             android:padding="16dp"
             android:background="@android:color/white">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Today's Energy Quest"
-                android:textSize="12sp"
-                android:textColor="#666666"
-                android:textStyle="bold" />
+<!--            <TextView-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="Today's Energy Quest"-->
+<!--                android:textSize="12sp"-->
+<!--                android:textColor="#666666"-->
+<!--                android:textStyle="bold" />-->
 
             <LinearLayout
                 android:layout_width="match_parent"

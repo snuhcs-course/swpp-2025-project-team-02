@@ -89,6 +89,21 @@ class ElementMapper(private val context: Context) {
                 Element.OTHERS -> "Others"
             }
         }
+
+        /**
+         * Get element display text in Hanja only (for AR UI)
+         * Returns format: "한자"
+         */
+        fun getElementHanja(element: Element): String {
+            return when (element) {
+                Element.WOOD -> "木"
+                Element.FIRE -> "火"
+                Element.EARTH -> "土"
+                Element.METAL -> "金"
+                Element.WATER -> "水"
+                Element.OTHERS -> "기타"
+            }
+        }
     }
 
     // Categories based on Chinese Five Elements
