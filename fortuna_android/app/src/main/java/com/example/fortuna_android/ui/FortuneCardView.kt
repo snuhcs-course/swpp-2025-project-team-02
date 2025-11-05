@@ -1,14 +1,18 @@
 package com.example.fortuna_android.ui
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Color
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.AnimationUtils
+import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import com.example.fortuna_android.R
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
@@ -46,6 +50,31 @@ class FortuneCardView @JvmOverloads constructor(
         binding.btnRefreshFortune.setOnClickListener {
             onRefreshFortuneClickListener?.invoke()
         }
+
+        // 버튼 애니메이션 시작
+        startButtonAnimations()
+    }
+
+    /**
+     * 버튼에 회전과 반짝임 애니메이션 시작
+     */
+    private fun startButtonAnimations() {
+        // 회전하는 테두리 애니메이션 (ObjectAnimator 사용)
+        val rotateAnimator = ObjectAnimator.ofFloat(
+            binding.rotatingBorder,
+            "rotation",
+            0f,
+            360f
+        ).apply {
+            duration = 3000 // 3초에 한 바퀴
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = LinearInterpolator()
+        }
+        rotateAnimator.start()
+
+        // 버튼에 반짝이는 효과 (알파와 스케일)
+        val shimmerAnimation = AnimationUtils.loadAnimation(context, R.anim.shimmer_pulse)
+        binding.btnRefreshFortune.startAnimation(shimmerAnimation)
     }
 
     /**
