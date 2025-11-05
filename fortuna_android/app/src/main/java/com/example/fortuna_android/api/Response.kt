@@ -272,6 +272,8 @@ data class TodayFortuneData(
 )
 
 data class TodayFortune(
+    @SerializedName("today_fortune_summary")
+    val todayFortuneSummary: String,
     @SerializedName("today_daily_guidance")
     val todayDailyGuidance: String,
     @SerializedName("today_element_balance_description")

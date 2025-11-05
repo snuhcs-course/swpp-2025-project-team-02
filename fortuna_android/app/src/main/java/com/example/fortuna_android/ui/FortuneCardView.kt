@@ -88,6 +88,9 @@ class FortuneCardView @JvmOverloads constructor(
 
         binding.tvOverallFortune.text = fortuneScore.toString()
 
+        // 오늘의 운세 요약을 elementMessage에 표시
+        binding.tvElementMessage.text = fortuneData.fortune.todayFortuneSummary
+
         // 새로운 섹션: 오행 균형 설명
         binding.tvElementBalanceDescription.text = fortuneData.fortune.todayElementBalanceDescription
 
@@ -111,10 +114,6 @@ class FortuneCardView @JvmOverloads constructor(
                         val elementColor = getElementColorFromString(neededElementKorean)
                         binding.tvElementCharacter.text = elementChar
                         binding.tvElementCharacter.setTextColor(elementColor)
-
-                        // Update message to indicate this is the deficient element
-                        val elementMessage = getDeficientElementMessage(neededElementKorean)
-                        binding.tvElementMessage.text = elementMessage
                     }
 
                     Log.d("FortuneCardView", "Needed element displayed: $neededElementKorean")
@@ -124,7 +123,6 @@ class FortuneCardView @JvmOverloads constructor(
                         // Show default if API fails
                         binding.tvElementCharacter.text = "運"
                         binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
-                        binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
                     }
                 }
             } catch (e: Exception) {
@@ -133,7 +131,6 @@ class FortuneCardView @JvmOverloads constructor(
                     // Show default if error occurs
                     binding.tvElementCharacter.text = "運"
                     binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
-                    binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
                 }
             }
         }
@@ -179,35 +176,6 @@ class FortuneCardView @JvmOverloads constructor(
             "metal", "쇠", "금" -> Color.parseColor("#C0C0C0")    // 은색
             "water", "물", "수" -> Color.parseColor("#2BB3FC")    // 파랑
             else -> Color.parseColor("#FFFFFF")
-        }
-    }
-
-
-    /**
-     * 오행에 따른 기운 메시지 반환
-     */
-    private fun getElementMessage(element: String): String {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> "오늘은 나무의 기운이 강한 날입니다"
-            "fire", "불", "화" -> "오늘은 불의 기운이 강한 날입니다"
-            "earth", "흙", "토" -> "오늘은 흙의 기운이 강한 날입니다"
-            "metal", "쇠", "금" -> "오늘은 쇠의 기운이 강한 날입니다"
-            "water", "물", "수" -> "오늘은 물의 기운이 강한 날입니다"
-            else -> "오늘의 기운을 느껴보세요"
-        }
-    }
-
-    /**
-     * 부족한 오행 원소 메시지 반환 (deficient element message)
-     */
-    private fun getDeficientElementMessage(element: String): String {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> "오늘은 나무의 기운을 보충해야 합니다"
-            "fire", "불", "화" -> "오늘은 불의 기운을 보충해야 합니다"
-            "earth", "흙", "토" -> "오늘은 흙의 기운을 보충해야 합니다"
-            "metal", "쇠", "금" -> "오늘은 쇠의 기운을 보충해야 합니다"
-            "water", "물", "수" -> "오늘은 물의 기운을 보충해야 합니다"
-            else -> "오늘의 기운을 느껴보세요"
         }
     }
 
