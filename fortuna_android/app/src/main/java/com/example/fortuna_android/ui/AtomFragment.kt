@@ -73,13 +73,17 @@ class AtomFragment : Fragment() {
         // API 호출
         lifecycleScope.launch {
             try {
+                Log.d(TAG, "Calling API: /api/chakra/monthly-history/?month=$monthString")
                 val response = RetrofitClient.instance.getMonthlyHistory(monthString)
                 if (response.isSuccessful && response.body() != null) {
                     val historyData = response.body()!!.data
+                    Log.d(TAG, "API Success - Total days: ${historyData.summary.totalDays}, Completed: ${historyData.summary.completedDays}")
                     displayCalendar(historyData)
                     displaySummary(historyData.summary)
                 } else {
-                    Log.e(TAG, "Failed to load monthly history: ${response.code()}")
+                    Log.e(TAG, "Failed to load monthly history: ${response.code()} - ${response.message()}")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "Error body: $errorBody")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading monthly history", e)
@@ -131,8 +135,40 @@ class AtomFragment : Fragment() {
     }
 
     private fun displaySummary(summary: com.example.fortuna_android.api.SummaryData) {
-        binding.tvCompletedDays.text = "${summary.completedDays} / ${summary.totalDays}"
-        binding.tvCompletionRate.text = "${summary.completionRate}%"
+        // 오늘까지의 경과 일수를 계산
+        val today = Calendar.getInstance()
+        val currentYear = currentCalendar.get(Calendar.YEAR)
+        val currentMonth = currentCalendar.get(Calendar.MONTH)
+
+        // 선택한 달과 현재 달이 같은지 확인
+        val isSameMonth = today.get(Calendar.YEAR) == currentYear &&
+                         today.get(Calendar.MONTH) == currentMonth
+
+        // 오늘까지 경과한 날 계산 (같은 달인 경우에만)
+        val daysUntilToday = if (isSameMonth) {
+            today.get(Calendar.DAY_OF_MONTH)
+        } else if (currentCalendar.before(today)) {
+            // 과거 달인 경우 해당 달의 마지막 날까지
+            currentCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        } else {
+            // 미래 달인 경우 0
+            0
+        }
+
+        // 완료한 날 수는 그대로
+        val completedDays = summary.completedDays
+
+        // 완료율 재계산 (오늘까지 기준)
+        val completionRate = if (daysUntilToday > 0) {
+            ((completedDays.toDouble() / daysUntilToday) * 100).toInt()
+        } else {
+            0
+        }
+
+        Log.d(TAG, "Displaying summary - Completed: $completedDays/$daysUntilToday, Rate: $completionRate%, Total: ${summary.totalCollected}")
+
+        binding.tvCompletedDays.text = "$completedDays / $daysUntilToday"
+        binding.tvCompletionRate.text = "$completionRate%"
         binding.tvTotalCollected.text = summary.totalCollected.toString()
     }
 
