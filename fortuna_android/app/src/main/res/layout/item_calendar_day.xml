@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="70dp"
+    android:padding="2dp">
+
+    <LinearLayout
+        android:id="@+id/dayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#1E1E1E"
+        android:padding="4dp">
+
+        <!-- 날짜 텍스트 -->
+        <TextView
+            android:id="@+id/tvDayNumber"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="15"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <!-- 원소 색상 동그라미 -->
+        <View
+            android:id="@+id/elementCircle"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="2dp"
+            android:visibility="gone" />
+
+        <!-- 수집 진행도 표시 (5개 점) -->
+        <LinearLayout
+            android:id="@+id/progressDots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/dot1"
+                android:layout_width="3dp"
+                android:layout_height="3dp"
+                android:layout_marginEnd="1dp"
+                android:background="@drawable/dot_empty" />
+
+            <View
+                android:id="@+id/dot2"
+                android:layout_width="3dp"
+                android:layout_height="3dp"
+                android:layout_marginEnd="1dp"
+                android:background="@drawable/dot_empty" />
+
+            <View
+                android:id="@+id/dot3"
+                android:layout_width="3dp"
+                android:layout_height="3dp"
+                android:layout_marginEnd="1dp"
+                android:background="@drawable/dot_empty" />
+
+            <View
+                android:id="@+id/dot4"
+                android:layout_width="3dp"
+                android:layout_height="3dp"
+                android:layout_marginEnd="1dp"
+                android:background="@drawable/dot_empty" />
+
+            <View
+                android:id="@+id/dot5"
+                android:layout_width="3dp"
+                android:layout_height="3dp"
+                android:background="@drawable/dot_empty" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

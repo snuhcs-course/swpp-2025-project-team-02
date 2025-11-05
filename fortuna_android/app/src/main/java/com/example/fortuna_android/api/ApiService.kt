@@ -69,4 +69,9 @@ interface ApiService {
 
     @GET("api/core/chakras/today-progress/")
     suspend fun getTodayProgress(): Response<TodayProgressResponse>
+
+    @GET("api/chakra/monthly-history/")
+    suspend fun getMonthlyHistory(
+        @Query("month") month: String
+    ): Response<MonthlyHistoryResponse>
 }

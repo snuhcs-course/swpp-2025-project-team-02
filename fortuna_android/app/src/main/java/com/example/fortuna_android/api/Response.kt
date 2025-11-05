@@ -372,3 +372,43 @@ data class TodayProgressData(
     @SerializedName("progress_percentage")
     val progressPercentage: Int
 )
+
+// GET /api/chakra/monthly-history/
+data class MonthlyHistoryResponse(
+    val status: String,
+    val data: MonthlyHistoryData
+)
+
+data class MonthlyHistoryData(
+    val year: Int,
+    val month: Int,
+    val days: List<DayData>,
+    val summary: SummaryData
+)
+
+data class DayData(
+    val date: String,
+    @SerializedName("needed_element")
+    val neededElement: String,
+    @SerializedName("needed_element_en")
+    val neededElementEn: String,
+    @SerializedName("target_count")
+    val targetCount: Int,
+    @SerializedName("collected_count")
+    val collectedCount: Int,
+    @SerializedName("is_completed")
+    val isCompleted: Boolean,
+    @SerializedName("progress_percentage")
+    val progressPercentage: Int
+)
+
+data class SummaryData(
+    @SerializedName("total_days")
+    val totalDays: Int,
+    @SerializedName("completed_days")
+    val completedDays: Int,
+    @SerializedName("completion_rate")
+    val completionRate: Int,
+    @SerializedName("total_collected")
+    val totalCollected: Int
+)

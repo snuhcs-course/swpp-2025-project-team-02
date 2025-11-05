@@ -5,7 +5,10 @@
     android:layout_height="match_parent"
     android:background="#000000"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingTop="20dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="16dp">
 
     <!-- 상단 앱바 -->
     <include
