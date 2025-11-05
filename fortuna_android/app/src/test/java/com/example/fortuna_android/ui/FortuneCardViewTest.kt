@@ -238,32 +238,7 @@ class FortuneCardViewTest {
         assertNotNull("FortuneCardView should handle listener replacement", fortuneCardView)
     }
 
-    @Test
-    fun `test setOnWhyDeficientClickListener`() {
-        var clicked = false
-
-        fortuneCardView.setOnWhyDeficientClickListener {
-            clicked = true
-        }
-
-        assertNotNull("Click listener should be set", fortuneCardView)
-        assertFalse("Listener should not be invoked yet", clicked)
-    }
-
-    @Test
-    fun `test setOnWhyDeficientClickListener can be called multiple times`() {
-        var counter = 0
-
-        fortuneCardView.setOnWhyDeficientClickListener {
-            counter += 1
-        }
-
-        fortuneCardView.setOnWhyDeficientClickListener {
-            counter += 10
-        }
-
-        assertNotNull("FortuneCardView should handle listener replacement", fortuneCardView)
-    }
+    // Removed: setOnWhyDeficientClickListener tests - function no longer exists in FortuneCardView
 
     // ========== Private Method Tests (via reflection) ==========
 
@@ -356,92 +331,9 @@ class FortuneCardViewTest {
 
     // Removed: getChakraEmoji tests - chakraReadings field no longer exists in TodayFortune
 
-    @Test
-    fun `test getElementMessage for all element types`() {
-        val method = getPrivateMethod("getElementMessage", String::class.java)
-
-        val testCases = mapOf(
-            "wood" to "오늘은 나무의 기운이 강한 날입니다",
-            "나무" to "오늘은 나무의 기운이 강한 날입니다",
-            "목" to "오늘은 나무의 기운이 강한 날입니다",
-            "fire" to "오늘은 불의 기운이 강한 날입니다",
-            "불" to "오늘은 불의 기운이 강한 날입니다",
-            "화" to "오늘은 불의 기운이 강한 날입니다",
-            "earth" to "오늘은 흙의 기운이 강한 날입니다",
-            "흙" to "오늘은 흙의 기운이 강한 날입니다",
-            "토" to "오늘은 흙의 기운이 강한 날입니다",
-            "metal" to "오늘은 쇠의 기운이 강한 날입니다",
-            "쇠" to "오늘은 쇠의 기운이 강한 날입니다",
-            "금" to "오늘은 쇠의 기운이 강한 날입니다",
-            "water" to "오늘은 물의 기운이 강한 날입니다",
-            "물" to "오늘은 물의 기운이 강한 날입니다",
-            "수" to "오늘은 물의 기운이 강한 날입니다",
-            "unknown" to "오늘의 기운을 느껴보세요"
-        )
-
-        testCases.forEach { (input, expected) ->
-            val result = method.invoke(fortuneCardView, input) as String
-            assertEquals("getElementMessage($input)", expected, result)
-        }
-    }
-
-    @Test
-    fun `test getDeficientElementMessage for all element types`() {
-        val method = getPrivateMethod("getDeficientElementMessage", String::class.java)
-
-        val testCases = mapOf(
-            "wood" to "오늘은 나무의 기운을 보충해야 합니다",
-            "나무" to "오늘은 나무의 기운을 보충해야 합니다",
-            "목" to "오늘은 나무의 기운을 보충해야 합니다",
-            "fire" to "오늘은 불의 기운을 보충해야 합니다",
-            "불" to "오늘은 불의 기운을 보충해야 합니다",
-            "화" to "오늘은 불의 기운을 보충해야 합니다",
-            "earth" to "오늘은 흙의 기운을 보충해야 합니다",
-            "흙" to "오늘은 흙의 기운을 보충해야 합니다",
-            "토" to "오늘은 흙의 기운을 보충해야 합니다",
-            "metal" to "오늘은 쇠의 기운을 보충해야 합니다",
-            "쇠" to "오늘은 쇠의 기운을 보충해야 합니다",
-            "금" to "오늘은 쇠의 기운을 보충해야 합니다",
-            "water" to "오늘은 물의 기운을 보충해야 합니다",
-            "물" to "오늘은 물의 기운을 보충해야 합니다",
-            "수" to "오늘은 물의 기운을 보충해야 합니다",
-            "unknown" to "오늘의 기운을 느껴보세요"
-        )
-
-        testCases.forEach { (input, expected) ->
-            val result = method.invoke(fortuneCardView, input) as String
-            assertEquals("getDeficientElementMessage($input)", expected, result)
-        }
-    }
-
-    @Test
-    fun `test getWhyDeficientButtonText for all element types`() {
-        val method = getPrivateMethod("getWhyDeficientButtonText", String::class.java)
-
-        val testCases = mapOf(
-            "wood" to "나무가 왜 부족한가요?",
-            "나무" to "나무가 왜 부족한가요?",
-            "목" to "나무가 왜 부족한가요?",
-            "fire" to "불이 왜 부족한가요?",
-            "불" to "불이 왜 부족한가요?",
-            "화" to "불이 왜 부족한가요?",
-            "earth" to "흙이 왜 부족한가요?",
-            "흙" to "흙이 왜 부족한가요?",
-            "토" to "흙이 왜 부족한가요?",
-            "metal" to "쇠가 왜 부족한가요?",
-            "쇠" to "쇠가 왜 부족한가요?",
-            "금" to "쇠가 왜 부족한가요?",
-            "water" to "물이 왜 부족한가요?",
-            "물" to "물이 왜 부족한가요?",
-            "수" to "물이 왜 부족한가요?",
-            "unknown" to "왜 이 기운이 필요한가요?"
-        )
-
-        testCases.forEach { (input, expected) ->
-            val result = method.invoke(fortuneCardView, input) as String
-            assertEquals("getWhyDeficientButtonText($input)", expected, result)
-        }
-    }
+    // Removed: getElementMessage tests - function no longer exists in FortuneCardView
+    // Removed: getDeficientElementMessage tests - function no longer exists in FortuneCardView
+    // Removed: getWhyDeficientButtonText tests - function no longer exists in FortuneCardView
 
     // Removed: All chakra-related tests - chakraReadings field no longer exists in TodayFortune
     // Tests removed:
@@ -497,6 +389,7 @@ class FortuneCardViewTest {
             generatedAt = "2025-10-23T08:00:00Z",
             forDate = "2025-10-23",
             fortune = TodayFortune(
+                todayFortuneSummary = "긍정적인 에너지가 가득한 하루가 될 것입니다.",
                 todayDailyGuidance = "새로운 시작에 좋은 날입니다. 오전 9시-11시가 가장 좋습니다.",
                 todayElementBalanceDescription = "오행의 균형이 잘 맞습니다"
             ),
@@ -538,6 +431,7 @@ class FortuneCardViewTest {
             generatedAt = "2025-10-23T08:00:00Z",
             forDate = "2025-10-23",
             fortune = TodayFortune(
+                todayFortuneSummary = "$element 기운이 강한 하루가 될 것입니다.",
                 todayDailyGuidance = "새로운 시작에 좋은 날입니다. $element 기운이 강합니다.",
                 todayElementBalanceDescription = "오행의 균형이 잘 맞습니다"
             ),

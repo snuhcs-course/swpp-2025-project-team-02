@@ -49,7 +49,7 @@
                 android:text="정유일(🔥)"
                 android:textColor="#CCCCCC"
                 android:textSize="13sp"
-                android:layout_marginBottom="32dp" />
+                android:layout_marginBottom="16dp" />
 
             <!-- 중앙: 오행 원소 한자 + 기운 멘트 -->
             <LinearLayout
@@ -66,7 +66,7 @@
                     android:layout_height="wrap_content"
                     android:text="火"
                     android:textColor="#F93E3E"
-                    android:textSize="120sp"
+                    android:textSize="96sp"
                     android:fontFamily="serif"
                     android:textStyle="bold"
                     android:layout_marginBottom="16dp" />
