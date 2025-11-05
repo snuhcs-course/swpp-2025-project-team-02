@@ -14,8 +14,8 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.navigation.NavOptions
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.ui.setupWithNavController
 import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.ActivityMainBinding
@@ -63,10 +63,12 @@ class MainActivity : AppCompatActivity() {
         // Handle system navigation bar for bottom navigation - prevent overlapping
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { v, insets ->
             val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val layoutParams = v.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-            // Set bottom margin to push bottom navigation above system nav bar
-            layoutParams.bottomMargin = navBars.bottom
-            v.layoutParams = layoutParams
+            // Use safe cast to prevent crashes during navigation
+            (v.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { params ->
+                // Set bottom margin to push bottom navigation above system nav bar
+                params.bottomMargin = navBars.bottom
+                v.layoutParams = params
+            }
             insets
         }
 
@@ -371,42 +373,9 @@ class MainActivity : AppCompatActivity() {
         // Hide text labels - show only icons
         binding.bottomNavigation.labelVisibilityMode = com.google.android.material.bottomnavigation.LabelVisibilityMode.LABEL_VISIBILITY_UNLABELED
 
-        // Sync bottom navigation with current destination
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            when (destination.id) {
-                R.id.homeFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_home
-                R.id.sajuGuideFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_guide
-                R.id.arFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_camera
-                R.id.profileFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_profile
-                R.id.settingsFragment -> binding.bottomNavigation.selectedItemId = R.id.nav_menu
-            }
-        }
-
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    navController.navigate(R.id.homeFragment)
-                    true
-                }
-                R.id.nav_guide -> {
-                    navController.navigate(R.id.sajuGuideFragment)
-                    true
-                }
-                R.id.nav_camera -> {
-                    navController.navigate(R.id.arFragment)
-                    true
-                }
-                R.id.nav_profile -> {
-                    navController.navigate(R.id.profileFragment)
-                    true
-                }
-                R.id.nav_menu -> {
-                    navController.navigate(R.id.settingsFragment)
-                    true
-                }
-                else -> false
-            }
-        }
+        // Use NavigationUI to automatically sync bottom navigation with NavController
+        // This prevents infinite loops by handling navigation state properly
+        binding.bottomNavigation.setupWithNavController(navController)
     }
 
     override fun onDestroy() {
