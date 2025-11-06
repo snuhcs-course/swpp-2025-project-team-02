@@ -21,7 +21,14 @@ class ObjectRender {
     companion object {
         private const val TAG = "ObjectRender"
         private const val OBJECT_SCALE = 0.1f // Scale for the objects (0.02 = small, 0.1 = medium, 0.2 = large)
+
+        // Animation constants
+        private const val BOUNCE_HEIGHT = 0.05f // How high objects bounce (in meters)
+        private const val BOUNCE_SPEED = 3.0f // Speed of bouncing animation
     }
+
+    // Animation time tracker
+    private var animationTime = 0f
 
     // Map to store loaded meshes and textures for each element
     private val meshes = mutableMapOf<ElementMapper.Element, Mesh>()
@@ -118,7 +125,14 @@ class ObjectRender {
     }
 
     /**
-     * Draw a 3D sphere object at the given pose
+     * Update animation time - call this every frame
+     */
+    fun updateAnimation(deltaTime: Float) {
+        animationTime += deltaTime
+    }
+
+    /**
+     * Draw a 3D sphere object at the given pose with animations
      */
     fun draw(
         render: SampleRender,
@@ -170,18 +184,34 @@ class ObjectRender {
             val normDirZ = dirZ / length
 
             // Calculate rotation angle around Y axis to face camera
-            val angle = kotlin.math.atan2(normDirX, normDirZ) * 180.0f / kotlin.math.PI.toFloat()
+            val cameraFaceAngle = kotlin.math.atan2(normDirX, normDirZ) * 180.0f / kotlin.math.PI.toFloat()
 
-            // Apply transformations: translate, rotate to face camera, then scale
-            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1], objectPos[2])
-            Matrix.rotateM(modelMatrix, 0, angle, 0f, 1f, 0f) // Rotate around Y axis
+            // Calculate bouncing animation (using absolute sine for bouncing effect)
+            val bounceTime = animationTime * BOUNCE_SPEED
+            val bounceOffset = kotlin.math.abs(kotlin.math.sin(bounceTime)) * BOUNCE_HEIGHT
+
+            // Apply transformations: translate with bouncing, rotate to face camera only
+            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1] + bounceOffset.toFloat(), objectPos[2])
+            Matrix.rotateM(modelMatrix, 0, cameraFaceAngle, 0f, 1f, 0f) // Face camera only
         } else {
-            // Fallback: just translate if camera position calculation fails
-            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1], objectPos[2])
+            // Fallback: just translate with bouncing animation
+            val bounceTime = animationTime * BOUNCE_SPEED
+            val bounceOffset = kotlin.math.abs(kotlin.math.sin(bounceTime)) * BOUNCE_HEIGHT
+
+            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1] + bounceOffset.toFloat(), objectPos[2])
+            // No rotation when camera position calculation fails
         }
 
-        // Apply scale
-        Matrix.scaleM(modelMatrix, 0, OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE)
+        // Apply scale with squash-and-stretch effect for bouncing
+        val bouncePhase = kotlin.math.sin(animationTime * BOUNCE_SPEED)
+        val scaleY = 1.0f + kotlin.math.abs(bouncePhase) * 0.15f // Stretch when bouncing up
+        val scaleXZ = 1.0f - kotlin.math.abs(bouncePhase) * 0.1f // Squash horizontally when bouncing
+
+        val finalScaleX = OBJECT_SCALE * scaleXZ.toFloat()
+        val finalScaleY = OBJECT_SCALE * scaleY.toFloat()
+        val finalScaleZ = OBJECT_SCALE * scaleXZ.toFloat()
+
+        Matrix.scaleM(modelMatrix, 0, finalScaleX, finalScaleY, finalScaleZ)
 
         // Calculate model-view matrix
         Matrix.multiplyMM(modelViewMatrix, 0, viewMatrix, 0, modelMatrix, 0)

@@ -79,6 +79,9 @@ class ARRenderer(private val fragment: ARFragment) :
     private var isVLMLoaded = false
     private var isVLMAnalyzing = false
 
+    // Animation timing
+    private var lastFrameTime = 0L
+
     data class ARLabeledAnchor(val anchor: Anchor, val element: ElementMapper.Element)
 
     override fun onResume(owner: LifecycleOwner) {
@@ -268,6 +271,15 @@ class ARRenderer(private val fragment: ARFragment) :
     override fun onDrawFrame(render: SampleRender) {
         val session = activity.arCoreSessionHelper?.sessionCache ?: return
 
+        // Update animation time for bouncing objects
+        val currentTime = System.currentTimeMillis()
+        if (lastFrameTime == 0L) {
+            lastFrameTime = currentTime
+        }
+        val deltaTime = (currentTime - lastFrameTime) / 1000.0f // Convert to seconds
+        lastFrameTime = currentTime
+        objectRenderer.updateAnimation(deltaTime)
+
         // Follow reference code pattern: set camera texture names first, then update session
         session.setCameraTextureNames(intArrayOf(backgroundRenderer.cameraColorTexture.textureId))
 
@@ -369,6 +381,14 @@ class ARRenderer(private val fragment: ARFragment) :
             elementResults.forEachIndexed { index, (obj, element) ->
                 val (atX, atY) = obj.centerCoordinate
                 Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
+            }
+
+            // Check for detected elements and notify fragment with sound effects
+            val detectedElements = elementResults.map { (_, element) -> element }.toSet()
+            detectedElements.forEach { element ->
+                fragment.view?.post {
+                    fragment.onElementDetected(element)
+                }
             }
 
             val anchors = elementResults.mapNotNull { (obj, element) ->
