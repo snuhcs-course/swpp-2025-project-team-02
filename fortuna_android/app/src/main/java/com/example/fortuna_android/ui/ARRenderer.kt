@@ -383,6 +383,14 @@ class ARRenderer(private val fragment: ARFragment) :
                 Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
             }
 
+            // Check for detected elements and notify fragment with sound effects
+            val detectedElements = elementResults.map { (_, element) -> element }.toSet()
+            detectedElements.forEach { element ->
+                fragment.view?.post {
+                    fragment.onElementDetected(element)
+                }
+            }
+
             val anchors = elementResults.mapNotNull { (obj, element) ->
                 val (atX, atY) = obj.centerCoordinate
                 Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")

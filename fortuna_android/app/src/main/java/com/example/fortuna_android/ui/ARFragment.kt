@@ -4,6 +4,7 @@ import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.app.Activity
 import android.graphics.drawable.GradientDrawable
+import android.media.MediaPlayer
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
@@ -69,6 +70,23 @@ class ARFragment(
     private var lastTapX: Float = 0f
     private var lastTapY: Float = 0f
 
+    // Background music player
+    private var bgmPlayer: MediaPlayer? = null
+
+    // Element detection sound effect players
+    private var wartortlePlayer: MediaPlayer? = null  // Water
+    private var pikachuPlayer: MediaPlayer? = null    // Earth
+    private var charmanderPlayer: MediaPlayer? = null // Fire
+    private var registeelPlayer: MediaPlayer? = null  // Metal
+    private var sudowoodoPlayer: MediaPlayer? = null  // Wood
+
+    // Track which element sounds have been played to prevent multiple plays per scan
+    private var waterSoundPlayed = false
+    private var earthSoundPlayed = false
+    private var fireSoundPlayed = false
+    private var metalSoundPlayed = false
+    private var woodSoundPlayed = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -85,6 +103,8 @@ class ARFragment(
         setupARSession()
         setupClickListeners()
         setupTouchDetection()
+        setupBackgroundMusic()
+        setupElementSoundEffects()
         fetchTodayProgress()
     }
 
@@ -206,6 +226,8 @@ class ARFragment(
 
         binding.scanButton.setOnClickListener {
             if (::renderer.isInitialized) {
+                // Reset all element sound flags for new scan
+                resetElementSoundFlags()
                 renderer.startObjectDetection()
                 setScanningActive(true)
             }
@@ -301,10 +323,266 @@ class ARFragment(
         Log.d(TAG, "VLM analysis completed")
     }
 
+    /**
+     * Reset all element sound flags for new scan
+     */
+    private fun resetElementSoundFlags() {
+        waterSoundPlayed = false
+        earthSoundPlayed = false
+        fireSoundPlayed = false
+        metalSoundPlayed = false
+        woodSoundPlayed = false
+        Log.d(TAG, "Element sound flags reset for new scan")
+    }
+
+    /**
+     * Called when an element is detected during scanning
+     * Plays corresponding sound effect once per scan per element
+     */
+    fun onElementDetected(element: ElementMapper.Element) {
+        when (element) {
+            ElementMapper.Element.WATER -> {
+                if (!waterSoundPlayed) {
+                    waterSoundPlayed = true
+                    playElementSound(wartortlePlayer, "💧 Water", "wartortle")
+                }
+            }
+            ElementMapper.Element.EARTH -> {
+                if (!earthSoundPlayed) {
+                    earthSoundPlayed = true
+                    playElementSound(pikachuPlayer, "🌍 Earth", "pikachu")
+                }
+            }
+            ElementMapper.Element.FIRE -> {
+                if (!fireSoundPlayed) {
+                    fireSoundPlayed = true
+                    playElementSound(charmanderPlayer, "🔥 Fire", "charmander")
+                }
+            }
+            ElementMapper.Element.METAL -> {
+                if (!metalSoundPlayed) {
+                    metalSoundPlayed = true
+                    playElementSound(registeelPlayer, "⚙️ Metal", "registeel")
+                }
+            }
+            ElementMapper.Element.WOOD -> {
+                if (!woodSoundPlayed) {
+                    woodSoundPlayed = true
+                    playElementSound(sudowoodoPlayer, "🌳 Wood", "sudowoodo")
+                }
+            }
+            else -> {
+                Log.d(TAG, "Element ${element.displayName} does not have a sound effect")
+            }
+        }
+    }
+
+    /**
+     * Generic method to play element sound effects
+     */
+    private fun playElementSound(player: MediaPlayer?, elementName: String, soundName: String) {
+        try {
+            player?.let { mediaPlayer ->
+                if (!mediaPlayer.isPlaying) {
+                    mediaPlayer.seekTo(0)
+                    mediaPlayer.start()
+                    Log.i(TAG, "🔊 $elementName element detected! Playing $soundName sound effect")
+                } else {
+                    Log.d(TAG, "$soundName sound effect already playing, skipping")
+                }
+            } ?: Log.w(TAG, "$soundName player is null")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing $soundName sound effect", e)
+        }
+    }
+
+    /**
+     * Setup background music for AR experience
+     */
+    private fun setupBackgroundMusic() {
+        try {
+            bgmPlayer = MediaPlayer().apply {
+                setOnPreparedListener { mediaPlayer ->
+                    mediaPlayer.isLooping = true
+                    mediaPlayer.setVolume(0.3f, 0.3f) // Set moderate volume
+                    Log.d(TAG, "Background music prepared and ready")
+                }
+                setOnErrorListener { _, what, extra ->
+                    Log.e(TAG, "MediaPlayer error: what=$what, extra=$extra")
+                    true // Return true to indicate we've handled the error
+                }
+                setOnCompletionListener {
+                    Log.d(TAG, "Background music completed")
+                }
+
+                // Load the BGM file from raw resources
+                val afd = requireContext().resources.openRawResourceFd(com.example.fortuna_android.R.raw.ar_background_music)
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+                prepareAsync() // Prepare asynchronously to avoid blocking UI
+            }
+            Log.d(TAG, "Background music setup initiated")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up background music", e)
+            bgmPlayer = null
+        }
+    }
+
+    /**
+     * Start background music
+     */
+    private fun startBackgroundMusic() {
+        try {
+            bgmPlayer?.let { player ->
+                if (!player.isPlaying) {
+                    player.start()
+                    Log.d(TAG, "Background music started")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting background music", e)
+        }
+    }
+
+    /**
+     * Pause background music
+     */
+    private fun pauseBackgroundMusic() {
+        try {
+            bgmPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.pause()
+                    Log.d(TAG, "Background music paused")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pausing background music", e)
+        }
+    }
+
+    /**
+     * Stop and release background music
+     */
+    private fun stopBackgroundMusic() {
+        try {
+            bgmPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.stop()
+                }
+                player.reset()
+                player.release()
+                bgmPlayer = null
+                Log.d(TAG, "Background music stopped and released")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping background music", e)
+            bgmPlayer = null
+        }
+    }
+
+    /**
+     * Setup all element sound effects
+     */
+    private fun setupElementSoundEffects() {
+        setupElementSound(
+            { wartortlePlayer = it },
+            com.example.fortuna_android.R.raw.wartortle,
+            "Wartortle (Water)"
+        )
+        setupElementSound(
+            { pikachuPlayer = it },
+            com.example.fortuna_android.R.raw.pikachu,
+            "Pikachu (Earth)"
+        )
+        setupElementSound(
+            { charmanderPlayer = it },
+            com.example.fortuna_android.R.raw.charmander,
+            "Charmander (Fire)"
+        )
+        setupElementSound(
+            { registeelPlayer = it },
+            com.example.fortuna_android.R.raw.registeel,
+            "Registeel (Metal)"
+        )
+        setupElementSound(
+            { sudowoodoPlayer = it },
+            com.example.fortuna_android.R.raw.sudowoodo,
+            "Sudowoodo (Wood)"
+        )
+    }
+
+    /**
+     * Generic setup method for element sound effects
+     */
+    private fun setupElementSound(
+        playerSetter: (MediaPlayer?) -> Unit,
+        resourceId: Int,
+        soundName: String
+    ) {
+        try {
+            val player = MediaPlayer().apply {
+                setOnPreparedListener { mediaPlayer ->
+                    mediaPlayer.setVolume(0.8f, 0.8f) // Higher volume for sound effect
+                    Log.d(TAG, "$soundName sound effect prepared and ready")
+                }
+                setOnErrorListener { _, what, extra ->
+                    Log.e(TAG, "$soundName MediaPlayer error: what=$what, extra=$extra")
+                    true // Return true to indicate we've handled the error
+                }
+                setOnCompletionListener {
+                    Log.d(TAG, "$soundName sound effect completed")
+                }
+
+                // Load the sound file from raw resources
+                val afd = requireContext().resources.openRawResourceFd(resourceId)
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+                prepareAsync() // Prepare asynchronously to avoid blocking UI
+            }
+            playerSetter(player)
+            Log.d(TAG, "$soundName sound effect setup initiated")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up $soundName sound effect", e)
+            playerSetter(null)
+        }
+    }
+
+    /**
+     * Stop and release all element sound effects
+     */
+    private fun stopAllElementSoundEffects() {
+        stopElementSound(wartortlePlayer, "Wartortle") { wartortlePlayer = null }
+        stopElementSound(pikachuPlayer, "Pikachu") { pikachuPlayer = null }
+        stopElementSound(charmanderPlayer, "Charmander") { charmanderPlayer = null }
+        stopElementSound(registeelPlayer, "Registeel") { registeelPlayer = null }
+        stopElementSound(sudowoodoPlayer, "Sudowoodo") { sudowoodoPlayer = null }
+    }
+
+    /**
+     * Generic method to stop and release element sound effect
+     */
+    private fun stopElementSound(player: MediaPlayer?, soundName: String, nullifier: () -> Unit) {
+        try {
+            player?.let { mediaPlayer ->
+                if (mediaPlayer.isPlaying) {
+                    mediaPlayer.stop()
+                }
+                mediaPlayer.reset()
+                mediaPlayer.release()
+                nullifier()
+                Log.d(TAG, "$soundName sound effect stopped and released")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping $soundName sound effect", e)
+            nullifier()
+        }
+    }
+
     override fun onResume(owner: LifecycleOwner) {
         try {
             surfaceView?.onResume()
-            Log.d(TAG, "Surface view resumed")
+            startBackgroundMusic()
+            Log.d(TAG, "Surface view resumed and BGM started")
         } catch (e: Exception) {
             Log.w(TAG, "Error resuming surface view", e)
         }
@@ -314,7 +592,8 @@ class ARFragment(
         Log.d(TAG, "ARFragment onPause - pausing AR session")
         try {
             surfaceView?.onPause()
-            Log.d(TAG, "Surface view paused in onPause")
+            pauseBackgroundMusic()
+            Log.d(TAG, "Surface view paused and BGM paused in onPause")
         } catch (e: Exception) {
             Log.w(TAG, "Error pausing surface view in onPause", e)
         }
@@ -326,7 +605,8 @@ class ARFragment(
         // Just ensure our surface view is properly stopped
         try {
             surfaceView?.onPause()
-            Log.d(TAG, "Surface view paused in onStop")
+            pauseBackgroundMusic()
+            Log.d(TAG, "Surface view paused and BGM paused in onStop")
         } catch (e: Exception) {
             Log.w(TAG, "Error pausing surface view in onStop", e)
         }
@@ -629,6 +909,12 @@ class ARFragment(
 
             // Clean up surface view reference
             surfaceView = null
+
+            // Stop and release background music
+            stopBackgroundMusic()
+
+            // Stop and release all element sound effects
+            stopAllElementSoundEffects()
 
             Log.d(TAG, "ARFragment cleanup completed")
         } catch (e: Exception) {
