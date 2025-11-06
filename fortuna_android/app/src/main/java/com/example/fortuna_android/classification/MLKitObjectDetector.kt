@@ -33,7 +33,7 @@ import kotlinx.coroutines.tasks.asDeferred
  */
 class MLKitObjectDetector(
   context: Activity,
-  private val minObjectSizePercent: Float = 0.01f,
+  private val minObjectSizePercent: Float = 0.1f,
   private val maxObjectSizePercent: Float = 0.8f,
   private val maxDetectedObjects: Int = 3
 ) : ObjectDetector(context) {
