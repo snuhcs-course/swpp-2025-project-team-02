@@ -248,7 +248,7 @@ class FortuneCardView @JvmOverloads constructor(
         )
 
         // Update label with celebration text
-        binding.tvCollectionLabel.text = "✨ 완료! 오늘의 기운을 모두 채웠어요! ✨"
+        binding.tvCollectionLabel.text = "✨기운을 모두 채웠어요!✨"
         binding.tvCollectionLabel.setTextColor(Color.parseColor("#FFD700")) // Gold color
 
         // Make all dots filled with element color
