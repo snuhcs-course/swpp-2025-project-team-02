@@ -90,7 +90,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="200dp"
+        android:layout_marginBottom="100dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:background="#AA000000"
@@ -126,6 +126,7 @@
 
     <!-- UI Controls -->
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -133,48 +134,58 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Back Button -->
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="start"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/circular_button_background"
-            android:src="@drawable/ic_arrow_back"
-            android:contentDescription="Back"
-            app:tint="@android:color/white" />
-
-        <!-- Control Buttons Container -->
+        <!-- All Buttons Container -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <!-- Clear Button -->
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/clearButton"
-                android:layout_width="wrap_content"
+            <!-- Back Button (Left) -->
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginEnd="16dp"
-                android:background="@drawable/rounded_button_background"
-                android:text="Clear"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                android:minWidth="100dp" />
+                android:background="@drawable/circular_button_background"
+                android:contentDescription="Back"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@android:color/white" />
 
-            <!-- Scan Button -->
+            <!-- Left Spacer -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Capture Button (Center) -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/scanButton"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:background="@drawable/rounded_button_background"
-                android:text="Scan"
+                android:minWidth="120dp"
+                android:text="SCAN"
                 android:textColor="@android:color/white"
-                android:textSize="16sp"
-                android:minWidth="100dp" />
+                android:textSize="16sp" />
+
+            <!-- Right Spacer -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Clear Button (Right) -->
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/clearButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/rounded_button_background"
+                android:minWidth="60dp"
+                android:paddingHorizontal="8dp"
+                android:text="Clear"
+                android:textColor="@android:color/white"
+                android:textSize="12sp" />
 
         </LinearLayout>
 
