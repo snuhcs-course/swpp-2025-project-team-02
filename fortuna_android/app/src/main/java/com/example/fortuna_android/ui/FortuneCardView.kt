@@ -1,14 +1,18 @@
 package com.example.fortuna_android.ui
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Color
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.AnimationUtils
+import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import com.example.fortuna_android.R
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
@@ -30,6 +34,9 @@ class FortuneCardView @JvmOverloads constructor(
 
     private var onRefreshFortuneClickListener: (() -> Unit)? = null
 
+    // Store base entropy score for bonus calculation
+    private var baseEntropyScore: Int = 0
+
     init {
         // Set CardView background to black to prevent white corners
         setCardBackgroundColor(Color.parseColor("#000000"))
@@ -46,6 +53,31 @@ class FortuneCardView @JvmOverloads constructor(
         binding.btnRefreshFortune.setOnClickListener {
             onRefreshFortuneClickListener?.invoke()
         }
+
+        // 버튼 애니메이션 시작
+        startButtonAnimations()
+    }
+
+    /**
+     * 버튼에 회전과 반짝임 애니메이션 시작
+     */
+    private fun startButtonAnimations() {
+        // 회전하는 테두리 애니메이션 (ObjectAnimator 사용)
+        val rotateAnimator = ObjectAnimator.ofFloat(
+            binding.rotatingBorder,
+            "rotation",
+            0f,
+            360f
+        ).apply {
+            duration = 3000 // 3초에 한 바퀴
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = LinearInterpolator()
+        }
+        rotateAnimator.start()
+
+        // 버튼에 반짝이는 효과 (알파와 스케일)
+        val shimmerAnimation = AnimationUtils.loadAnimation(context, R.anim.shimmer_pulse)
+        binding.btnRefreshFortune.startAnimation(shimmerAnimation)
     }
 
     /**
@@ -82,11 +114,14 @@ class FortuneCardView @JvmOverloads constructor(
             binding.tvTomorrowGanji.text = "오늘의 운세"
         }
 
-        // Fetch needed element (deficient element) from API and display
-        fetchAndDisplayNeededElement()
-        val fortuneScore = fortuneData.fortuneScore.entropyScore.toInt()
+        // Store base entropy score
+        baseEntropyScore = fortuneData.fortuneScore.entropyScore.toInt()
 
-        binding.tvOverallFortune.text = fortuneScore.toString()
+        // Fetch today's progress (needed element + collection status) from API and display
+        fetchTodayProgressAndDisplay()
+
+        // 오늘의 운세 요약을 elementMessage에 표시
+        binding.tvElementMessage.text = fortuneData.fortune.todayFortuneSummary
 
         // 새로운 섹션: 오행 균형 설명
         binding.tvElementBalanceDescription.text = fortuneData.fortune.todayElementBalanceDescription
@@ -96,14 +131,16 @@ class FortuneCardView @JvmOverloads constructor(
     }
 
     /**
-     * Fetch needed element (deficient element) from API and display it
+     * Fetch today's progress (needed element + collection status) from API and display it
      */
-    private fun fetchAndDisplayNeededElement() {
+    private fun fetchTodayProgressAndDisplay() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitClient.instance.getNeededElement()
+                val response = RetrofitClient.instance.getTodayProgress()
                 if (response.isSuccessful && response.body() != null) {
-                    val neededElementKorean = response.body()!!.data.neededElement
+                    val progressData = response.body()!!.data
+                    val neededElementKorean = progressData.neededElement
+                    val currentCount = progressData.currentCount
 
                     withContext(Dispatchers.Main) {
                         // Display the needed element (deficient element)
@@ -112,30 +149,118 @@ class FortuneCardView @JvmOverloads constructor(
                         binding.tvElementCharacter.text = elementChar
                         binding.tvElementCharacter.setTextColor(elementColor)
 
-                        // Update message to indicate this is the deficient element
-                        val elementMessage = getDeficientElementMessage(neededElementKorean)
-                        binding.tvElementMessage.text = elementMessage
+                        // Update collection progress dots
+                        updateProgressDots(currentCount, elementColor)
+
+                        // Calculate and display bonus score
+                        updateScoreWithBonus(currentCount)
                     }
 
-                    Log.d("FortuneCardView", "Needed element displayed: $neededElementKorean")
+                    Log.d("FortuneCardView", "Today's progress: $currentCount/5 - $neededElementKorean")
                 } else {
-                    Log.w("FortuneCardView", "Failed to fetch needed element: ${response.code()}")
+                    Log.w("FortuneCardView", "Failed to fetch today's progress: ${response.code()}")
                     withContext(Dispatchers.Main) {
                         // Show default if API fails
                         binding.tvElementCharacter.text = "運"
                         binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
-                        binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
+                        updateProgressDots(0, Color.parseColor("#FFD700"))
+                        updateScoreWithBonus(0)
                     }
                 }
             } catch (e: Exception) {
-                Log.e("FortuneCardView", "Error fetching needed element", e)
+                Log.e("FortuneCardView", "Error fetching today's progress", e)
                 withContext(Dispatchers.Main) {
                     // Show default if error occurs
                     binding.tvElementCharacter.text = "運"
                     binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
-                    binding.tvElementMessage.text = "오늘의 기운을 느껴보세요"
+                    updateProgressDots(0, Color.parseColor("#FFD700"))
+                    updateScoreWithBonus(0)
                 }
             }
+        }
+    }
+
+    /**
+     * Update score display with collection bonus
+     */
+    private fun updateScoreWithBonus(currentCount: Int) {
+        val bonusPerElement = 4
+        val bonus = currentCount * bonusPerElement
+        val totalScore = baseEntropyScore + bonus
+
+        // Update total score display
+        binding.tvOverallFortune.text = totalScore.toString()
+
+        // Update bonus display
+        if (currentCount > 0) {
+            binding.tvBonusScore.text = "+$bonus↗"
+            binding.tvBonusScore.visibility = View.VISIBLE
+        } else {
+            binding.tvBonusScore.visibility = View.GONE
+        }
+    }
+
+    /**
+     * Update the 5 progress dots based on current collection count
+     */
+    private fun updateProgressDots(currentCount: Int, elementColor: Int) {
+        val dots = listOf(
+            binding.dotProgress1,
+            binding.dotProgress2,
+            binding.dotProgress3,
+            binding.dotProgress4,
+            binding.dotProgress5
+        )
+
+        val emptyColor = Color.parseColor("#3A3A3A")
+
+        // Check if completed (5/5)
+        if (currentCount >= 5) {
+            // Show completion state with celebration
+            showCompletionCelebration(elementColor)
+        } else {
+            // Normal state
+            binding.tvCollectionLabel.text = "오늘 보충한 기운"
+            binding.tvCollectionLabel.setTextColor(Color.parseColor("#888888"))
+
+            dots.forEachIndexed { index, dot ->
+                val color = if (index < currentCount) elementColor else emptyColor
+
+                // Create circular drawable with the appropriate color
+                val drawable = android.graphics.drawable.GradientDrawable()
+                drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
+                drawable.setColor(color)
+                dot.background = drawable
+            }
+        }
+    }
+
+    /**
+     * Show celebration effect when all 5 elements are collected
+     */
+    private fun showCompletionCelebration(elementColor: Int) {
+        val dots = listOf(
+            binding.dotProgress1,
+            binding.dotProgress2,
+            binding.dotProgress3,
+            binding.dotProgress4,
+            binding.dotProgress5
+        )
+
+        // Update label with celebration text
+        binding.tvCollectionLabel.text = "✨ 완료! 오늘의 기운을 모두 채웠어요! ✨"
+        binding.tvCollectionLabel.setTextColor(Color.parseColor("#FFD700")) // Gold color
+
+        // Make all dots filled with element color
+        dots.forEach { dot ->
+            val drawable = android.graphics.drawable.GradientDrawable()
+            drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
+            drawable.setColor(elementColor)
+
+            // Add golden stroke for celebration effect
+            drawable.setStroke(2, Color.parseColor("#FFD700"))
+
+            dot.background = drawable
         }
     }
 
@@ -179,35 +304,6 @@ class FortuneCardView @JvmOverloads constructor(
             "metal", "쇠", "금" -> Color.parseColor("#C0C0C0")    // 은색
             "water", "물", "수" -> Color.parseColor("#2BB3FC")    // 파랑
             else -> Color.parseColor("#FFFFFF")
-        }
-    }
-
-
-    /**
-     * 오행에 따른 기운 메시지 반환
-     */
-    private fun getElementMessage(element: String): String {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> "오늘은 나무의 기운이 강한 날입니다"
-            "fire", "불", "화" -> "오늘은 불의 기운이 강한 날입니다"
-            "earth", "흙", "토" -> "오늘은 흙의 기운이 강한 날입니다"
-            "metal", "쇠", "금" -> "오늘은 쇠의 기운이 강한 날입니다"
-            "water", "물", "수" -> "오늘은 물의 기운이 강한 날입니다"
-            else -> "오늘의 기운을 느껴보세요"
-        }
-    }
-
-    /**
-     * 부족한 오행 원소 메시지 반환 (deficient element message)
-     */
-    private fun getDeficientElementMessage(element: String): String {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> "오늘은 나무의 기운을 보충해야 합니다"
-            "fire", "불", "화" -> "오늘은 불의 기운을 보충해야 합니다"
-            "earth", "흙", "토" -> "오늘은 흙의 기운을 보충해야 합니다"
-            "metal", "쇠", "금" -> "오늘은 쇠의 기운을 보충해야 합니다"
-            "water", "물", "수" -> "오늘은 물의 기운을 보충해야 합니다"
-            else -> "오늘의 기운을 느껴보세요"
         }
     }
 

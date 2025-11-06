@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 회전할 그라데이션 링 -->
+    <item>
+        <rotate
+            android:fromDegrees="0"
+            android:toDegrees="360"
+            android:pivotX="50%"
+            android:pivotY="50%">
+            <shape android:shape="ring"
+                android:innerRadiusRatio="3"
+                android:thicknessRatio="20"
+                android:useLevel="false">
+                <gradient
+                    android:type="sweep"
+                    android:startColor="#00FFFFFF"
+                    android:centerColor="#FFFFD700"
+                    android:endColor="#00FFFFFF"
+                    android:angle="0" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

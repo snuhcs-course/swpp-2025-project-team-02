@@ -27,7 +27,6 @@ import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.databinding.FragmentArBinding
 import com.example.fortuna_android.util.CustomToast
-import com.example.fortuna_android.util.PendingCollectionManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
@@ -86,7 +85,7 @@ class ARFragment(
         setupARSession()
         setupClickListeners()
         setupTouchDetection()
-        fetchNeededElement()
+        fetchTodayProgress()
     }
 
     private fun setupARSession() {
@@ -334,15 +333,22 @@ class ARFragment(
     }
 
     /**
-     * Fetch the needed element from API and display it
+     * Fetch today's progress from API and display it
+     * Loads current collection count and needed element
      */
-    private fun fetchNeededElement() {
+    private fun fetchTodayProgress() {
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getNeededElement()
+                val response = RetrofitClient.instance.getTodayProgress()
                 if (response.isSuccessful && response.body() != null) {
-                    val koreanElement = response.body()!!.data.neededElement
+                    val progressData = response.body()!!.data
+
+                    // Set needed element
+                    val koreanElement = progressData.neededElement
                     neededElement = ElementMapper.fromKorean(koreanElement)
+
+                    // Initialize local count with server count
+                    localCollectedCount = progressData.currentCount
 
                     // Update UI
                     neededElement?.let { element ->
@@ -354,16 +360,16 @@ class ARFragment(
                         }
                     }
 
-                    Log.i(TAG, "Needed element loaded: ${neededElement?.displayName}")
+                    Log.i(TAG, "Today's progress loaded: ${progressData.currentCount}/${progressData.targetCount} - ${neededElement?.displayName}")
                 } else {
-                    Log.w(TAG, "Failed to fetch needed element: ${response.code()}")
+                    Log.w(TAG, "Failed to fetch today's progress: ${response.code()}")
                     // Show all elements if API fails
                     if (::renderer.isInitialized) {
                         renderer.setNeededElement(null)
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error fetching needed element", e)
+                Log.e(TAG, "Error fetching today's progress", e)
                 // Show all elements if error
                 if (::renderer.isInitialized) {
                     renderer.setNeededElement(null)
@@ -380,7 +386,7 @@ class ARFragment(
 
         binding.apply {
             neededElementBanner.visibility = View.VISIBLE
-            neededElementText.text = "Collect: ${ElementMapper.getElementDisplayText(element)}"
+            neededElementText.text = "오늘의 기운 ${ElementMapper.getElementHanja(element)}"
             updateCollectionProgress()
 
             // Set color indicator
@@ -396,7 +402,7 @@ class ARFragment(
     private fun updateCollectionProgress() {
         val binding = _binding ?: return
 
-        binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT collected"
+        binding.collectionProgressText.text = "$localCollectedCount / $TARGET_COLLECTION_COUNT 수집"
 
         // Check if quest is complete
         if (localCollectedCount >= TARGET_COLLECTION_COUNT) {
@@ -405,27 +411,14 @@ class ARFragment(
     }
 
     /**
-     * Handle quest completion - save to SharedPreferences then close AR
-     * The actual POST request will be handled by HomeFragment after AR session closes
+     * Handle quest completion - close AR and return to home
+     * API calls are already made on each sphere collection
      */
     private fun onQuestComplete() {
         if (isAdded) {
-            CustomToast.show(requireContext(), "Quest Complete! Energy Harmonized!")
+            CustomToast.show(requireContext(), "오늘의 기운 수집 완료!")
         }
         Log.i(TAG, "Daily energy quest completed!")
-
-        // Save pending collection to SharedPreferences
-        neededElement?.let { element ->
-            if (element != ElementMapper.Element.OTHERS) {
-                val englishElement = ElementMapper.toEnglish(element)
-                if (isAdded) {
-                    PendingCollectionManager.savePendingCollection(requireContext(), englishElement, 1)
-                    Log.i(TAG, "Pending collection saved to SharedPreferences: $englishElement")
-                }
-            } else {
-                Log.w(TAG, "OTHERS element not supported by backend, skipping")
-            }
-        }
 
         // Close AR after a short delay to let user see the completion message
         view?.postDelayed({
@@ -433,7 +426,7 @@ class ARFragment(
                 Log.i(TAG, "Closing AR view after quest completion")
                 findNavController().popBackStack()
             }
-        }, 1500) // 1.5 second delay (reduced from 2s since we're not waiting for API)
+        }, 1500)
     }
 
     /**
@@ -473,7 +466,7 @@ class ARFragment(
 
     /**
      * Called from renderer when a sphere is successfully collected
-     * Only updates local count - API call happens when quest is complete (5/5)
+     * Immediately updates UI and triggers API call in background
      */
     fun onSphereCollected(count: Int) {
         Log.i(TAG, "Sphere collected! Local count: $count")
@@ -489,7 +482,38 @@ class ARFragment(
 
         // Show feedback to user
         if (isAdded) {
-            CustomToast.show(requireContext(), "Collected! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+            CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+        }
+
+        // Trigger API call in background
+        collectElementInBackground()
+    }
+
+    /**
+     * Send collectElement API request in background (non-blocking)
+     */
+    private fun collectElementInBackground() {
+        neededElement?.let { element ->
+            if (element != ElementMapper.Element.OTHERS) {
+                val elementEnglish = ElementMapper.toEnglish(element)
+
+                lifecycleScope.launch {
+                    try {
+                        val request = com.example.fortuna_android.api.CollectElementRequest(chakraType = elementEnglish)
+                        val response = RetrofitClient.instance.collectElement(request)
+
+                        if (response.isSuccessful && response.body() != null) {
+                            Log.i(TAG, "✅ Element collected via API: $elementEnglish")
+                        } else {
+                            Log.w(TAG, "⚠️ API call failed but user already saw success: ${response.code()}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "⚠️ API call error but user already saw success", e)
+                    }
+                }
+            } else {
+                Log.w(TAG, "OTHERS element not supported by backend, skipping API call")
+            }
         }
     }
 

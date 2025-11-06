@@ -4,7 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="#000000">
+    android:background="#000000"
+    android:paddingTop="20dp">
 
     <!-- 메인 컨텐츠 영역 -->
     <LinearLayout

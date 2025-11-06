@@ -272,6 +272,8 @@ data class TodayFortuneData(
 )
 
 data class TodayFortune(
+    @SerializedName("today_fortune_summary")
+    val todayFortuneSummary: String,
     @SerializedName("today_daily_guidance")
     val todayDailyGuidance: String,
     @SerializedName("today_element_balance_description")
@@ -347,4 +349,66 @@ data class CollectionStatusResponse(
 data class CollectionStatusData(
     @SerializedName("collected_elements")
     val collectedElements: CollectedElements
+)
+
+// GET /api/core/chakras/today-progress/
+data class TodayProgressResponse(
+    val status: String,
+    val data: TodayProgressData
+)
+
+data class TodayProgressData(
+    val date: String,
+    @SerializedName("needed_element")
+    val neededElement: String,
+    @SerializedName("needed_element_en")
+    val neededElementEn: String,
+    @SerializedName("current_count")
+    val currentCount: Int,
+    @SerializedName("target_count")
+    val targetCount: Int,
+    @SerializedName("is_completed")
+    val isCompleted: Boolean,
+    @SerializedName("progress_percentage")
+    val progressPercentage: Int
+)
+
+// GET /api/chakra/monthly-history/
+data class MonthlyHistoryResponse(
+    val status: String,
+    val data: MonthlyHistoryData
+)
+
+data class MonthlyHistoryData(
+    val year: Int,
+    val month: Int,
+    val days: List<DayData>,
+    val summary: SummaryData
+)
+
+data class DayData(
+    val date: String,
+    @SerializedName("needed_element")
+    val neededElement: String,
+    @SerializedName("needed_element_en")
+    val neededElementEn: String,
+    @SerializedName("target_count")
+    val targetCount: Int,
+    @SerializedName("collected_count")
+    val collectedCount: Int,
+    @SerializedName("is_completed")
+    val isCompleted: Boolean,
+    @SerializedName("progress_percentage")
+    val progressPercentage: Int
+)
+
+data class SummaryData(
+    @SerializedName("total_days")
+    val totalDays: Int,
+    @SerializedName("completed_days")
+    val completedDays: Int,
+    @SerializedName("completion_rate")
+    val completionRate: Int,
+    @SerializedName("total_collected")
+    val totalCollected: Int
 )

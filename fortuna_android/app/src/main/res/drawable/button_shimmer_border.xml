@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 그라데이션 배경 (회전할 부분) -->
+    <item>
+        <shape android:shape="rectangle">
+            <!-- 원형 그라데이션: 밝은 금색에서 투명으로 -->
+            <gradient
+                android:type="sweep"
+                android:startColor="#00FFD700"
+                android:centerColor="#FFFFD700"
+                android:endColor="#00FFD700"
+                android:useLevel="false" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+
+    <!-- 내부를 투명하게 만들어서 테두리만 보이게 -->
+    <item
+        android:left="3dp"
+        android:top="3dp"
+        android:right="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <corners android:radius="25dp" />
+        </shape>
+    </item>
+</layer-list>

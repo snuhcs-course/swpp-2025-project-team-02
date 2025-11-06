@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -376,6 +377,29 @@ class MainActivity : AppCompatActivity() {
         // Use NavigationUI to automatically sync bottom navigation with NavController
         // This prevents infinite loops by handling navigation state properly
         binding.bottomNavigation.setupWithNavController(navController)
+
+        // Apply gradient background to the 3rd tab (AR Fragment - Camera tab)
+        binding.bottomNavigation.post {
+            applyGradientToTab(2) // Index 2 is the 3rd tab
+        }
+    }
+
+    private fun applyGradientToTab(tabIndex: Int) {
+        try {
+            // Get the BottomNavigationMenuView (first child of BottomNavigationView)
+            val menuView = binding.bottomNavigation.getChildAt(0) as? ViewGroup ?: return
+
+            // Get the specific tab item view
+            if (tabIndex >= menuView.childCount) return
+            val tabView = menuView.getChildAt(tabIndex)
+
+            // Apply gradient background
+            tabView.setBackgroundResource(R.drawable.nav_tab_gradient_background)
+
+            Log.d(TAG, "Gradient background applied to tab $tabIndex")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to apply gradient background to tab", e)
+        }
     }
 
     override fun onDestroy() {
