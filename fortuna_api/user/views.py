@@ -745,9 +745,10 @@ class UserProfileView(APIView):
                                         'hourly_ganji': {'type': 'string', 'description': 'Hourly Ganji (시간)', 'nullable': True}
                                     },
                                     'required': ['user_id', 'email', 'name']
-                                }
+                                },
+                                'fortune_reset': {'type': 'boolean', 'description': 'True if Saju-related fields changed and FortuneResults were invalidated'}
                             },
-                            'required': ['message', 'user']
+                            'required': ['message', 'user', 'fortune_reset']
                         },
                         'example': {
                             'message': 'Profile updated successfully',
@@ -765,7 +766,8 @@ class UserProfileView(APIView):
                                 'monthly_ganji': '정축',
                                 'daily_ganji': '갑자',
                                 'hourly_ganji': '병인'
-                            }
+                            },
+                            'fortune_reset': True
                         }
                     }
                 }
@@ -812,10 +814,22 @@ class UserProfileView(APIView):
 
         닉네임, 생년월일, 성별 등의 프로필 정보를 업데이트하고
         사주팔자를 자동으로 계산하여 저장
+
+        사주 관련 필드 변경 시 기존 FortuneResult 무효화
         """
+        user = request.user
+
+        # 변경 전 사주 관련 필드 저장
+        old_saju_fields = {
+            'birth_date_solar': user.birth_date_solar,
+            'birth_date_lunar': user.birth_date_lunar,
+            'birth_time_units': user.birth_time_units,
+            'gender': user.gender,
+        }
+
         # 입력 데이터 검증
         serializer = UserProfileUpdateSerializer(
-            request.user,
+            user,
             data=request.data,
             partial=True
         )
@@ -828,12 +842,60 @@ class UserProfileView(APIView):
 
         # 프로필 업데이트 (사주 계산 포함)
         updated_user = serializer.save()
+
+        # 사주 관련 필드 변경 확인 및 기존 fortune 무효화
+        fortune_reset = False
+        if self._saju_fields_changed(old_saju_fields, updated_user):
+            deleted_count = self._invalidate_fortune_results(updated_user)
+            fortune_reset = True
+            logger.info(
+                f"Fortune results invalidated for user {updated_user.id}: "
+                f"{deleted_count} records deleted due to Saju field changes"
+            )
+
         user_data = self._build_profile_update_response(updated_user)
 
         return Response({
             'message': 'Profile updated successfully',
-            'user': user_data
+            'user': user_data,
+            'fortune_reset': fortune_reset
         })
+
+    def _saju_fields_changed(self, old_fields: dict, updated_user) -> bool:
+        """
+        사주 관련 필드 변경 여부 확인
+
+        Args:
+            old_fields: 변경 전 필드 값 딕셔너리
+            updated_user: 업데이트된 User 객체
+
+        Returns:
+            bool: 사주 관련 필드가 하나라도 변경되었으면 True
+        """
+        return (
+            old_fields['birth_date_solar'] != updated_user.birth_date_solar or
+            old_fields['birth_date_lunar'] != updated_user.birth_date_lunar or
+            old_fields['birth_time_units'] != updated_user.birth_time_units or
+            old_fields['gender'] != updated_user.gender
+        )
+
+    def _invalidate_fortune_results(self, user) -> int:
+        """
+        사용자의 모든 FortuneResult 무효화 (삭제)
+
+        사주 관련 정보가 변경되면 기존 운세 계산이 무효화되므로 삭제 필요
+        다음 /fortune/today 요청 시 새로운 정보로 자동 재계산됨
+
+        Args:
+            user: User 객체
+
+        Returns:
+            int: 삭제된 FortuneResult 레코드 수
+        """
+        from core.models import FortuneResult
+
+        deleted_count, _ = FortuneResult.objects.filter(user=user).delete()
+        return deleted_count
 
     def _build_profile_update_response(self, user) -> dict:
         """프로필 업데이트 응답 데이터 구성"""
