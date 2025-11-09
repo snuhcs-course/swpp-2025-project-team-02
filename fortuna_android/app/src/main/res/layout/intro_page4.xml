@@ -3,12 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="#000000">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:background="#000000">
 
         <TextView
             android:id="@+id/title"
@@ -17,7 +19,7 @@
             android:text="오행 - 5가지 속성"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="48dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -29,237 +31,271 @@
             android:layout_height="wrap_content"
             android:text="목(木) 화(火) 토(土) 금(金) 수(水)"
             android:textSize="16sp"
-            android:textColor="@color/text_secondary"
+            android:textColor="#AAAAAA"
             android:layout_marginTop="12dp"
             app:layout_constraintTop_toBottomOf="@id/title"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- 오행 원형 다이어그램 -->
-        <LinearLayout
-            android:id="@+id/ohangDiagram"
+        <!-- 원형 오행 사이클 -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/ohangCycle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
+            android:layout_height="400dp"
             android:layout_marginTop="32dp"
             app:layout_constraintTop_toBottomOf="@id/subtitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <!-- 상생 순환 화살표 표시 -->
+            <!-- 중심점 -->
+            <View
+                android:id="@+id/center"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- 회전하는 원형 화살표 -->
+            <ImageView
+                android:id="@+id/circularArrow"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/circular_arrow"
+                app:layout_constraintTop_toTopOf="@id/center"
+                app:layout_constraintBottom_toBottomOf="@id/center"
+                app:layout_constraintStart_toStartOf="@id/center"
+                app:layout_constraintEnd_toEndOf="@id/center" />
+
+            <!-- 중심 텍스트 -->
             <TextView
+                android:id="@+id/centerText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="수(水) → 목(木) → 화(火) → 토(土) → 금(金) → 수"
+                android:gravity="center"
+                android:text="상생\n순환"
+                android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/black"
+                app:layout_constraintBottom_toBottomOf="@id/center"
+                app:layout_constraintEnd_toEndOf="@id/center"
+                app:layout_constraintStart_toStartOf="@id/center"
+                app:layout_constraintTop_toTopOf="@id/center" />
+
+            <!-- 목(木) - 위 -->
+
+            <LinearLayout
+                android:id="@+id/mok"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:orientation="vertical"
                 android:gravity="center"
-                android:padding="16dp"
-                android:background="#E3F2FD" />
-        </LinearLayout>
+                android:background="@drawable/circle_green"
+                android:padding="8dp"
+                app:layout_constraintCircle="@id/center"
+                app:layout_constraintCircleRadius="120dp"
+                app:layout_constraintCircleAngle="0">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="목(木)"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#000000" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="나무"
+                    android:textSize="11sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="2dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="갑(甲) 을(乙)"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="인(寅) 묘(卯)"
+                    android:textSize="10sp"
+                    android:textColor="#000000" />
+            </LinearLayout>
 
-        <!-- 천간-오행 매핑 -->
-        <LinearLayout
-            android:id="@+id/cheonganMapping"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@android:drawable/dialog_holo_light_frame"
-            android:padding="16dp"
-            android:layout_marginTop="24dp"
-            app:layout_constraintTop_toBottomOf="@id/ohangDiagram"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="천간 → 오행 대응"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/black"
+            <!-- 화(火) - 오른쪽 위 -->
+            <LinearLayout
+                android:id="@+id/hwa"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginBottom="12dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:background="@drawable/circle_red"
+                android:padding="8dp"
+                app:layout_constraintCircle="@id/center"
+                app:layout_constraintCircleRadius="120dp"
+                app:layout_constraintCircleAngle="72">
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="갑 을"
+                    android:text="화(火)"
                     android:textSize="16sp"
-                    android:gravity="center"
                     android:textStyle="bold"
-                    android:background="#A5D6A7"
-                    android:padding="12dp" />
+                    android:textColor="#000000" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="→"
-                    android:textSize="18sp"
-                    android:gravity="center" />
+                    android:text="불"
+                    android:textSize="11sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="2dp" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1.5"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="목(木) 나무"
-                    android:textSize="15sp"
-                    android:gravity="center"
-                    android:background="#C8E6C9"
-                    android:padding="12dp" />
+                    android:text="병(丙) 정(丁)"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="사(巳) 오(午)"
+                    android:textSize="10sp"
+                    android:textColor="#000000" />
             </LinearLayout>
 
+            <!-- 토(土) - 오른쪽 아래 -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:id="@+id/to"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/circle_orange"
+                android:padding="6dp"
+                app:layout_constraintCircle="@id/center"
+                app:layout_constraintCircleRadius="120dp"
+                app:layout_constraintCircleAngle="144">
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="병 정"
+                    android:text="토(土)"
                     android:textSize="16sp"
-                    android:gravity="center"
                     android:textStyle="bold"
-                    android:background="#EF9A9A"
-                    android:padding="12dp" />
+                    android:textColor="#000000" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="→"
-                    android:textSize="18sp"
-                    android:gravity="center" />
+                    android:text="흙"
+                    android:textSize="11sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="2dp" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1.5"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="화(火) 불"
-                    android:textSize="15sp"
-                    android:gravity="center"
-                    android:background="#FFCDD2"
-                    android:padding="12dp" />
+                    android:text="무(戊) 기(己)"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="축(丑) 진(辰)"
+                    android:textSize="9sp"
+                    android:textColor="#000000" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="미(未) 술(戌)"
+                    android:textSize="9sp"
+                    android:textColor="#000000" />
             </LinearLayout>
 
+            <!-- 금(金) - 왼쪽 아래 -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:id="@+id/geum"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/circle_brown"
+                android:padding="8dp"
+                app:layout_constraintCircle="@id/center"
+                app:layout_constraintCircleRadius="120dp"
+                app:layout_constraintCircleAngle="216">
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="무 기"
+                    android:text="금(金)"
                     android:textSize="16sp"
-                    android:gravity="center"
                     android:textStyle="bold"
-                    android:background="#FFCC80"
-                    android:padding="12dp" />
+                    android:textColor="#000000" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="→"
-                    android:textSize="18sp"
-                    android:gravity="center" />
+                    android:text="쇠"
+                    android:textSize="11sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="2dp" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1.5"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="토(土) 흙"
-                    android:textSize="15sp"
-                    android:gravity="center"
-                    android:background="#FFE0B2"
-                    android:padding="12dp" />
+                    android:text="경(庚) 신(辛)"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="신(申) 유(酉)"
+                    android:textSize="10sp"
+                    android:textColor="#000000" />
             </LinearLayout>
 
+            <!-- 수(水) - 왼쪽 위 -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:id="@+id/su"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@drawable/circle_blue"
+                android:padding="8dp"
+                app:layout_constraintCircle="@id/center"
+                app:layout_constraintCircleRadius="120dp"
+                app:layout_constraintCircleAngle="288">
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="경 신"
+                    android:text="수(水)"
                     android:textSize="16sp"
-                    android:gravity="center"
                     android:textStyle="bold"
-                    android:background="#BCAAA4"
-                    android:padding="12dp" />
+                    android:textColor="#000000" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="→"
-                    android:textSize="18sp"
-                    android:gravity="center" />
+                    android:text="물"
+                    android:textSize="11sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="2dp" />
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1.5"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="금(金) 쇠"
-                    android:textSize="15sp"
-                    android:gravity="center"
-                    android:background="#D7CCC8"
-                    android:padding="12dp" />
+                    android:text="임(壬) 계(癸)"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="자(子) 해(亥)"
+                    android:textSize="10sp"
+                    android:textColor="#000000" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="임 계"
-                    android:textSize="16sp"
-                    android:gravity="center"
-                    android:textStyle="bold"
-                    android:background="#90CAF9"
-                    android:padding="12dp" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:text="→"
-                    android:textSize="18sp"
-                    android:gravity="center" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1.5"
-                    android:layout_height="wrap_content"
-                    android:text="수(水) 물"
-                    android:textSize="15sp"
-                    android:gravity="center"
-                    android:background="#BBDEFB"
-                    android:padding="12dp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/description"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="지지(12지)도 각각 오행 속성을 가집니다\n• 인묘(寅卯) = 목\n• 사오(巳午) = 화\n• 축진미술(丑辰未戌) = 토\n• 신유(申酉) = 금\n• 자해(子亥) = 수"
-            android:textSize="14sp"
-            android:lineSpacingExtra="4dp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/cheonganMapping"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>
