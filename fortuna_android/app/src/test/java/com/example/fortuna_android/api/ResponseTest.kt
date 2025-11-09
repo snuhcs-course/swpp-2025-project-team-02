@@ -492,6 +492,7 @@ class ResponseTest {
             generatedAt = "2025-10-24T10:00:00Z",
             forDate = "2025-10-24",
             fortune = TodayFortune(
+                todayFortuneSummary = "좋은 하루",
                 todayDailyGuidance = "오늘은 조심하세요. 오전이 좋습니다.",
                 todayElementBalanceDescription = "균형잡힌 오행입니다"
             ),
@@ -512,6 +513,7 @@ class ResponseTest {
             generatedAt = null,
             forDate = null,
             fortune = TodayFortune(
+                todayFortuneSummary = "좋은 하루",
                 todayDailyGuidance = "오늘은 조심하세요.",
                 todayElementBalanceDescription = "균형입니다"
             ),
@@ -525,6 +527,7 @@ class ResponseTest {
     @Test
     fun `test TodayFortune creation`() {
         val fortune = TodayFortune(
+            todayFortuneSummary = "특별한 날",
             todayDailyGuidance = "오늘은 특별한 날입니다. 적극적으로 행동하세요. 오전 10시가 좋습니다.",
             todayElementBalanceDescription = "완벽한 균형"
         )

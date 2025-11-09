@@ -160,6 +160,7 @@ class FortuneCardViewTest {
     fun `test setFortuneData with different guidance text`() {
         val fortuneData = createSampleFortuneData().copy(
             fortune = TodayFortune(
+                todayFortuneSummary = "다른 요약",
                 todayDailyGuidance = "다른 가이던스 텍스트입니다.",
                 todayElementBalanceDescription = "다른 설명입니다."
             )
