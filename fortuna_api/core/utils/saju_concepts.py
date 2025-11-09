@@ -4,7 +4,7 @@ Direct port from Kotlin SajuConcepts.kt
 """
 from enum import Enum
 from datetime import date, time, datetime, timedelta
-from typing import Optional, Union
+from typing import Union
 from astronomy import Time, SunPosition
 from lunarcalendar import Converter, Solar, Lunar
 from loguru import logger
