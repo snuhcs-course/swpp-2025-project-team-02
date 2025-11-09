@@ -9,6 +9,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import androidx.appcompat.app.AlertDialog
 import com.example.fortuna_android.util.CustomToast
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
@@ -297,9 +298,25 @@ class ProfileEditDialogFragment : DialogFragment() {
                     }
                     return
                 }
-                submitProfile()
+                showConfirmationDialog()
             }
         }
+    }
+
+    private fun showConfirmationDialog() {
+        if (!isAdded) return
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("프로필 변경 확인")
+            .setMessage("프로필 정보를 변경하시겠습니까?\n\n생년월일, 성별 등 사주 관련 정보를 변경하면 기존 운세가 삭제되고 새로운 운세가 생성됩니다.")
+            .setPositiveButton("변경") { dialog, _ ->
+                dialog.dismiss()
+                submitProfile()
+            }
+            .setNegativeButton("취소") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun submitProfile() {
