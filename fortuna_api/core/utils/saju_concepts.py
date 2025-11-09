@@ -4,7 +4,7 @@ Direct port from Kotlin SajuConcepts.kt
 """
 from enum import Enum
 from datetime import date, time, datetime, timedelta
-from typing import Optional, Union
+from typing import Union
 from astronomy import Time, SunPosition
 from lunarcalendar import Converter, Solar, Lunar
 from loguru import logger
@@ -345,14 +345,15 @@ class SolarTerms(Enum):
         t0 = Time.Make(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
         cur_lon = SunPosition(t0).elon % 360.0
 
-        # Build all forward deltas and pick the *largest* (i.e., go backwards to previous)
+        # Build all backward deltas and pick the *smallest positive* (i.e., most recent previous term)
         major_terms = cls._get_major_solar_terms()
         best_term = None
-        best_delta_back = -1.0
+        best_delta_back = 361.0  # Start with invalid high value
         for term, lon in major_terms:
             # Backward delta in (0..360): how far we would need to go back
             back = (cur_lon - lon) % 360.0
-            if back > best_delta_back:
+            # Skip if back is 0 (current term, not previous)
+            if back > 0 and back < best_delta_back:
                 best_delta_back = back
                 best_term = (term, float(lon))
 
