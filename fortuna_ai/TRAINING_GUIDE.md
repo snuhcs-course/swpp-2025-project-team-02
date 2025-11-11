@@ -156,12 +156,13 @@ Create a Python script `merge_lora.py`:
 
 ```python
 #!/usr/bin/env python3
-from transformers import AutoModelForVision2Seq, AutoProcessor
+from transformers import AutoModelForImageTextToText, AutoProcessor
 from peft import PeftModel
 
 print("Loading base model...")
-base_model = AutoModelForVision2Seq.from_pretrained(
-    "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
+base_model = AutoModelForImageTextToText.from_pretrained(
+    "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+    trust_remote_code=True
 )
 
 print("Loading LoRA adapters...")

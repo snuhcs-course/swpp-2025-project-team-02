@@ -114,12 +114,13 @@ Per-element accuracy varies:
 The trained model is a LoRA adapter. You need to merge it with the base model:
 
 ```python
-from transformers import AutoModelForVision2Seq, AutoProcessor
+from transformers import AutoModelForImageTextToText, AutoProcessor
 from peft import PeftModel
 
 # Load base model
-base_model = AutoModelForVision2Seq.from_pretrained(
-    "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
+base_model = AutoModelForImageTextToText.from_pretrained(
+    "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+    trust_remote_code=True
 )
 
 # Load LoRA adapter

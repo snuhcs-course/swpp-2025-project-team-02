@@ -16,25 +16,21 @@ Usage:
 
 import argparse
 import json
-import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 import yaml
 
 import torch
 from PIL import Image
 from transformers import (
     AutoProcessor,
-    AutoModelForVision2Seq,
+    AutoModelForImageTextToText,
     TrainingArguments,
     Trainer,
     EarlyStoppingCallback,
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from datasets import Dataset
-from dataclasses import dataclass
 import numpy as np
-from sklearn.metrics import accuracy_score, classification_report
 
 
 # Element classes (matching Android ElementMapper)
@@ -261,10 +257,11 @@ def main():
     processor = AutoProcessor.from_pretrained(model_name)
 
     # Load model with device map
-    model = AutoModelForVision2Seq.from_pretrained(
+    model = AutoModelForImageTextToText.from_pretrained(
         model_name,
         torch_dtype=torch.bfloat16 if config['training'].get('bf16', False) else torch.float32,
         device_map="auto",
+        trust_remote_code=True,  # Required for SmolVLM
     )
 
     # Prepare for LoRA

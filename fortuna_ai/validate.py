@@ -15,7 +15,7 @@ from collections import defaultdict
 
 import torch
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForVision2Seq
+from transformers import AutoProcessor, AutoModelForImageTextToText
 from peft import PeftModel
 from tqdm import tqdm
 from sklearn.metrics import classification_report, confusion_matrix
@@ -179,9 +179,10 @@ def main():
     print(f"Using device: {device}")
     print(f"\nLoading model from {args.model_dir}...")
     processor = AutoProcessor.from_pretrained(args.model_dir)
-    model = AutoModelForVision2Seq.from_pretrained(
+    model = AutoModelForImageTextToText.from_pretrained(
         args.model_dir,
         torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
+        trust_remote_code=True,
     )
     print("Model loaded successfully!")
     

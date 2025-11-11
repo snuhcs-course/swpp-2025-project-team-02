@@ -10,7 +10,7 @@ Usage:
 import argparse
 from pathlib import Path
 
-from transformers import AutoModelForVision2Seq, AutoProcessor
+from transformers import AutoModelForImageTextToText, AutoProcessor
 from peft import PeftModel
 import torch
 
@@ -56,10 +56,11 @@ def merge_lora(model_dir: Path, output_dir: Path, device: str = "cpu"):
 
     print(f"Base model: {base_model_name}")
 
-    base_model = AutoModelForVision2Seq.from_pretrained(
+    base_model = AutoModelForImageTextToText.from_pretrained(
         base_model_name,
         torch_dtype=torch.float16,  # Use fp16 to save memory
         device_map=device if device == "auto" else None,
+        trust_remote_code=True,
     )
 
     if device != "auto":
