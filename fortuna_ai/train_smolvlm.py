@@ -449,10 +449,10 @@ def main():
             super().__init__(*args, **kwargs)
             self._train_sampler = train_sampler
 
-        def _get_train_sampler(self):
+        def _get_train_sampler(self, train_dataset):
             if self._train_sampler is not None:
                 return self._train_sampler
-            return super()._get_train_sampler()
+            return super()._get_train_sampler(train_dataset)
 
     # Create trainer with custom VLM data collator and weighted sampler
     trainer = WeightedTrainer(
