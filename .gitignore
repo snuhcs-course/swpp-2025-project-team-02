@@ -81,3 +81,11 @@ fortuna_api/CLAUDE.md
 test_media/
 **/test_media/
 **/dataset
+
+# ML Training outputs
+fortuna_ai/output/
+fortuna_ai/output_*/
+fortuna_ai/wandb/
+*.gguf
+*.safetensors
+fortuna_ai/.ipynb_checkpoints/
