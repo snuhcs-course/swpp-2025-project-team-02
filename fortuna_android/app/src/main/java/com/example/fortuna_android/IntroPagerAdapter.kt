@@ -2,6 +2,7 @@ package com.example.fortuna_android
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fortuna_android.databinding.*
 
@@ -22,7 +23,17 @@ class IntroPagerAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             1 -> IntroPage1ViewHolder(IntroPage1Binding.inflate(inflater, parent, false))
             2 -> IntroPage2ViewHolder(IntroPage2Binding.inflate(inflater, parent, false))
             3 -> IntroPage3ViewHolder(IntroPage3Binding.inflate(inflater, parent, false))
-            4 -> IntroPage4ViewHolder(IntroPage4Binding.inflate(inflater, parent, false))
+            4 -> {
+                val binding = IntroPage4Binding.inflate(inflater, parent, false)
+                // 애니메이션 시작
+                val rotateAnimation = AnimationUtils.loadAnimation(parent.context, R.anim.rotate_clockwise)
+                val fadeAnimation = AnimationUtils.loadAnimation(parent.context, R.anim.fade_animation)
+
+                binding.circularArrow?.startAnimation(rotateAnimation)
+                binding.centerText?.startAnimation(fadeAnimation)
+
+                IntroPage4ViewHolder(binding)
+            }
             5 -> IntroPage5ViewHolder(IntroPage5Binding.inflate(inflater, parent, false))
             else -> throw IllegalArgumentException("Invalid view type")
         }
