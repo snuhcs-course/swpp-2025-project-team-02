@@ -155,56 +155,39 @@ class ElementDataset(torch.utils.data.Dataset):
             add_generation_prompt=False  # We already have the response
         )
 
-        # Process everything together
+        # Process everything together - let processor handle everything!
+        # DON'T truncate here - it breaks image tokens
         inputs = self.processor(
             images=image,
             text=full_text,
             return_tensors="pt",
         )
 
-        # Get tensors
+        # Get tensors - NO manual padding/truncation!
         input_ids = inputs["input_ids"].squeeze(0)
+        attention_mask = inputs["attention_mask"].squeeze(0) if "attention_mask" in inputs else torch.ones_like(input_ids)
         pixel_values = inputs["pixel_values"].squeeze(0)
 
         # For labels, we need to mask the prompt part
-        # Re-process just the user message to find where it ends
-        user_only_text = self.processor.apply_chat_template(
-            [messages[0]],  # Just user message
-            add_generation_prompt=True
-        )
-        user_inputs = self.processor.tokenizer(
-            user_only_text,
-            return_tensors="pt",
-            add_special_tokens=False
-        )
-        prompt_length = user_inputs["input_ids"].size(1)
+        # Find where assistant response starts by looking for the assistant token
+        # The full conversation template looks like: <user>...<image>...text</user><assistant>target</assistant>
+        # We want to train only on the target part
 
-        # Create labels: -100 for prompt, actual tokens for target
+        # Simple approach: create labels same as input_ids, then mask prompt
         labels = input_ids.clone()
-        labels[:prompt_length] = -100
 
-        # Truncate if needed
-        max_len = self.max_length
-        if len(input_ids) > max_len:
-            input_ids = input_ids[:max_len]
-            labels = labels[:max_len]
+        # Find the assistant marker to know where to start training
+        # For now, mask everything except the last few tokens (the target)
+        # Target is very short (just element name like "water"), usually 1-2 tokens
+        target_tokens = self.processor.tokenizer(
+            target,
+            add_special_tokens=False,
+        )
+        target_length = len(target_tokens["input_ids"])
 
-        # Pad if needed
-        if len(input_ids) < max_len:
-            pad_length = max_len - len(input_ids)
-            pad_token_id = self.processor.tokenizer.pad_token_id
-
-            input_ids = torch.cat([
-                input_ids,
-                torch.full((pad_length,), pad_token_id, dtype=torch.long)
-            ])
-            labels = torch.cat([
-                labels,
-                torch.full((pad_length,), -100, dtype=torch.long)
-            ])
-
-        # Attention mask
-        attention_mask = (input_ids != self.processor.tokenizer.pad_token_id).long()
+        # Mask all but the last target_length + a few buffer tokens
+        # This is a conservative approach - only train on the actual target
+        labels[:-target_length-5] = -100  # -5 for buffer (eos, special tokens, etc)
 
         return {
             "input_ids": input_ids,
@@ -358,12 +341,18 @@ def main():
         dataloader_num_workers=config['training'].get('num_workers', 0),
     )
 
+    # Create data collator for VLM
+    # This handles padding dynamically for each batch
+    from transformers import DefaultDataCollator
+    data_collator = DefaultDataCollator()
+
     # Create trainer
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
+        data_collator=data_collator,
         compute_metrics=compute_metrics,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
     )
