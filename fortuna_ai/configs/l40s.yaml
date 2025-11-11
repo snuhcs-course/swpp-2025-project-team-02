@@ -2,7 +2,7 @@
 # GPU training with aggressive memory optimization
 
 model:
-  base_model: "HuggingFaceM4/SmolVLM2-500M-Video-Instruct"
+  base_model: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
 
 lora:
   rank: 16

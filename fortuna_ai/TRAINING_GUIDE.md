@@ -161,7 +161,7 @@ from peft import PeftModel
 
 print("Loading base model...")
 base_model = AutoModelForVision2Seq.from_pretrained(
-    "HuggingFaceM4/SmolVLM2-500M-Video-Instruct"
+    "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
 )
 
 print("Loading LoRA adapters...")

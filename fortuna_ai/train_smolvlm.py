@@ -236,11 +236,11 @@ def main():
     print("\n=== Loading Dataset ===")
     train_data = load_jsonl_dataset(
         dataset_dir / "train.jsonl",
-        dataset_dir / "images"
+        dataset_dir
     )
     val_data = load_jsonl_dataset(
         dataset_dir / "val.jsonl",
-        dataset_dir / "images"
+        dataset_dir
     )
 
     print(f"Train samples: {len(train_data)}")

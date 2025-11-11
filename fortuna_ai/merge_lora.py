@@ -47,10 +47,10 @@ def merge_lora(model_dir: Path, output_dir: Path, device: str = "cpu"):
             base_model_name = adapter_config.get("base_model_name_or_path")
 
         if not base_model_name:
-            base_model_name = "HuggingFaceM4/SmolVLM2-500M-Video-Instruct"
+            base_model_name = "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
             print(f"⚠ Could not find base model in adapter config, using default: {base_model_name}")
     except Exception as e:
-        base_model_name = "HuggingFaceM4/SmolVLM2-500M-Video-Instruct"
+        base_model_name = "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
         print(f"⚠ Error reading adapter config: {e}")
         print(f"Using default base model: {base_model_name}")
 
