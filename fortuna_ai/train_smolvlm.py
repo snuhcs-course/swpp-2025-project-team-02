@@ -134,7 +134,7 @@ class ElementDataset(torch.utils.data.Dataset):
         # Build prompt and target
         prompt, target = build_prompt(item, self.include_context)
 
-        # SmolVLM2 uses chat format - create messages
+        # SmolVLM2 uses chat format - create full conversation (user + assistant)
         messages = [
             {
                 "role": "user",
@@ -142,62 +142,69 @@ class ElementDataset(torch.utils.data.Dataset):
                     {"type": "image"},
                     {"type": "text", "text": prompt}
                 ]
+            },
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": target}]
             }
         ]
 
-        # Apply chat template
-        prompt_text = self.processor.apply_chat_template(
+        # Apply chat template with the full conversation
+        full_text = self.processor.apply_chat_template(
             messages,
-            add_generation_prompt=True
+            add_generation_prompt=False  # We already have the response
         )
 
-        # Process image + formatted prompt
+        # Process everything together
         inputs = self.processor(
             images=image,
-            text=prompt_text,
-            return_tensors="pt",
-            padding="max_length",
-            max_length=self.max_length,
-            truncation=True,
-        )
-
-        # Tokenize target separately
-        target_tokens = self.processor.tokenizer(
-            target,
-            add_special_tokens=False,
+            text=full_text,
             return_tensors="pt",
         )
 
-        # Concatenate prompt + target + eos
-        input_ids = torch.cat([
-            inputs["input_ids"].squeeze(0),
-            target_tokens["input_ids"].squeeze(0),
-            torch.tensor([self.processor.tokenizer.eos_token_id])
-        ], dim=0)
+        # Get tensors
+        input_ids = inputs["input_ids"].squeeze(0)
+        pixel_values = inputs["pixel_values"].squeeze(0)
+
+        # For labels, we need to mask the prompt part
+        # Re-process just the user message to find where it ends
+        user_only_text = self.processor.apply_chat_template(
+            [messages[0]],  # Just user message
+            add_generation_prompt=True
+        )
+        user_inputs = self.processor.tokenizer(
+            user_only_text,
+            return_tensors="pt",
+            add_special_tokens=False
+        )
+        prompt_length = user_inputs["input_ids"].size(1)
+
+        # Create labels: -100 for prompt, actual tokens for target
+        labels = input_ids.clone()
+        labels[:prompt_length] = -100
 
         # Truncate if needed
-        if len(input_ids) > self.max_length:
-            input_ids = input_ids[:self.max_length]
+        max_len = self.max_length
+        if len(input_ids) > max_len:
+            input_ids = input_ids[:max_len]
+            labels = labels[:max_len]
 
         # Pad if needed
-        if len(input_ids) < self.max_length:
-            padding = torch.full(
-                (self.max_length - len(input_ids),),
-                self.processor.tokenizer.pad_token_id,
-                dtype=torch.long
-            )
-            input_ids = torch.cat([input_ids, padding])
+        if len(input_ids) < max_len:
+            pad_length = max_len - len(input_ids)
+            pad_token_id = self.processor.tokenizer.pad_token_id
 
-        # Create labels: -100 for prompt tokens, actual tokens for target
-        labels = input_ids.clone()
-        prompt_length = inputs["input_ids"].size(1)
-        labels[:prompt_length] = -100  # Ignore prompt in loss
+            input_ids = torch.cat([
+                input_ids,
+                torch.full((pad_length,), pad_token_id, dtype=torch.long)
+            ])
+            labels = torch.cat([
+                labels,
+                torch.full((pad_length,), -100, dtype=torch.long)
+            ])
 
-        # Create attention mask
+        # Attention mask
         attention_mask = (input_ids != self.processor.tokenizer.pad_token_id).long()
-
-        # Get pixel values
-        pixel_values = inputs["pixel_values"].squeeze(0)
 
         return {
             "input_ids": input_ids,
