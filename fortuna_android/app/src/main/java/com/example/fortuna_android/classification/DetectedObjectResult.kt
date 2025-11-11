@@ -16,14 +16,21 @@
 
 package com.example.fortuna_android.classification
 
+import android.graphics.Bitmap
+import android.graphics.Rect
+
 /**
  * A [DetectedObjectResult] describes a single result in a labeled image.
  * @property confidence The model's reported confidence for this inference result (normalized over `[0, 1]`).
  * @property label The model's reported label for this result.
  * @property centerCoordinate A point on the image that best describes the object's location.
+ * @property boundingBox The bounding box of the detected object.
+ * @property croppedBitmap The cropped bitmap of the detected object region.
  */
 data class DetectedObjectResult(
   val confidence: Float,
   val label: String,
-  val centerCoordinate: Pair<Int, Int>
+  val centerCoordinate: Pair<Int, Int>,
+  val boundingBox: Rect,
+  val croppedBitmap: Bitmap
 )
