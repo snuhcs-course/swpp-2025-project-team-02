@@ -25,7 +25,11 @@ def analyze_dataset(jsonl_path: Path, images_dir: Path, name: str):
                 data.append(item)
 
                 # Check if image exists
-                image_path = images_dir / item['image_path']
+                # Handle both "images/xxx.jpg" and "xxx.jpg" formats
+                image_path_str = item['image_path']
+                if image_path_str.startswith('images/'):
+                    image_path_str = image_path_str.replace('images/', '', 1)
+                image_path = images_dir / image_path_str
                 if not image_path.exists():
                     missing_images.append((line_num, item['image_path']))
             except json.JSONDecodeError as e:

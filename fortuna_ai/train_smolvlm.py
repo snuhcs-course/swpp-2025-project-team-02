@@ -54,7 +54,11 @@ def load_jsonl_dataset(jsonl_path: Path, images_dir: Path) -> List[Dict]:
         for line in f:
             item = json.loads(line.strip())
             # Verify image exists
-            image_path = images_dir / item['image_path']
+            # Handle both "images/xxx.jpg" and "xxx.jpg" formats
+            image_path_str = item['image_path']
+            if image_path_str.startswith('images/'):
+                image_path_str = image_path_str.replace('images/', '', 1)
+            image_path = images_dir / image_path_str
             if image_path.exists():
                 data.append(item)
             else:
@@ -122,7 +126,11 @@ class ElementDataset(torch.utils.data.Dataset):
         item = self.data[idx]
 
         # Load image (already 256x256 from dataset prep)
-        image_path = self.images_dir / item['image_path']
+        # Handle both "images/xxx.jpg" and "xxx.jpg" formats
+        image_path_str = item['image_path']
+        if image_path_str.startswith('images/'):
+            image_path_str = image_path_str.replace('images/', '', 1)
+        image_path = self.images_dir / image_path_str
         image = Image.open(image_path).convert('RGB')
 
         # Build prompt and target
@@ -232,11 +240,11 @@ def main():
     print("\n=== Loading Dataset ===")
     train_data = load_jsonl_dataset(
         dataset_dir / "train.jsonl",
-        dataset_dir
+        dataset_dir / "images"
     )
     val_data = load_jsonl_dataset(
         dataset_dir / "val.jsonl",
-        dataset_dir
+        dataset_dir / "images"
     )
 
     print(f"Train samples: {len(train_data)}")
@@ -285,9 +293,11 @@ def main():
 
     # Create datasets
     print("\n=== Creating PyTorch Datasets ===")
+    images_dir = dataset_dir / "images"
+
     train_dataset = ElementDataset(
         train_data,
-        dataset_dir / "images",
+        images_dir,
         processor,
         max_length=config['data'].get('max_length', 128),
         include_context=config['data'].get('include_context', True),
@@ -295,7 +305,7 @@ def main():
 
     val_dataset = ElementDataset(
         val_data,
-        dataset_dir / "images",
+        images_dir,
         processor,
         max_length=config['data'].get('max_length', 128),
         include_context=config['data'].get('include_context', True),

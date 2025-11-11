@@ -32,7 +32,11 @@ def load_jsonl_dataset(jsonl_path: Path, images_dir: Path) -> List[Dict]:
     with open(jsonl_path) as f:
         for line in f:
             item = json.loads(line.strip())
-            image_path = images_dir / item['image_path']
+            # Handle both "images/xxx.jpg" and "xxx.jpg" formats
+            image_path_str = item['image_path']
+            if image_path_str.startswith('images/'):
+                image_path_str = image_path_str.replace('images/', '', 1)
+            image_path = images_dir / image_path_str
             if image_path.exists():
                 data.append(item)
     return data
@@ -82,7 +86,11 @@ def validate_model(
     
     with torch.no_grad():
         for item in tqdm(val_data, desc="Validating"):
-            image_path = images_dir / item['image_path']
+            # Handle both "images/xxx.jpg" and "xxx.jpg" formats
+            image_path_str = item['image_path']
+            if image_path_str.startswith('images/'):
+                image_path_str = image_path_str.replace('images/', '', 1)
+            image_path = images_dir / image_path_str
             image = Image.open(image_path).convert('RGB')
             
             inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)

@@ -1,6 +1,6 @@
 # Bug Fixes Applied
 
-## Issue: Wrong AutoModel Class for SmolVLM2
+## Issue 1: Wrong AutoModel Class for SmolVLM2
 
 **Error:**
 ```
@@ -37,7 +37,48 @@ model = AutoModelForImageTextToText.from_pretrained(
 - Added `trust_remote_code=True` to all model loading calls (required for SmolVLM)
 - Removed unused imports (`os`, `Optional`, `Dataset`, `dataclass`, `accuracy_score`, `classification_report`)
 
-**Status:** ✅ **FIXED** - Ready to train!
+**Status:** ✅ **FIXED**
+
+---
+
+## Issue 2: Duplicate Image Path (`dataset/images/images/xxx.jpg`)
+
+**Error:**
+```
+FileNotFoundError: [Errno 2] No such file or directory: 'dataset/images/images/00515_000000540932.jpg'
+```
+
+**Root Cause:**
+JSONL files contain `image_path: "images/xxxxx.jpg"` but code uses `images_dir = dataset/images`, resulting in duplicate path: `dataset/images/images/xxxxx.jpg`
+
+**Fix Applied:**
+Added path normalization to handle both formats:
+```python
+# Handle both "images/xxx.jpg" and "xxx.jpg" formats
+image_path_str = item['image_path']
+if image_path_str.startswith('images/'):
+    image_path_str = image_path_str.replace('images/', '', 1)
+image_path = images_dir / image_path_str
+```
+
+**Files Updated:**
+- ✅ `train_smolvlm.py` - `load_jsonl_dataset()`, `ElementDataset.__getitem__()`, and function call sites
+- ✅ `validate.py` - `load_jsonl_dataset()` and validation loop
+- ✅ `check_dataset.py` - Dataset analysis
+
+**Additional Fix:**
+Changed function calls from:
+```python
+load_jsonl_dataset(dataset_dir / "train.jsonl", dataset_dir)  # Wrong!
+```
+To:
+```python
+load_jsonl_dataset(dataset_dir / "train.jsonl", dataset_dir / "images")  # Correct!
+```
+
+**Status:** ✅ **FIXED** - All 900 training and 100 validation images load correctly!
+
+---
 
 ## Testing
 
