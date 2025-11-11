@@ -80,6 +80,49 @@ load_jsonl_dataset(dataset_dir / "train.jsonl", dataset_dir / "images")  # Corre
 
 ---
 
+## Issue 3: Image/Text Count Mismatch in Processor
+
+**Error:**
+```
+ValueError: The number of images in the text [0] and images [1] should be the same.
+```
+
+**Root Cause:**
+SmolVLM2 requires using **chat template format** instead of manual `<__media__>` markers. The processor expects messages in a specific structure.
+
+**Fix Applied:**
+Changed from direct text + image:
+```python
+# Old (Wrong)
+inputs = processor(images=image, text=prompt, ...)
+```
+
+To chat template format:
+```python
+# New (Correct)
+messages = [{
+    "role": "user",
+    "content": [
+        {"type": "image"},
+        {"type": "text", "text": prompt}
+    ]
+}]
+prompt_text = processor.apply_chat_template(messages, add_generation_prompt=True)
+inputs = processor(images=image, text=prompt_text, ...)
+```
+
+**Files Updated:**
+- ✅ `train_smolvlm.py` - `ElementDataset.__getitem__()` and `build_prompt()`
+- ✅ `validate.py` - Validation loop and `build_inference_prompt()`
+
+**Additional Changes:**
+- Removed `ANDROID_IMAGE_MARKER` (`<__media__>`) from prompts - chat template handles this automatically
+- Simplified prompt building functions
+
+**Status:** ✅ **FIXED** - Processor now correctly matches images with text!
+
+---
+
 ## Testing
 
 To verify the fix works:

@@ -43,9 +43,8 @@ def load_jsonl_dataset(jsonl_path: Path, images_dir: Path) -> List[Dict]:
 
 
 def build_inference_prompt() -> str:
-    """Build prompt for inference (without context)"""
-    return f"""{ANDROID_IMAGE_MARKER}
-Classify this image into one of these elements: water, land, fire, wood, metal.
+    """Build prompt for inference (without context or image marker - chat template handles that)"""
+    return """Classify this image into one of these elements: water, land, fire, wood, metal.
 
 Element:"""
 
@@ -92,8 +91,22 @@ def validate_model(
                 image_path_str = image_path_str.replace('images/', '', 1)
             image_path = images_dir / image_path_str
             image = Image.open(image_path).convert('RGB')
-            
-            inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+
+            # SmolVLM2 uses chat format
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image"},
+                        {"type": "text", "text": prompt}
+                    ]
+                }
+            ]
+
+            # Apply chat template
+            prompt_text = processor.apply_chat_template(messages, add_generation_prompt=True)
+
+            inputs = processor(images=image, text=prompt_text, return_tensors="pt").to(device)
             generated_ids = model.generate(**inputs, max_new_tokens=32, do_sample=False)
             generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
             generated_text = generated_text.replace(prompt, "").strip()

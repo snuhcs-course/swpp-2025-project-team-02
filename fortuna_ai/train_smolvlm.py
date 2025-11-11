@@ -68,7 +68,7 @@ def load_jsonl_dataset(jsonl_path: Path, images_dir: Path) -> List[Dict]:
 
 def build_prompt(item: Dict, include_context: bool = True) -> tuple[str, str]:
     """
-    Build prompt matching Android format
+    Build prompt for SmolVLM2 (without image marker - chat template handles that)
 
     Args:
         item: Dataset item with 'element' and 'reason' fields
@@ -77,16 +77,14 @@ def build_prompt(item: Dict, include_context: bool = True) -> tuple[str, str]:
     Returns:
         (prompt, target) tuple
     """
-    # Base prompt (matches Android inference)
-    base_prompt = f"""{ANDROID_IMAGE_MARKER}
-Classify this image into one of these elements: water, land, fire, wood, metal.
+    # Base prompt (SmolVLM2 chat template handles image placement)
+    base_prompt = """Classify this image into one of these elements: water, land, fire, wood, metal.
 
 Element:"""
 
     # Add context for training (helps model learn reasoning)
     if include_context and 'reason' in item:
-        prompt = f"""{ANDROID_IMAGE_MARKER}
-Classify this image into one of these elements: water, land, fire, wood, metal.
+        prompt = f"""Classify this image into one of these elements: water, land, fire, wood, metal.
 
 Context: {item['reason']}
 
@@ -136,10 +134,27 @@ class ElementDataset(torch.utils.data.Dataset):
         # Build prompt and target
         prompt, target = build_prompt(item, self.include_context)
 
-        # Process image + prompt
+        # SmolVLM2 uses chat format - create messages
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+
+        # Apply chat template
+        prompt_text = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True
+        )
+
+        # Process image + formatted prompt
         inputs = self.processor(
             images=image,
-            text=prompt,
+            text=prompt_text,
             return_tensors="pt",
             padding="max_length",
             max_length=self.max_length,
