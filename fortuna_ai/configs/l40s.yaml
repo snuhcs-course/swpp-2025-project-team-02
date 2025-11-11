@@ -30,6 +30,6 @@ training:
   logging_steps: 10
   eval_steps: 50
   save_steps: 100
-  bf16: true  # Mixed precision for memory savings
+  bf16: false  # Disabled due to dtype mismatch in SmolVLM inputs_merger
   gradient_checkpointing: true  # Essential for 16GB
-  num_workers: 2
+  num_workers: 0  # Avoid shared memory issues with large images (17 patches × 512×512)

@@ -108,12 +108,14 @@ class ElementDataset(torch.utils.data.Dataset):
         processor,
         max_length: int = 128,
         include_context: bool = True,
+        use_bf16: bool = False,
     ):
         self.data = data
         self.images_dir = images_dir
         self.processor = processor
         self.max_length = max_length
         self.include_context = include_context
+        self.use_bf16 = use_bf16
 
         print(f"Loaded {len(self.data)} samples")
 
@@ -121,6 +123,7 @@ class ElementDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
+        print(f"[DEBUG DATASET] Loading sample {idx}")
         item = self.data[idx]
 
         # Load image (already 256x256 from dataset prep)
@@ -166,7 +169,15 @@ class ElementDataset(torch.utils.data.Dataset):
         # Get tensors - NO manual padding/truncation!
         input_ids = inputs["input_ids"].squeeze(0)
         attention_mask = inputs["attention_mask"].squeeze(0) if "attention_mask" in inputs else torch.ones_like(input_ids)
-        pixel_values = inputs["pixel_values"].squeeze(0)
+
+        # pixel_values needs to keep 4D shape [num_images, C, H, W] for single sample
+        # The model expects [batch_size, num_images, C, H, W] after batching
+        # Processor returns [1, num_images, C, H, W], we squeeze batch dim only
+        pixel_values = inputs["pixel_values"].squeeze(0)  # [num_images, C, H, W]
+
+        # Convert to bfloat16 if needed to match model dtype
+        if self.use_bf16:
+            pixel_values = pixel_values.to(torch.bfloat16)
 
         # For labels, we need to mask the prompt part
         # Find where assistant response starts by looking for the assistant token
@@ -195,6 +206,46 @@ class ElementDataset(torch.utils.data.Dataset):
             "labels": labels,
             "pixel_values": pixel_values,
         }
+
+
+def vlm_data_collator(features):
+    """
+    Custom data collator for Vision-Language Models.
+
+    Handles the special case where pixel_values need to maintain 5D shape:
+    [batch_size, num_images, channels, height, width]
+    """
+    import torch.nn.utils.rnn as rnn_utils
+
+    # Separate different tensor types
+    input_ids = [f["input_ids"] for f in features]
+    attention_masks = [f["attention_mask"] for f in features]
+    labels = [f["labels"] for f in features]
+    pixel_values = [f["pixel_values"] for f in features]
+
+    # Debug: print shapes
+    print(f"\n[DEBUG COLLATOR] Batch size: {len(features)}")
+    print(f"[DEBUG COLLATOR] pixel_values[0] shape: {pixel_values[0].shape}")
+    print(f"[DEBUG COLLATOR] input_ids[0] shape: {input_ids[0].shape}")
+
+    # Pad sequences (input_ids, attention_mask, labels)
+    input_ids_padded = rnn_utils.pad_sequence(input_ids, batch_first=True, padding_value=0)
+    attention_masks_padded = rnn_utils.pad_sequence(attention_masks, batch_first=True, padding_value=0)
+    labels_padded = rnn_utils.pad_sequence(labels, batch_first=True, padding_value=-100)
+
+    # Stack pixel_values - they should all be same shape [num_images, C, H, W]
+    # Stack along batch dimension to get [batch_size, num_images, C, H, W]
+    pixel_values_stacked = torch.stack(pixel_values, dim=0)
+
+    print(f"[DEBUG COLLATOR] pixel_values_stacked shape: {pixel_values_stacked.shape}")
+    print(f"[DEBUG COLLATOR] input_ids_padded shape: {input_ids_padded.shape}\n")
+
+    return {
+        "input_ids": input_ids_padded,
+        "attention_mask": attention_masks_padded,
+        "labels": labels_padded,
+        "pixel_values": pixel_values_stacked,
+    }
 
 
 def compute_metrics(eval_pred):
@@ -306,6 +357,7 @@ def main():
         processor,
         max_length=config['data'].get('max_length', 128),
         include_context=config['data'].get('include_context', True),
+        use_bf16=config['training'].get('bf16', False),
     )
 
     val_dataset = ElementDataset(
@@ -314,6 +366,7 @@ def main():
         processor,
         max_length=config['data'].get('max_length', 128),
         include_context=config['data'].get('include_context', True),
+        use_bf16=config['training'].get('bf16', False),
     )
 
     # Training arguments
@@ -341,18 +394,13 @@ def main():
         dataloader_num_workers=config['training'].get('num_workers', 0),
     )
 
-    # Create data collator for VLM
-    # This handles padding dynamically for each batch
-    from transformers import DefaultDataCollator
-    data_collator = DefaultDataCollator()
-
-    # Create trainer
+    # Create trainer with custom VLM data collator
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
-        data_collator=data_collator,
+        data_collator=vlm_data_collator,  # Use the custom collator defined above
         compute_metrics=compute_metrics,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
     )

@@ -32,4 +32,4 @@ training:
   save_steps: 100
   bf16: true
   gradient_checkpointing: true
-  num_workers: 2
+  num_workers: 0  # Avoid shared memory issues with large VLM images
