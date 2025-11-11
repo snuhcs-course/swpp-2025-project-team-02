@@ -404,6 +404,20 @@ def main():
         use_bf16=config['training'].get('bf16', False),
     )
 
+    # Create sample weights for weighted sampling
+    # This ensures minority classes are sampled more frequently during training
+    sample_weights = []
+    for item in train_data:
+        elem = item['element']
+        sample_weights.append(class_weights[elem])
+
+    sampler = torch.utils.data.WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True  # Allow sampling same item multiple times per epoch
+    )
+    print(f"\nCreated WeightedRandomSampler with {len(sample_weights)} weights")
+
     # Training arguments
     print("\n=== Setting up Training ===")
     training_args = TrainingArguments(
@@ -429,8 +443,19 @@ def main():
         dataloader_num_workers=config['training'].get('num_workers', 0),
     )
 
-    # Create trainer with custom VLM data collator
-    trainer = Trainer(
+    # Create custom trainer that uses weighted sampler
+    class WeightedTrainer(Trainer):
+        def __init__(self, *args, train_sampler=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._train_sampler = train_sampler
+
+        def _get_train_sampler(self):
+            if self._train_sampler is not None:
+                return self._train_sampler
+            return super()._get_train_sampler()
+
+    # Create trainer with custom VLM data collator and weighted sampler
+    trainer = WeightedTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
@@ -439,6 +464,7 @@ def main():
         compute_metrics=compute_metrics,
         preprocess_logits_for_metrics=preprocess_logits_for_metrics,  # Save memory during eval!
         callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+        train_sampler=sampler,  # Use weighted sampler to balance classes!
     )
 
     # Train
