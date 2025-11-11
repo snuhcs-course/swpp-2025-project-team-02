@@ -30,7 +30,6 @@ from transformers import (
     EarlyStoppingCallback,
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-import numpy as np
 
 
 # Element classes (matching Android ElementMapper)
@@ -248,25 +247,43 @@ def vlm_data_collator(features):
     }
 
 
+def preprocess_logits_for_metrics(logits, labels):
+    """
+    Preprocess logits before storing for metrics computation.
+
+    This is called during evaluation BEFORE logits are accumulated in memory.
+    We convert huge logits tensors [batch, seq_len, vocab_size=50176]
+    to small prediction tensors [batch, seq_len] with just the argmax indices.
+
+    Memory savings: 50176x reduction per token!
+    For 100 validation samples: ~20GB → ~400KB
+
+    Args:
+        logits: Model output logits [batch, seq_len, vocab_size]
+        labels: Ground truth labels (unused but required by Trainer API)
+    """
+    if isinstance(logits, tuple):
+        logits = logits[0]
+
+    # Get predicted token IDs (argmax over vocab dimension)
+    # Shape: [batch, seq_len, 50176] → [batch, seq_len]
+    pred_tokens = torch.argmax(logits, dim=-1)
+
+    return pred_tokens
+
+
 def compute_metrics(eval_pred):
     """Compute accuracy metrics"""
     predictions, labels = eval_pred
 
-    # predictions are logits, get the predicted token IDs
-    if isinstance(predictions, tuple):
-        predictions = predictions[0]
-
-    # Get predicted tokens (argmax over vocab dimension)
-    pred_tokens = np.argmax(predictions, axis=-1)
-
-    # TODO: Decode tokens to text and compute element-level accuracy
-    # For now, return token-level accuracy
+    # predictions are now already argmaxed token IDs (not logits!)
+    # thanks to preprocess_logits_for_metrics
 
     # Mask out -100 labels
     mask = labels != -100
 
     # Compute accuracy only on non-masked tokens
-    correct = (pred_tokens == labels) & mask
+    correct = (predictions == labels) & mask
     accuracy = correct.sum() / mask.sum()
 
     return {
@@ -309,9 +326,27 @@ def main():
     # Element distribution
     train_elements = [item['element'] for item in train_data]
     print("\nTrain element distribution:")
+    element_counts = {}
     for elem in ELEMENTS:
         count = train_elements.count(elem)
+        element_counts[elem] = count
         print(f"  {elem}: {count} ({count/len(train_elements)*100:.1f}%)")
+
+    # Compute class weights to handle imbalance
+    # Use inverse frequency: weight = total / (num_classes * count)
+    total_samples = len(train_elements)
+    num_classes = len(ELEMENTS)
+    class_weights = {}
+    print("\nClass weights (to balance training):")
+    for elem in ELEMENTS:
+        count = element_counts[elem]
+        if count > 0:
+            weight = total_samples / (num_classes * count)
+            class_weights[elem] = weight
+            print(f"  {elem}: {weight:.2f}x")
+        else:
+            class_weights[elem] = 0.0
+            print(f"  {elem}: 0.00x (no samples)")
 
     # Load model and processor
     print("\n=== Loading Model ===")
@@ -375,7 +410,7 @@ def main():
         output_dir=str(output_dir),
         num_train_epochs=config['training']['num_epochs'],
         per_device_train_batch_size=config['training']['batch_size'],
-        per_device_eval_batch_size=config['training']['batch_size'],
+        per_device_eval_batch_size=config['training'].get('eval_batch_size', 1),  # Separate eval batch size for memory
         gradient_accumulation_steps=config['training'].get('gradient_accumulation_steps', 1),
         learning_rate=config['training']['learning_rate'],
         warmup_steps=config['training'].get('warmup_steps', 100),
@@ -402,6 +437,7 @@ def main():
         eval_dataset=val_dataset,
         data_collator=vlm_data_collator,  # Use the custom collator defined above
         compute_metrics=compute_metrics,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,  # Save memory during eval!
         callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
     )
 

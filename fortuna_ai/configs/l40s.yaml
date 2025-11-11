@@ -23,12 +23,13 @@ data:
 
 training:
   num_epochs: 3
-  batch_size: 2  # Limited by 16GB RAM
+  batch_size: 2  # Train batch size
+  eval_batch_size: 1  # Smaller eval batch to avoid OOM
   gradient_accumulation_steps: 8  # Effective batch = 16
   learning_rate: 2.0e-4
   warmup_steps: 100
   logging_steps: 10
-  eval_steps: 50
+  eval_steps: 50  # Re-enabled with preprocess_logits_for_metrics to save memory
   save_steps: 100
   bf16: false  # Disabled due to dtype mismatch in SmolVLM inputs_merger
   gradient_checkpointing: true  # Essential for 16GB
