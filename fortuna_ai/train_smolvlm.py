@@ -53,11 +53,22 @@ def load_jsonl_dataset(jsonl_path: Path, images_dir: Path) -> List[Dict]:
         for line in f:
             item = json.loads(line.strip())
             # Verify image exists
+            # Handle both "image_path" and "image" fields
+            image_path_str = item.get('image_path') or item.get('image')
+            if not image_path_str:
+                print(f"Warning: No image path found in item: {item}")
+                continue
+
             # Handle both "images/xxx.jpg" and "xxx.jpg" formats
-            image_path_str = item['image_path']
             if image_path_str.startswith('images/'):
                 image_path_str = image_path_str.replace('images/', '', 1)
-            image_path = images_dir / image_path_str
+
+            # Handle absolute paths
+            if image_path_str.startswith('/'):
+                image_path = Path(image_path_str)
+            else:
+                image_path = images_dir / image_path_str
+
             if image_path.exists():
                 data.append(item)
             else:
