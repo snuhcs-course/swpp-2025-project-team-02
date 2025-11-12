@@ -103,7 +103,13 @@ Element:"""
         prompt = base_prompt
 
     # Target: just the element label
-    target = item['element']
+    # Extract element from either 'element' field or conversations[1].content
+    if 'element' in item:
+        target = item['element']
+    elif 'conversations' in item and len(item['conversations']) > 1:
+        target = item['conversations'][1]['content']
+    else:
+        raise ValueError(f"No element found in item: {item}")
 
     return prompt, target
 
@@ -137,8 +143,11 @@ class ElementDataset(torch.utils.data.Dataset):
         item = self.data[idx]
 
         # Load image (already 256x256 from dataset prep)
-        # Handle both "images/xxx.jpg" and "xxx.jpg" formats
-        image_path_str = item['image_path']
+        # Handle both "image_path" and "image" fields, and both "images/xxx.jpg" and "xxx.jpg" formats
+        image_path_str = item.get('image_path') or item.get('image')
+        if not image_path_str:
+            raise ValueError(f"No image path found in item: {item}")
+
         if image_path_str.startswith('images/'):
             image_path_str = image_path_str.replace('images/', '', 1)
         image_path = self.images_dir / image_path_str
@@ -190,25 +199,36 @@ class ElementDataset(torch.utils.data.Dataset):
             pixel_values = pixel_values.to(torch.bfloat16)
 
         # For labels, we need to mask the prompt part
-        # Find where assistant response starts by looking for the assistant token
-        # The full conversation template looks like: <user>...<image>...text</user><assistant>target</assistant>
-        # We want to train only on the target part
+        # The chat template creates: User:...<end_of_utterance>\nAssistant: TARGET<end_of_utterance>\n
+        # We want to train ONLY on TARGET (the element name)
 
-        # Simple approach: create labels same as input_ids, then mask prompt
         labels = input_ids.clone()
 
-        # Find the assistant marker to know where to start training
-        # For now, mask everything except the last few tokens (the target)
-        # Target is very short (just element name like "water"), usually 1-2 tokens
-        target_tokens = self.processor.tokenizer(
-            target,
-            add_special_tokens=False,
-        )
-        target_length = len(target_tokens["input_ids"])
+        # Find "Assistant:" token sequence
+        # SmolVLM uses "Assistant" which tokenizes to [9519, 9531] (Ass + istant)
+        assistant_start_ids = self.processor.tokenizer.encode("Assistant:", add_special_tokens=False)
 
-        # Mask all but the last target_length + a few buffer tokens
-        # This is a conservative approach - only train on the actual target
-        labels[:-target_length-5] = -100  # -5 for buffer (eos, special tokens, etc)
+        # Find where assistant response starts
+        assistant_pos = None
+        for i in range(len(input_ids) - len(assistant_start_ids)):
+            if all(input_ids[i+j] == assistant_start_ids[j] for j in range(len(assistant_start_ids))):
+                assistant_pos = i + len(assistant_start_ids)  # Position right after "Assistant:"
+                break
+
+        if assistant_pos is None:
+            # Fallback: mask everything
+            labels[:] = -100
+        else:
+            # Mask everything before assistant response
+            labels[:assistant_pos] = -100
+
+            # Also mask <end_of_utterance> and newline at the end
+            # Find end token (49279 is <end_of_utterance>)
+            end_token_id = self.processor.tokenizer.encode("<end_of_utterance>", add_special_tokens=False)[0]
+            for i in range(assistant_pos, len(input_ids)):
+                if input_ids[i] == end_token_id:
+                    labels[i:] = -100
+                    break
 
         return {
             "input_ids": input_ids,
@@ -283,19 +303,71 @@ def preprocess_logits_for_metrics(logits, labels):
     return pred_tokens
 
 
+# Global processor for decoding in compute_metrics
+_GLOBAL_PROCESSOR = None
+
 def compute_metrics(eval_pred):
-    """Compute accuracy metrics"""
+    """
+    Compute element classification accuracy by decoding to text.
+
+    Strategy: Decode predicted answer tokens to text, check if any element name is present.
+    """
+    global _GLOBAL_PROCESSOR
+
     predictions, labels = eval_pred
 
-    # predictions are now already argmaxed token IDs (not logits!)
-    # thanks to preprocess_logits_for_metrics
+    # predictions are already argmaxed token IDs from preprocess_logits_for_metrics
+    # labels contain -100 for prompt tokens, and valid token IDs for answer tokens
 
-    # Mask out -100 labels
-    mask = labels != -100
+    ELEMENTS = ["water", "land", "fire", "wood", "metal"]
 
-    # Compute accuracy only on non-masked tokens
-    correct = (predictions == labels) & mask
-    accuracy = correct.sum() / mask.sum()
+    batch_size = labels.shape[0]
+    correct_count = 0
+    total_count = 0
+
+    # Convert to torch tensors if they're numpy arrays
+    if not isinstance(predictions, torch.Tensor):
+        predictions = torch.from_numpy(predictions)
+    if not isinstance(labels, torch.Tensor):
+        labels = torch.from_numpy(labels)
+
+    for i in range(batch_size):
+        # Extract answer tokens (non -100)
+        answer_mask = labels[i] != -100
+        answer_indices = answer_mask.nonzero(as_tuple=True)[0]
+
+        if len(answer_indices) == 0:
+            continue
+
+        # Get predicted and ground truth answer tokens
+        pred_answer_tokens = predictions[i][answer_indices].cpu().numpy()
+        label_answer_tokens = labels[i][answer_indices].cpu().numpy()
+
+        # Decode to text
+        if _GLOBAL_PROCESSOR is not None:
+            pred_text = _GLOBAL_PROCESSOR.decode(pred_answer_tokens, skip_special_tokens=True).strip().lower()
+            label_text = _GLOBAL_PROCESSOR.decode(label_answer_tokens, skip_special_tokens=True).strip().lower()
+
+            # Extract element from descriptive label if present
+            # e.g., "The element is fire." -> "fire"
+            if "the element is " in label_text:
+                # Extract element name from descriptive format
+                element = label_text.split("the element is ")[-1].rstrip(".").split()[0].lower()
+            else:
+                # Use label_text as-is for single-word format
+                element = label_text
+
+            # Check if ground truth element is in predicted text
+            if element in pred_text:
+                correct_count += 1
+        else:
+            # Fallback: exact token match
+            if torch.all(predictions[i][answer_indices] == labels[i][answer_indices]):
+                correct_count += 1
+
+        total_count += 1
+
+    accuracy = correct_count / total_count if total_count > 0 else 0.0
 
     return {
         "accuracy": float(accuracy),
@@ -307,7 +379,8 @@ def main():
     parser.add_argument("--config", type=str, required=True, help="Path to config YAML")
     parser.add_argument("--dataset_dir", type=str, default="./dataset", help="Dataset directory")
     parser.add_argument("--output_dir", type=str, default="./output", help="Output directory")
-    parser.add_argument("--wandb", action="store_true", help="Enable W&B logging")
+    parser.add_argument("--wandb", action="store_true", default=True, help="Enable W&B logging (default: True)")
+    parser.add_argument("--no-wandb", dest="wandb", action="store_false", help="Disable W&B logging")
     args = parser.parse_args()
 
     # Load config
@@ -334,8 +407,27 @@ def main():
     print(f"Train samples: {len(train_data)}")
     print(f"Val samples: {len(val_data)}")
 
+    # Helper function to extract element from descriptive response
+    def extract_element(content):
+        """Extract element name from descriptive response like 'The element is wood.'"""
+        if "The element is " in content:
+            # Extract element from "The element is {element}." pattern
+            element = content.split("The element is ")[-1].rstrip(".").strip()
+            # Return only the element name (first word)
+            return element.split()[0].lower() if element else content
+        return content
+
     # Element distribution
-    train_elements = [item['element'] for item in train_data]
+    # Extract element from either 'element' field or conversations[1].content
+    train_elements = []
+    for item in train_data:
+        if 'element' in item:
+            train_elements.append(item['element'])
+        elif 'conversations' in item and len(item['conversations']) > 1:
+            raw_content = item['conversations'][1]['content']
+            element = extract_element(raw_content)
+            train_elements.append(element)
+
     print("\nTrain element distribution:")
     element_counts = {}
     for elem in ELEMENTS:
@@ -365,6 +457,10 @@ def main():
     print(f"Base model: {model_name}")
 
     processor = AutoProcessor.from_pretrained(model_name)
+
+    # Set global processor for compute_metrics
+    global _GLOBAL_PROCESSOR
+    _GLOBAL_PROCESSOR = processor
 
     # Load model with device map
     model = AutoModelForImageTextToText.from_pretrained(
@@ -419,7 +515,14 @@ def main():
     # This ensures minority classes are sampled more frequently during training
     sample_weights = []
     for item in train_data:
-        elem = item['element']
+        # Extract element from either 'element' field or conversations[1].content
+        if 'element' in item:
+            elem = item['element']
+        elif 'conversations' in item and len(item['conversations']) > 1:
+            raw_content = item['conversations'][1]['content']
+            elem = extract_element(raw_content)
+        else:
+            elem = 'water'  # fallback
         sample_weights.append(class_weights[elem])
 
     sampler = torch.utils.data.WeightedRandomSampler(

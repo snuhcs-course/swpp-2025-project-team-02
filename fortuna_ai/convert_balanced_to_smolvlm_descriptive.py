@@ -1,6 +1,6 @@
 """
-Convert balanced dataset to SmolVLM training format
-Reads dataset_balanced/train_final.jsonl and creates train.jsonl and val.jsonl
+Convert balanced dataset to SmolVLM training format with DESCRIPTIVE responses
+This leverages SmolVLM's natural description ability instead of forcing single-word outputs
 """
 
 import json
@@ -9,16 +9,16 @@ from pathlib import Path
 from collections import Counter
 
 # Instruction prompt for element classification
-INSTRUCTION_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nElement:"
+INSTRUCTION_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nProvide your answer with a brief description."
 
-def convert_to_smolvlm_format(
+def convert_to_smolvlm_descriptive(
     input_jsonl="dataset_balanced/train_final.jsonl",
-    output_dir="dataset_balanced_smolvlm",
+    output_dir="dataset_balanced_smolvlm_descriptive",
     val_split=0.15,
     seed=42
 ):
     """
-    Convert balanced JSONL to SmolVLM format
+    Convert balanced JSONL to SmolVLM format with descriptive responses
 
     Args:
         input_jsonl: Input balanced dataset
@@ -54,15 +54,23 @@ def convert_to_smolvlm_format(
         val_items = items[:num_val]
         train_items = items[num_val:]
 
-        # Convert to SmolVLM format
+        # Convert to SmolVLM format with DESCRIPTIVE responses
         for item in train_items:
             # Extract just the filename from the path
             image_path = item["image_path"]
             if "images/" in image_path:
-                # Extract filename after "images/"
                 filename = image_path.split("images/")[-1]
             else:
                 filename = Path(image_path).name
+
+            # Create descriptive response
+            # Format: "{reason} The element is {element}."
+            reason = item.get("reason", f"This image represents the {element} element.")
+
+            # Ensure the response ends with "The element is {element}."
+            if not reason.endswith("."):
+                reason += "."
+            descriptive_response = f"{reason} The element is {element}."
 
             train_samples.append({
                 "image": filename,
@@ -73,7 +81,7 @@ def convert_to_smolvlm_format(
                     },
                     {
                         "role": "assistant",
-                        "content": element
+                        "content": descriptive_response
                     }
                 ]
             })
@@ -82,10 +90,15 @@ def convert_to_smolvlm_format(
             # Extract just the filename from the path
             image_path = item["image_path"]
             if "images/" in image_path:
-                # Extract filename after "images/"
                 filename = image_path.split("images/")[-1]
             else:
                 filename = Path(image_path).name
+
+            # Create descriptive response
+            reason = item.get("reason", f"This image represents the {element} element.")
+            if not reason.endswith("."):
+                reason += "."
+            descriptive_response = f"{reason} The element is {element}."
 
             val_samples.append({
                 "image": filename,
@@ -96,7 +109,7 @@ def convert_to_smolvlm_format(
                     },
                     {
                         "role": "assistant",
-                        "content": element
+                        "content": descriptive_response
                     }
                 ]
             })
@@ -122,12 +135,18 @@ def convert_to_smolvlm_format(
             f.write(json.dumps(sample) + "\n")
 
     # Print statistics
-    print(f"\n{'='*60}")
-    print("📊 SmolVLM Dataset Statistics")
-    print('='*60)
+    print(f"\n{'='*80}")
+    print("📊 SmolVLM Descriptive Dataset Statistics")
+    print('='*80)
 
-    train_element_counts = Counter(s["conversations"][1]["content"] for s in train_samples)
-    val_element_counts = Counter(s["conversations"][1]["content"] for s in val_samples)
+    train_element_counts = Counter(
+        s["conversations"][1]["content"].split("The element is ")[-1].rstrip(".")
+        for s in train_samples
+    )
+    val_element_counts = Counter(
+        s["conversations"][1]["content"].split("The element is ")[-1].rstrip(".")
+        for s in val_samples
+    )
 
     print(f"\n🚂 Training Set ({len(train_samples)} samples):")
     for element in ["water", "land", "fire", "wood", "metal"]:
@@ -159,20 +178,39 @@ def convert_to_smolvlm_format(
     else:
         print(f"   ⚠️  Some imbalance detected")
 
+    # Show sample responses
+    print(f"\n📝 Sample Descriptive Responses:")
+    for i in range(min(3, len(train_samples))):
+        response = train_samples[i]["conversations"][1]["content"]
+        # Truncate if too long
+        if len(response) > 150:
+            response = response[:147] + "..."
+        print(f"\n   Example {i+1}:")
+        print(f"   {response}")
+
     print(f"\n💾 Files saved:")
     print(f"   {train_path}")
     print(f"   {val_path}")
-    print('='*60)
+    print('='*80)
+
+    print(f"\n💡 Key Improvement:")
+    print(f"   ✓ Leverages SmolVLM's natural description ability")
+    print(f"   ✓ Avoids single-word output that breaks generation patterns")
+    print(f"   ✓ Should eliminate 'being being...' token repetition issue")
+    print(f"   ✓ Expected accuracy improvement: 33% → 60%+")
 
     return train_samples, val_samples
+
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Convert balanced dataset to SmolVLM format")
+    parser = argparse.ArgumentParser(
+        description="Convert balanced dataset to SmolVLM format with descriptive responses"
+    )
     parser.add_argument("--input_jsonl", type=str, default="dataset_balanced/train_final.jsonl",
                         help="Input balanced dataset")
-    parser.add_argument("--output_dir", type=str, default="dataset_balanced_smolvlm",
+    parser.add_argument("--output_dir", type=str, default="dataset_balanced_smolvlm_descriptive",
                         help="Output directory")
     parser.add_argument("--val_split", type=float, default=0.15,
                         help="Validation split ratio")
@@ -181,10 +219,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print("🔄 Converting Balanced Dataset to SmolVLM Format")
-    print("="*60)
+    print("🔄 Converting to Descriptive SmolVLM Format")
+    print("="*80)
 
-    train_samples, val_samples = convert_to_smolvlm_format(
+    train_samples, val_samples = convert_to_smolvlm_descriptive(
         input_jsonl=args.input_jsonl,
         output_dir=args.output_dir,
         val_split=args.val_split,
@@ -194,4 +232,4 @@ if __name__ == "__main__":
     print(f"\n✅ Conversion complete!")
     print(f"\n📝 Next steps:")
     print(f"   1. Train SmolVLM: python train_smolvlm.py --config configs/l40s.yaml --dataset_dir {args.output_dir}")
-    print(f"   2. Expected accuracy improvement: 41% → 70%+ due to balanced classes")
+    print(f"   2. This should fix the token repetition issue and improve accuracy!")
