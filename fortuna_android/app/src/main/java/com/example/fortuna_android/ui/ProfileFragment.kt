@@ -3,6 +3,7 @@ package com.example.fortuna_android.ui
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
@@ -11,6 +12,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -239,13 +241,112 @@ class ProfileFragment : Fragment() {
             binding.profileElementTag.text = spannable
         }
 
-        // 사주팔자 표시
-        binding.sajuPaljaView.setSajuData(
-            yearly = profile.yearlyGanji,
-            monthly = profile.monthlyGanji,
-            daily = profile.dailyGanji,
-            hourly = profile.hourlyGanji
+        // 수집한 원소 표시
+        updateCollectedElements(profile)
+    }
+
+    /**
+     * Update collected elements badges with proper colors
+     * Order: 목(Wood-Green), 화(Fire-Red), 토(Earth-Orange), 금(Metal-Gray), 수(Water-Blue)
+     */
+    private fun updateCollectedElements(profile: UserProfile) {
+        val binding = _binding ?: return
+        val collectionStatus = profile.collectionStatus
+
+        // Element colors matching SajuPaljaView
+        val woodColor = Color.parseColor("#0BEFA0")   // Green
+        val fireColor = Color.parseColor("#F93E3E")   // Red
+        val earthColor = Color.parseColor("#FF9500")  // Orange
+        val metalColor = Color.parseColor("#C1BFBF")  // Gray
+        val waterColor = Color.parseColor("#2BB3FC")  // Blue
+
+        // Update badge 1: 목 (Wood) - Green
+        updateElementBadge(
+            badge = binding.elementBadge1,
+            count = collectionStatus?.wood ?: 0,
+            color = woodColor,
+            elementType = "wood",
+            elementKr = "목"
         )
+
+        // Update badge 2: 화 (Fire) - Red
+        updateElementBadge(
+            badge = binding.elementBadge2,
+            count = collectionStatus?.fire ?: 0,
+            color = fireColor,
+            elementType = "fire",
+            elementKr = "화"
+        )
+
+        // Update badge 3: 토 (Earth) - Orange
+        updateElementBadge(
+            badge = binding.elementBadge3,
+            count = collectionStatus?.earth ?: 0,
+            color = earthColor,
+            elementType = "earth",
+            elementKr = "토"
+        )
+
+        // Update badge 4: 금 (Metal) - Gray
+        updateElementBadge(
+            badge = binding.elementBadge4,
+            count = collectionStatus?.metal ?: 0,
+            color = metalColor,
+            elementType = "metal",
+            elementKr = "금"
+        )
+
+        // Update badge 5: 수 (Water) - Blue
+        updateElementBadge(
+            badge = binding.elementBadge5,
+            count = collectionStatus?.water ?: 0,
+            color = waterColor,
+            elementType = "water",
+            elementKr = "수"
+        )
+
+        Log.d(TAG, "Collected elements updated: 목=${collectionStatus?.wood}, 화=${collectionStatus?.fire}, 토=${collectionStatus?.earth}, 금=${collectionStatus?.metal}, 수=${collectionStatus?.water}")
+    }
+
+    /**
+     * Update a single element badge with count, color, and click listener
+     */
+    private fun updateElementBadge(
+        badge: TextView,
+        count: Int,
+        color: Int,
+        elementType: String,
+        elementKr: String
+    ) {
+        badge.text = count.toString()
+
+        // Create rounded rectangle background with element color
+        val background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(color)
+            cornerRadius = 8f
+        }
+        badge.background = background
+
+        // Set text color to white for better visibility
+        badge.setTextColor(Color.WHITE)
+
+        // Make badge clickable
+        badge.isClickable = true
+        badge.isFocusable = true
+
+        // Add click listener to show history dialog
+        badge.setOnClickListener {
+            showElementHistoryDialog(elementType, elementKr, color)
+        }
+    }
+
+    /**
+     * Show element history dialog
+     */
+    private fun showElementHistoryDialog(elementType: String, elementKr: String, color: Int) {
+        val dialog = ElementHistoryDialogFragment.newInstance(elementType, elementKr, color)
+        dialog.show(childFragmentManager, "ElementHistoryDialog")
     }
 
     private fun getElementFromCheongan(cheongan: String): String {
