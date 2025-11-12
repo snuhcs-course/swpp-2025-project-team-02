@@ -92,24 +92,6 @@
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
-    <!-- VLM Description Overlay (bottom) -->
-    <TextView
-        android:id="@+id/vlmDescriptionOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="100dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="#AA000000"
-        android:padding="16dp"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
-        android:visibility="gone"
-        android:maxLines="5"
-        android:scrollbars="vertical"
-        tools:text="VLM analysis result will appear here..."
-        tools:visibility="visible" />
 
     <!-- Celebration Overlay -->
     <FrameLayout

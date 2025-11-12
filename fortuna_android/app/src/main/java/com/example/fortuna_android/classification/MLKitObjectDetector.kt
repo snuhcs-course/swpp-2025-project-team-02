@@ -35,7 +35,7 @@ class MLKitObjectDetector(
   context: Activity,
   private val minObjectSizePercent: Float = 0.1f,
   private val maxObjectSizePercent: Float = 0.8f,
-  private val maxDetectedObjects: Int = 3
+  private val maxDetectedObjects: Int = 1
 ) : ObjectDetector(context) {
   // To use a custom model, follow steps on https://developers.google.com/ml-kit/vision/object-detection/custom-models/android.
   // val model = LocalModel.Builder().setAssetFilePath("inception_v4_1_metadata_1.tflite").build()

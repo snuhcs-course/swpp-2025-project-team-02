@@ -32,7 +32,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
     private var boundingBoxes = listOf<DetectedObjectResult>()
 
     private val boxPaint = Paint().apply {
-        color = Color.RED
+        color = Color.GREEN
         style = Paint.Style.STROKE
         strokeWidth = 8f
         isAntiAlias = true

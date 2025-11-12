@@ -505,9 +505,6 @@ class ARRenderer(private val fragment: ARFragment) :
         }
 
         isVLMAnalyzing = true
-        fragment.view?.post {
-            fragment.onVLMAnalysisStarted()
-        }
 
         launch(Dispatchers.IO) {
             try {
@@ -537,33 +534,25 @@ class ARRenderer(private val fragment: ARFragment) :
                 }
 
                 // VLM prompt for scene description
+                val vlmResult = StringBuilder()
                 // Stream VLM results
                 vlmManager.analyzeImage(optimizedBitmap, VLM_PROMPT)
                     .catch { e ->
                         Log.e(TAG, "VLM analysis error", e)
-                        fragment.view?.post {
-                            fragment.updateVLMDescription("\nError: ${e.message}")
-                        }
                     }
                     .collect { token ->
-                        fragment.updateVLMDescription(token)
+                        vlmResult.append(token)
                     }
 
                 // Clean up optimized bitmap
                 optimizedBitmap.recycle()
 
-                Log.i(TAG, "VLM analysis completed")
-                fragment.view?.post {
-                    fragment.onVLMAnalysisCompleted()
-                }
+                Log.i(TAG, "VLM analysis completed: ${vlmResult.toString()}")
 
             } catch (e: NotYetAvailableException) {
                 Log.w(TAG, "Camera image not yet available for VLM", e)
             } catch (e: Exception) {
                 Log.e(TAG, "VLM analysis failed", e)
-                fragment.view?.post {
-                    fragment.updateVLMDescription("\nAnalysis failed: ${e.message}")
-                }
             } finally {
                 isVLMAnalyzing = false
             }
