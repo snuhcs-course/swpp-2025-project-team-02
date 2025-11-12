@@ -31,9 +31,9 @@ class SmolVLMManager(private val context: Context) {
         private const val MODELS_DIR = "models"
         private const val IMAGE_MARKER = "<__media__>"
 
-        // Target image size for VLM processing (128x128 for faster inference on mobile)
-        // Smaller size = 4x faster vision encoder (trade-off: slightly lower accuracy)
-        private const val TARGET_IMAGE_SIZE = 128
+        // Target image size for VLM processing (64px shorter side for faster inference on mobile)
+        // Smaller size = 16x faster vision encoder vs 256px (trade-off: slightly lower accuracy)
+        private const val TARGET_IMAGE_SIZE = 64
 
         @Volatile
         private var instance: SmolVLMManager? = null
@@ -243,52 +243,22 @@ class SmolVLMManager(private val context: Context) {
     }
 
     /**
-     * Resize image to target size while maintaining aspect ratio
-     * Adds padding if needed to maintain square dimensions
+     * Resize image so shorter side = targetSize, maintaining aspect ratio
+     * No padding - just pure aspect ratio scaling for maximum speed
      */
     private fun resizeImageForVLM(bitmap: Bitmap, targetSize: Int): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
 
-        // If already at target size, return as-is
-        if (width == targetSize && height == targetSize) {
-            return bitmap
-        }
-
-        // Calculate scaling factor to fit within target size while maintaining aspect ratio
-        val scaleFactor = minOf(
-            targetSize.toFloat() / width,
-            targetSize.toFloat() / height
-        )
+        // Calculate scale factor based on shorter side
+        val shorterSide = minOf(width, height)
+        val scaleFactor = targetSize.toFloat() / shorterSide
 
         val scaledWidth = (width * scaleFactor).toInt()
         val scaledHeight = (height * scaleFactor).toInt()
 
-        // First, scale the image
-        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
-
-        // If not square, create a square canvas and center the image
-        if (scaledWidth != targetSize || scaledHeight != targetSize) {
-            val paddedBitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
-            val canvas = android.graphics.Canvas(paddedBitmap)
-
-            // Fill with black background
-            canvas.drawColor(android.graphics.Color.BLACK)
-
-            // Center the scaled image
-            val left = (targetSize - scaledWidth) / 2f
-            val top = (targetSize - scaledHeight) / 2f
-            canvas.drawBitmap(scaledBitmap, left, top, null)
-
-            // Recycle the intermediate bitmap
-            if (scaledBitmap != bitmap) {
-                scaledBitmap.recycle()
-            }
-
-            return paddedBitmap
-        }
-
-        return scaledBitmap
+        // Scale maintaining aspect ratio
+        return Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
     }
 
     /**
