@@ -13,6 +13,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Bounding Box Overlay for object detection visualization -->
+    <com.example.fortuna_android.ui.BoundingBoxOverlayView
+        android:id="@+id/boundingBoxOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <!-- Needed Element Banner (Top) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/neededElementBanner"

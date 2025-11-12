@@ -101,11 +101,19 @@ class ARFragment(
 
 
         setupARSession()
+        setupBoundingBoxOverlay()
         setupClickListeners()
         setupTouchDetection()
         setupBackgroundMusic()
         setupElementSoundEffects()
         fetchTodayProgress()
+    }
+
+    private fun setupBoundingBoxOverlay() {
+        binding.boundingBoxOverlay.setOnObjectClickListener { detectedObject ->
+            // Show VLM output dialog when user clicks on a completed bounding box
+            VLMOutputDialog.newInstance(detectedObject).show(childFragmentManager, "vlm_output")
+        }
     }
 
     private fun setupARSession() {
@@ -288,6 +296,17 @@ class ARFragment(
             vlmResponseBuilder.clear()
             binding.vlmDescriptionOverlay.text = "Analyzing scene..."
             binding.vlmDescriptionOverlay.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Update bounding box overlay with detected objects
+     * Called by ARRenderer when detection state changes
+     */
+    fun updateDetectedObjects(objects: List<DetectedObject>) {
+        view?.post {
+            val binding = _binding ?: return@post
+            binding.boundingBoxOverlay.setDetectedObjects(objects)
         }
     }
 
