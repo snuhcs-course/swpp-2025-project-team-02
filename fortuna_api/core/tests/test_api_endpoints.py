@@ -711,6 +711,260 @@ class TestImageAPIEndpoints(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_element_focused_history_success(self):
+        """Test getting element-focused history with multiple dates."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        # Create chakra images for wood element on different dates
+        dates = [
+            datetime(2025, 11, 10).date(),
+            datetime(2025, 11, 12).date(),
+            datetime(2025, 11, 15).date(),
+        ]
+
+        for date in dates:
+            # Create multiple chakras on each date
+            count = dates.index(date) + 2  # 2, 3, 4 chakras
+            for _ in range(count):
+                ChakraImage.objects.create(
+                    user=self.user,
+                    image=None,
+                    chakra_type='wood',
+                    date=date,
+                    timestamp=timezone.now(),
+                    device_make='PoC',
+                    device_model='PoC'
+                )
+
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'wood'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['element'], 'wood')
+        self.assertEqual(response.data['data']['element_kr'], '목')
+        self.assertEqual(response.data['data']['total_count'], 2+3+4)  # 9 total
+        self.assertEqual(len(response.data['data']['history']), 3)
+
+        # Verify sorted by date descending (most recent first)
+        history = response.data['data']['history']
+        self.assertEqual(history[0]['date'], '2025-11-15')
+        self.assertEqual(history[0]['collected_count'], 4)
+        self.assertEqual(history[1]['date'], '2025-11-12')
+        self.assertEqual(history[1]['collected_count'], 3)
+        self.assertEqual(history[2]['date'], '2025-11-10')
+        self.assertEqual(history[2]['collected_count'], 2)
+
+    def test_element_focused_history_all_element_types(self):
+        """Test element-focused history for all element types."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        today = timezone.now().date()
+        element_types = {
+            'wood': '목',
+            'fire': '화',
+            'earth': '토',
+            'metal': '금',
+            'water': '수'
+        }
+
+        # Create one chakra for each element type
+        for element_en, element_kr in element_types.items():
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type=element_en,
+                date=today,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        # Test each element type
+        for element_en, element_kr in element_types.items():
+            url = reverse('core:chakra_element_history')
+            response = self.client.get(url, {'element': element_en})
+
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['status'], 'success')
+            self.assertEqual(response.data['data']['element'], element_en)
+            self.assertEqual(response.data['data']['element_kr'], element_kr)
+            self.assertEqual(response.data['data']['total_count'], 1)
+            self.assertEqual(len(response.data['data']['history']), 1)
+
+    def test_element_focused_history_empty(self):
+        """Test element-focused history when no data exists."""
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'fire'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['element'], 'fire')
+        self.assertEqual(response.data['data']['element_kr'], '화')
+        self.assertEqual(response.data['data']['total_count'], 0)
+        self.assertEqual(len(response.data['data']['history']), 0)
+
+    def test_element_focused_history_no_element_param(self):
+        """Test element-focused history without element parameter."""
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Element parameter is required', response.data['message'])
+
+    def test_element_focused_history_invalid_element(self):
+        """Test element-focused history with invalid element type."""
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'invalid'})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('Invalid element', response.data['message'])
+
+    def test_element_focused_history_case_insensitive(self):
+        """Test element-focused history with uppercase element parameter."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        # Create a water chakra
+        ChakraImage.objects.create(
+            user=self.user,
+            image=None,
+            chakra_type='water',
+            date=timezone.now().date(),
+            timestamp=timezone.now(),
+            device_make='PoC',
+            device_model='PoC'
+        )
+
+        url = reverse('core:chakra_element_history')
+        # Test with uppercase (should be case-insensitive)
+        response = self.client.get(url, {'element': 'WATER'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['element'], 'water')
+        self.assertEqual(response.data['data']['total_count'], 1)
+
+    def test_element_focused_history_multiple_counts_same_date(self):
+        """Test element-focused history when multiple chakras collected on same date."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        date = datetime(2025, 11, 20).date()
+
+        # Create 8 metal chakras on the same date
+        for _ in range(8):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='metal',
+                date=date,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'metal'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['total_count'], 8)
+        self.assertEqual(len(response.data['data']['history']), 1)
+        self.assertEqual(response.data['data']['history'][0]['collected_count'], 8)
+
+    def test_element_focused_history_multiple_users(self):
+        """Test element-focused history only returns current user's data."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        # Create another user
+        other_user = User.objects.create_user(
+            email='other@example.com',
+            password='testpass123'
+        )
+
+        date = timezone.now().date()
+
+        # Create chakras for current user
+        for _ in range(3):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='earth',
+                date=date,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        # Create chakras for other user (should not be included)
+        for _ in range(5):
+            ChakraImage.objects.create(
+                user=other_user,
+                image=None,
+                chakra_type='earth',
+                date=date,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'earth'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['data']['total_count'], 3)  # Only current user's
+
+    def test_element_focused_history_sorting_order(self):
+        """Test element-focused history sorting (most recent first)."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        # Create chakras on dates in random order
+        dates = [
+            datetime(2025, 10, 5).date(),
+            datetime(2025, 11, 20).date(),
+            datetime(2025, 9, 15).date(),
+            datetime(2025, 12, 1).date(),
+        ]
+
+        for date in dates:
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='fire',
+                date=date,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'fire'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        history = response.data['data']['history']
+
+        # Verify descending order (most recent first)
+        self.assertEqual(history[0]['date'], '2025-12-01')
+        self.assertEqual(history[1]['date'], '2025-11-20')
+        self.assertEqual(history[2]['date'], '2025-10-05')
+        self.assertEqual(history[3]['date'], '2025-09-15')
+
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_element_focused_history_unauthenticated(self):
+        """Test element-focused history without authentication."""
+        self.client.credentials()  # Remove credentials
+        url = reverse('core:chakra_element_history')
+        response = self.client.get(url, {'element': 'wood'})
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class TestFortuneAPIEndpoints(APITestCase):
     """Test cases for fortune-related API endpoints."""
