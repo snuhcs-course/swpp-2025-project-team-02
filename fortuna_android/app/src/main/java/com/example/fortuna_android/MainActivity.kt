@@ -86,6 +86,12 @@ class MainActivity : AppCompatActivity() {
         // Set up bottom navigation
         setupBottomNavigation(navController)
 
+        // Handle tutorial navigation to AR screen
+        if (intent.getBooleanExtra("navigate_to_ar", false)) {
+            // Navigate to AR tab (index 2 - camera tab)
+            binding.bottomNavigation.selectedItemId = R.id.arFragment
+        }
+
         // Check permissions on startup
         requestPermissions()
 

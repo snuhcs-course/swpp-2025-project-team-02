@@ -1,6 +1,7 @@
 package com.example.fortuna_android.ui
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -11,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.fortuna_android.R
+import com.example.fortuna_android.TutorialOverlayFragment
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
 import kotlinx.coroutines.launch
@@ -76,12 +78,10 @@ class TodayFortuneFragment : Fragment() {
                     ilun = elements["일운"]
                 )
 
-                // Set up refresh fortune button click listener
+                // Set up refresh fortune button click listener - Show Tutorial Overlay
                 binding.fortuneCardView.setOnRefreshFortuneClickListener {
-                    // Navigate through parent fragment's NavController
-                    (parentFragment as? HomeFragment)?.let { homeFragment ->
-                        homeFragment.findNavController().navigate(R.id.arFragment)
-                    }
+                    Log.d(TAG, "Refresh fortune button clicked - showing tutorial overlay")
+                    showTutorialOverlay()
                 }
             }
         }
@@ -118,6 +118,17 @@ class TodayFortuneFragment : Fragment() {
                 fortuneViewModel.clearError()
             }
         }
+    }
+
+    private fun showTutorialOverlay() {
+        // Show tutorial overlay fragment over the current screen
+        val overlayFragment = TutorialOverlayFragment.newInstance()
+
+        // Use requireActivity's supportFragmentManager to add to the activity's root view
+        requireActivity().supportFragmentManager.beginTransaction()
+            .add(android.R.id.content, overlayFragment, TutorialOverlayFragment.TAG)
+            .addToBackStack(TutorialOverlayFragment.TAG)
+            .commit()
     }
 
     private fun loadUserProfile() {

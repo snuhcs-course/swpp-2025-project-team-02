@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 스포트라이트 오버레이 (기본 80%, 2번째 대사에서 원형 구멍) -->
+    <com.example.fortuna_android.ui.SpotlightOverlayView
+        android:id="@+id/spotlightOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- 좌측 상단 종료 버튼 -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        app:fabSize="mini"
+        app:tint="@android:color/white"
+        android:contentDescription="Close tutorial" />
+
+    <!-- 우측 하단 작은 마스코트 -->
+    <FrameLayout
+        android:id="@+id/mascotContainer"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="220dp">
+
+        <com.example.fortuna_android.ui.SimpleMascotView
+            android:id="@+id/ivMascot"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Fortuna Mascot" />
+    </FrameLayout>
+
+    <!-- 중앙 하단 말풍선 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/dialogueBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="40dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="#FFFFFF"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- 대사 텍스트 -->
+            <TextView
+                android:id="@+id/tvDialogue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="모든 것은 오행이요,\n오행의 조화가 복을 의미합니다."
+                android:textColor="#000000"
+                android:textSize="18sp"
+                android:lineSpacingMultiplier="1.3"
+                android:fontFamily="sans-serif-medium" />
+
+            <!-- 말풍선 화살표 표시 (▼) -->
+            <TextView
+                android:id="@+id/tvArrow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:text="▼"
+                android:textColor="#FF0000"
+                android:textSize="20sp"
+                android:visibility="visible" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</FrameLayout>
