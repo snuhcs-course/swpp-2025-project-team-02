@@ -9,11 +9,22 @@ on:
       - 'fortuna_api/**'
 
 jobs:
-  deploy:
+  deploy-server:
     runs-on: ubuntu-latest
     container: ghcr.io/railwayapp/cli:latest
     env:
       SVC_ID: server
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: railway up --service=${{ env.SVC_ID }}
+        working-directory: ./fortuna_api
+
+  deploy-batch:
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      SVC_ID: batch
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v3

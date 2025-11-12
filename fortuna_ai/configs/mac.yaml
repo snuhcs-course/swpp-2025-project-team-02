@@ -1,0 +1,35 @@
+# Mac M1 Configuration (Testing/Development)
+# MPS backend, conservative settings for limited memory
+
+model:
+  base_model: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
+
+lora:
+  rank: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+data:
+  max_length: 128
+  include_context: true  # Include reasoning context during training
+
+training:
+  num_epochs: 2
+  batch_size: 1  # Small batch for Mac memory
+  gradient_accumulation_steps: 8  # Effective batch = 8
+  learning_rate: 2.0e-4
+  warmup_steps: 50
+  logging_steps: 10
+  eval_steps: 50
+  save_steps: 100
+  bf16: false  # MPS doesn't support bf16 yet
+  gradient_checkpointing: true  # Save memory
+  num_workers: 0  # Avoid multiprocessing issues on Mac

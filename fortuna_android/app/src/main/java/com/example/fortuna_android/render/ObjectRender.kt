@@ -20,7 +20,14 @@ import java.io.IOException
 class ObjectRender {
     companion object {
         private const val TAG = "ObjectRender"
-        private const val OBJECT_SCALE = 0.1f // Scale for the objects (0.02 = small, 0.1 = medium, 0.2 = large)
+        private const val OBJECT_SCALE = 0.1f // Base scale for the objects (0.02 = small, 0.1 = medium, 0.2 = large)
+
+        // Minimum scale to prevent tiny Pokemon (guarantees readable size)
+        // At 1.5m distance: scale = 0.1 (normal)
+        // At 3m distance: scale = 0.2 (2x larger to compensate)
+        // At 5m+ distance: scale = 0.3+ (capped at reasonable size)
+        private const val MIN_VISUAL_SCALE = 0.08f // Minimum absolute scale
+        private const val REFERENCE_DISTANCE = 1.5f // Distance where OBJECT_SCALE is used as-is
 
         // Animation constants
         private const val BOUNCE_HEIGHT = 0.05f // How high objects bounce (in meters)
@@ -133,13 +140,15 @@ class ObjectRender {
 
     /**
      * Draw a 3D sphere object at the given pose with animations
+     * @param distance Distance from camera when anchor was created (for size compensation)
      */
     fun draw(
         render: SampleRender,
         viewMatrix: FloatArray,
         projectionMatrix: FloatArray,
         pose: Pose,
-        element: ElementMapper.Element
+        element: ElementMapper.Element,
+        distance: Float = REFERENCE_DISTANCE
     ) {
         // Skip rendering for OTHERS category
         if (element == ElementMapper.Element.OTHERS) {
@@ -202,16 +211,30 @@ class ObjectRender {
             // No rotation when camera position calculation fails
         }
 
+        // Calculate distance-based scale to maintain visual size
+        // Formula: scale increases with distance to keep apparent size consistent
+        // distanceScale = max(1.0, distance / REFERENCE_DISTANCE)
+        val distanceScale = kotlin.math.max(1.0f, distance / REFERENCE_DISTANCE)
+        val baseScale = OBJECT_SCALE * distanceScale
+
+        // Ensure minimum visual scale (prevents tiny Pokemon)
+        val effectiveScale = kotlin.math.max(MIN_VISUAL_SCALE, baseScale)
+
         // Apply scale with squash-and-stretch effect for bouncing
         val bouncePhase = kotlin.math.sin(animationTime * BOUNCE_SPEED)
         val scaleY = 1.0f + kotlin.math.abs(bouncePhase) * 0.15f // Stretch when bouncing up
         val scaleXZ = 1.0f - kotlin.math.abs(bouncePhase) * 0.1f // Squash horizontally when bouncing
 
-        val finalScaleX = OBJECT_SCALE * scaleXZ.toFloat()
-        val finalScaleY = OBJECT_SCALE * scaleY.toFloat()
-        val finalScaleZ = OBJECT_SCALE * scaleXZ.toFloat()
+        val finalScaleX = effectiveScale * scaleXZ.toFloat()
+        val finalScaleY = effectiveScale * scaleY.toFloat()
+        val finalScaleZ = effectiveScale * scaleXZ.toFloat()
 
         Matrix.scaleM(modelMatrix, 0, finalScaleX, finalScaleY, finalScaleZ)
+
+        // Log scale info for debugging (only occasionally to avoid spam)
+        if (kotlin.random.Random.nextDouble() < 0.01) { // 1% of frames
+            Log.d(TAG, "Scale: distance=${distance}m, distanceScale=$distanceScale, effectiveScale=$effectiveScale")
+        }
 
         // Calculate model-view matrix
         Matrix.multiplyMM(modelViewMatrix, 0, viewMatrix, 0, modelMatrix, 0)

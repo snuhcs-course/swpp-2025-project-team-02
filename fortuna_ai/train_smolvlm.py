@@ -1,0 +1,601 @@
+#!/usr/bin/env python3
+"""
+SmolVLM Element Classification Training Script
+Quick POC for training on full images, with plans for cropped dataset enhancement
+
+Usage:
+    # Mac (testing)
+    python train_smolvlm.py --config configs/mac.yaml
+
+    # L40S server (training)
+    python train_smolvlm.py --config configs/l40s.yaml
+
+    # Colab
+    python train_smolvlm.py --config configs/colab.yaml
+"""
+
+import argparse
+import json
+from pathlib import Path
+from typing import Dict, List
+import yaml
+
+import torch
+from PIL import Image
+from transformers import (
+    AutoProcessor,
+    AutoModelForImageTextToText,
+    TrainingArguments,
+    Trainer,
+    EarlyStoppingCallback,
+)
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+
+
+# Element classes (matching Android ElementMapper)
+ELEMENTS = ["water", "land", "fire", "wood", "metal"]
+
+# Android alignment constants
+ANDROID_IMAGE_SIZE = 256  # SmolVLMManager.kt:35
+ANDROID_IMAGE_MARKER = "<__media__>"  # SmolVLMManager.kt:32
+
+
+def load_config(config_path: str) -> Dict:
+    """Load YAML configuration file"""
+    with open(config_path) as f:
+        return yaml.safe_load(f)
+
+
+def load_jsonl_dataset(jsonl_path: Path, images_dir: Path) -> List[Dict]:
+    """Load dataset from JSONL file"""
+    data = []
+    with open(jsonl_path) as f:
+        for line in f:
+            item = json.loads(line.strip())
+            # Verify image exists
+            # Handle both "image_path" and "image" fields
+            image_path_str = item.get('image_path') or item.get('image')
+            if not image_path_str:
+                print(f"Warning: No image path found in item: {item}")
+                continue
+
+            # Handle both "images/xxx.jpg" and "xxx.jpg" formats
+            if image_path_str.startswith('images/'):
+                image_path_str = image_path_str.replace('images/', '', 1)
+
+            # Handle absolute paths
+            if image_path_str.startswith('/'):
+                image_path = Path(image_path_str)
+            else:
+                image_path = images_dir / image_path_str
+
+            if image_path.exists():
+                data.append(item)
+            else:
+                print(f"Warning: Image not found: {image_path}")
+    return data
+
+
+def build_prompt(item: Dict, include_context: bool = True) -> tuple[str, str]:
+    """
+    Build prompt for SmolVLM2 (without image marker - chat template handles that)
+
+    Args:
+        item: Dataset item with 'element' and 'reason' fields
+        include_context: Whether to include reasoning context (helpful for training)
+
+    Returns:
+        (prompt, target) tuple
+    """
+    # Base prompt (SmolVLM2 chat template handles image placement)
+    base_prompt = """Classify this image into one of these elements: water, land, fire, wood, metal.
+
+Element:"""
+
+    # Add context for training (helps model learn reasoning)
+    if include_context and 'reason' in item:
+        prompt = f"""Classify this image into one of these elements: water, land, fire, wood, metal.
+
+Context: {item['reason']}
+
+Element:"""
+    else:
+        prompt = base_prompt
+
+    # Target: just the element label
+    # Extract element from either 'element' field or conversations[1].content
+    if 'element' in item:
+        target = item['element']
+    elif 'conversations' in item and len(item['conversations']) > 1:
+        target = item['conversations'][1]['content']
+    else:
+        raise ValueError(f"No element found in item: {item}")
+
+    return prompt, target
+
+
+class ElementDataset(torch.utils.data.Dataset):
+    """Dataset for element classification"""
+
+    def __init__(
+        self,
+        data: List[Dict],
+        images_dir: Path,
+        processor,
+        max_length: int = 128,
+        include_context: bool = True,
+        use_bf16: bool = False,
+    ):
+        self.data = data
+        self.images_dir = images_dir
+        self.processor = processor
+        self.max_length = max_length
+        self.include_context = include_context
+        self.use_bf16 = use_bf16
+
+        print(f"Loaded {len(self.data)} samples")
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        print(f"[DEBUG DATASET] Loading sample {idx}")
+        item = self.data[idx]
+
+        # Load image (already 256x256 from dataset prep)
+        # Handle both "image_path" and "image" fields, and both "images/xxx.jpg" and "xxx.jpg" formats
+        image_path_str = item.get('image_path') or item.get('image')
+        if not image_path_str:
+            raise ValueError(f"No image path found in item: {item}")
+
+        if image_path_str.startswith('images/'):
+            image_path_str = image_path_str.replace('images/', '', 1)
+        image_path = self.images_dir / image_path_str
+        image = Image.open(image_path).convert('RGB')
+
+        # Build prompt and target
+        prompt, target = build_prompt(item, self.include_context)
+
+        # SmolVLM2 uses chat format - create full conversation (user + assistant)
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": prompt}
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": target}]
+            }
+        ]
+
+        # Apply chat template with the full conversation
+        full_text = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=False  # We already have the response
+        )
+
+        # Process everything together - let processor handle everything!
+        # DON'T truncate here - it breaks image tokens
+        inputs = self.processor(
+            images=image,
+            text=full_text,
+            return_tensors="pt",
+        )
+
+        # Get tensors - NO manual padding/truncation!
+        input_ids = inputs["input_ids"].squeeze(0)
+        attention_mask = inputs["attention_mask"].squeeze(0) if "attention_mask" in inputs else torch.ones_like(input_ids)
+
+        # pixel_values needs to keep 4D shape [num_images, C, H, W] for single sample
+        # The model expects [batch_size, num_images, C, H, W] after batching
+        # Processor returns [1, num_images, C, H, W], we squeeze batch dim only
+        pixel_values = inputs["pixel_values"].squeeze(0)  # [num_images, C, H, W]
+
+        # Convert to bfloat16 if needed to match model dtype
+        if self.use_bf16:
+            pixel_values = pixel_values.to(torch.bfloat16)
+
+        # For labels, we need to mask the prompt part
+        # The chat template creates: User:...<end_of_utterance>\nAssistant: TARGET<end_of_utterance>\n
+        # We want to train ONLY on TARGET (the element name)
+
+        labels = input_ids.clone()
+
+        # Find "Assistant:" token sequence
+        # SmolVLM uses "Assistant" which tokenizes to [9519, 9531] (Ass + istant)
+        assistant_start_ids = self.processor.tokenizer.encode("Assistant:", add_special_tokens=False)
+
+        # Find where assistant response starts
+        assistant_pos = None
+        for i in range(len(input_ids) - len(assistant_start_ids)):
+            if all(input_ids[i+j] == assistant_start_ids[j] for j in range(len(assistant_start_ids))):
+                assistant_pos = i + len(assistant_start_ids)  # Position right after "Assistant:"
+                break
+
+        if assistant_pos is None:
+            # Fallback: mask everything
+            labels[:] = -100
+        else:
+            # Mask everything before assistant response
+            labels[:assistant_pos] = -100
+
+            # Also mask <end_of_utterance> and newline at the end
+            # Find end token (49279 is <end_of_utterance>)
+            end_token_id = self.processor.tokenizer.encode("<end_of_utterance>", add_special_tokens=False)[0]
+            for i in range(assistant_pos, len(input_ids)):
+                if input_ids[i] == end_token_id:
+                    labels[i:] = -100
+                    break
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": labels,
+            "pixel_values": pixel_values,
+        }
+
+
+def vlm_data_collator(features):
+    """
+    Custom data collator for Vision-Language Models.
+
+    Handles the special case where pixel_values need to maintain 5D shape:
+    [batch_size, num_images, channels, height, width]
+    """
+    import torch.nn.utils.rnn as rnn_utils
+
+    # Separate different tensor types
+    input_ids = [f["input_ids"] for f in features]
+    attention_masks = [f["attention_mask"] for f in features]
+    labels = [f["labels"] for f in features]
+    pixel_values = [f["pixel_values"] for f in features]
+
+    # Debug: print shapes
+    print(f"\n[DEBUG COLLATOR] Batch size: {len(features)}")
+    print(f"[DEBUG COLLATOR] pixel_values[0] shape: {pixel_values[0].shape}")
+    print(f"[DEBUG COLLATOR] input_ids[0] shape: {input_ids[0].shape}")
+
+    # Pad sequences (input_ids, attention_mask, labels)
+    input_ids_padded = rnn_utils.pad_sequence(input_ids, batch_first=True, padding_value=0)
+    attention_masks_padded = rnn_utils.pad_sequence(attention_masks, batch_first=True, padding_value=0)
+    labels_padded = rnn_utils.pad_sequence(labels, batch_first=True, padding_value=-100)
+
+    # Stack pixel_values - they should all be same shape [num_images, C, H, W]
+    # Stack along batch dimension to get [batch_size, num_images, C, H, W]
+    pixel_values_stacked = torch.stack(pixel_values, dim=0)
+
+    print(f"[DEBUG COLLATOR] pixel_values_stacked shape: {pixel_values_stacked.shape}")
+    print(f"[DEBUG COLLATOR] input_ids_padded shape: {input_ids_padded.shape}\n")
+
+    return {
+        "input_ids": input_ids_padded,
+        "attention_mask": attention_masks_padded,
+        "labels": labels_padded,
+        "pixel_values": pixel_values_stacked,
+    }
+
+
+def preprocess_logits_for_metrics(logits, labels):
+    """
+    Preprocess logits before storing for metrics computation.
+
+    This is called during evaluation BEFORE logits are accumulated in memory.
+    We convert huge logits tensors [batch, seq_len, vocab_size=50176]
+    to small prediction tensors [batch, seq_len] with just the argmax indices.
+
+    Memory savings: 50176x reduction per token!
+    For 100 validation samples: ~20GB → ~400KB
+
+    Args:
+        logits: Model output logits [batch, seq_len, vocab_size]
+        labels: Ground truth labels (unused but required by Trainer API)
+    """
+    if isinstance(logits, tuple):
+        logits = logits[0]
+
+    # Get predicted token IDs (argmax over vocab dimension)
+    # Shape: [batch, seq_len, 50176] → [batch, seq_len]
+    pred_tokens = torch.argmax(logits, dim=-1)
+
+    return pred_tokens
+
+
+# Global processor for decoding in compute_metrics
+_GLOBAL_PROCESSOR = None
+
+def compute_metrics(eval_pred):
+    """
+    Compute element classification accuracy by decoding to text.
+
+    Strategy: Decode predicted answer tokens to text, check if any element name is present.
+    """
+    global _GLOBAL_PROCESSOR
+
+    predictions, labels = eval_pred
+
+    # predictions are already argmaxed token IDs from preprocess_logits_for_metrics
+    # labels contain -100 for prompt tokens, and valid token IDs for answer tokens
+
+    ELEMENTS = ["water", "land", "fire", "wood", "metal"]
+
+    batch_size = labels.shape[0]
+    correct_count = 0
+    total_count = 0
+
+    # Convert to torch tensors if they're numpy arrays
+    if not isinstance(predictions, torch.Tensor):
+        predictions = torch.from_numpy(predictions)
+    if not isinstance(labels, torch.Tensor):
+        labels = torch.from_numpy(labels)
+
+    for i in range(batch_size):
+        # Extract answer tokens (non -100)
+        answer_mask = labels[i] != -100
+        answer_indices = answer_mask.nonzero(as_tuple=True)[0]
+
+        if len(answer_indices) == 0:
+            continue
+
+        # Get predicted and ground truth answer tokens
+        pred_answer_tokens = predictions[i][answer_indices].cpu().numpy()
+        label_answer_tokens = labels[i][answer_indices].cpu().numpy()
+
+        # Decode to text
+        if _GLOBAL_PROCESSOR is not None:
+            pred_text = _GLOBAL_PROCESSOR.decode(pred_answer_tokens, skip_special_tokens=True).strip().lower()
+            label_text = _GLOBAL_PROCESSOR.decode(label_answer_tokens, skip_special_tokens=True).strip().lower()
+
+            # Extract element from descriptive label if present
+            # e.g., "The element is fire." -> "fire"
+            if "the element is " in label_text:
+                # Extract element name from descriptive format
+                element = label_text.split("the element is ")[-1].rstrip(".").split()[0].lower()
+            else:
+                # Use label_text as-is for single-word format
+                element = label_text
+
+            # Check if ground truth element is in predicted text
+            if element in pred_text:
+                correct_count += 1
+        else:
+            # Fallback: exact token match
+            if torch.all(predictions[i][answer_indices] == labels[i][answer_indices]):
+                correct_count += 1
+
+        total_count += 1
+
+    accuracy = correct_count / total_count if total_count > 0 else 0.0
+
+    return {
+        "accuracy": float(accuracy),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Train SmolVLM for element classification")
+    parser.add_argument("--config", type=str, required=True, help="Path to config YAML")
+    parser.add_argument("--dataset_dir", type=str, default="./dataset", help="Dataset directory")
+    parser.add_argument("--output_dir", type=str, default="./output", help="Output directory")
+    parser.add_argument("--wandb", action="store_true", default=True, help="Enable W&B logging (default: True)")
+    parser.add_argument("--no-wandb", dest="wandb", action="store_false", help="Disable W&B logging")
+    args = parser.parse_args()
+
+    # Load config
+    config = load_config(args.config)
+    print(f"Loaded config from {args.config}")
+    print(f"Config: {json.dumps(config, indent=2)}")
+
+    # Setup paths
+    dataset_dir = Path(args.dataset_dir)
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load dataset
+    print("\n=== Loading Dataset ===")
+    train_data = load_jsonl_dataset(
+        dataset_dir / "train.jsonl",
+        dataset_dir / "images"
+    )
+    val_data = load_jsonl_dataset(
+        dataset_dir / "val.jsonl",
+        dataset_dir / "images"
+    )
+
+    print(f"Train samples: {len(train_data)}")
+    print(f"Val samples: {len(val_data)}")
+
+    # Helper function to extract element from descriptive response
+    def extract_element(content):
+        """Extract element name from descriptive response like 'The element is wood.'"""
+        if "The element is " in content:
+            # Extract element from "The element is {element}." pattern
+            element = content.split("The element is ")[-1].rstrip(".").strip()
+            # Return only the element name (first word)
+            return element.split()[0].lower() if element else content
+        return content
+
+    # Element distribution
+    # Extract element from either 'element' field or conversations[1].content
+    train_elements = []
+    for item in train_data:
+        if 'element' in item:
+            train_elements.append(item['element'])
+        elif 'conversations' in item and len(item['conversations']) > 1:
+            raw_content = item['conversations'][1]['content']
+            element = extract_element(raw_content)
+            train_elements.append(element)
+
+    print("\nTrain element distribution:")
+    element_counts = {}
+    for elem in ELEMENTS:
+        count = train_elements.count(elem)
+        element_counts[elem] = count
+        print(f"  {elem}: {count} ({count/len(train_elements)*100:.1f}%)")
+
+    # Compute class weights to handle imbalance
+    # Use inverse frequency: weight = total / (num_classes * count)
+    total_samples = len(train_elements)
+    num_classes = len(ELEMENTS)
+    class_weights = {}
+    print("\nClass weights (to balance training):")
+    for elem in ELEMENTS:
+        count = element_counts[elem]
+        if count > 0:
+            weight = total_samples / (num_classes * count)
+            class_weights[elem] = weight
+            print(f"  {elem}: {weight:.2f}x")
+        else:
+            class_weights[elem] = 0.0
+            print(f"  {elem}: 0.00x (no samples)")
+
+    # Load model and processor
+    print("\n=== Loading Model ===")
+    model_name = config['model']['base_model']
+    print(f"Base model: {model_name}")
+
+    processor = AutoProcessor.from_pretrained(model_name)
+
+    # Set global processor for compute_metrics
+    global _GLOBAL_PROCESSOR
+    _GLOBAL_PROCESSOR = processor
+
+    # Load model with device map
+    model = AutoModelForImageTextToText.from_pretrained(
+        model_name,
+        torch_dtype=torch.bfloat16 if config['training'].get('bf16', False) else torch.float32,
+        device_map="auto",
+        trust_remote_code=True,  # Required for SmolVLM
+    )
+
+    # Prepare for LoRA
+    if config['training'].get('gradient_checkpointing', False):
+        model.gradient_checkpointing_enable()
+
+    model = prepare_model_for_kbit_training(model)
+
+    # Setup LoRA
+    print("\n=== Configuring LoRA ===")
+    lora_config = LoraConfig(
+        r=config['lora']['rank'],
+        lora_alpha=config['lora']['alpha'],
+        lora_dropout=config['lora']['dropout'],
+        target_modules=config['lora']['target_modules'],
+        task_type="CAUSAL_LM",
+    )
+
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
+
+    # Create datasets
+    print("\n=== Creating PyTorch Datasets ===")
+    images_dir = dataset_dir / "images"
+
+    train_dataset = ElementDataset(
+        train_data,
+        images_dir,
+        processor,
+        max_length=config['data'].get('max_length', 128),
+        include_context=config['data'].get('include_context', True),
+        use_bf16=config['training'].get('bf16', False),
+    )
+
+    val_dataset = ElementDataset(
+        val_data,
+        images_dir,
+        processor,
+        max_length=config['data'].get('max_length', 128),
+        include_context=config['data'].get('include_context', True),
+        use_bf16=config['training'].get('bf16', False),
+    )
+
+    # Create sample weights for weighted sampling
+    # This ensures minority classes are sampled more frequently during training
+    sample_weights = []
+    for item in train_data:
+        # Extract element from either 'element' field or conversations[1].content
+        if 'element' in item:
+            elem = item['element']
+        elif 'conversations' in item and len(item['conversations']) > 1:
+            raw_content = item['conversations'][1]['content']
+            elem = extract_element(raw_content)
+        else:
+            elem = 'water'  # fallback
+        sample_weights.append(class_weights[elem])
+
+    sampler = torch.utils.data.WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True  # Allow sampling same item multiple times per epoch
+    )
+    print(f"\nCreated WeightedRandomSampler with {len(sample_weights)} weights")
+
+    # Training arguments
+    print("\n=== Setting up Training ===")
+    training_args = TrainingArguments(
+        output_dir=str(output_dir),
+        num_train_epochs=config['training']['num_epochs'],
+        per_device_train_batch_size=config['training']['batch_size'],
+        per_device_eval_batch_size=config['training'].get('eval_batch_size', 1),  # Separate eval batch size for memory
+        gradient_accumulation_steps=config['training'].get('gradient_accumulation_steps', 1),
+        learning_rate=config['training']['learning_rate'],
+        warmup_steps=config['training'].get('warmup_steps', 100),
+        logging_steps=config['training'].get('logging_steps', 10),
+        eval_steps=config['training'].get('eval_steps', 50),
+        save_steps=config['training'].get('save_steps', 100),
+        eval_strategy="steps",
+        save_strategy="steps",
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        bf16=config['training'].get('bf16', False),
+        gradient_checkpointing=config['training'].get('gradient_checkpointing', False),
+        report_to="wandb" if args.wandb else "none",
+        save_total_limit=3,
+        dataloader_num_workers=config['training'].get('num_workers', 0),
+    )
+
+    # Create custom trainer that uses weighted sampler
+    class WeightedTrainer(Trainer):
+        def __init__(self, *args, train_sampler=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._train_sampler = train_sampler
+
+        def _get_train_sampler(self, train_dataset):
+            if self._train_sampler is not None:
+                return self._train_sampler
+            return super()._get_train_sampler(train_dataset)
+
+    # Create trainer with custom VLM data collator and weighted sampler
+    trainer = WeightedTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataset,
+        eval_dataset=val_dataset,
+        data_collator=vlm_data_collator,  # Use the custom collator defined above
+        compute_metrics=compute_metrics,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,  # Save memory during eval!
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+        train_sampler=sampler,  # Use weighted sampler to balance classes!
+    )
+
+    # Train
+    print("\n=== Starting Training ===")
+    trainer.train()
+
+    # Save final model
+    print("\n=== Saving Model ===")
+    final_output_dir = output_dir / "final"
+    trainer.save_model(str(final_output_dir))
+    processor.save_pretrained(str(final_output_dir))
+
+    print(f"\n✅ Training complete! Model saved to {final_output_dir}")
+    print("\nNext steps:")
+    print("1. Run validation: python validate.py --model_dir ./output/final")
+    print("2. Merge LoRA adapters and convert to GGUF for Android deployment")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,35 @@
+# Colab Pro Configuration
+# More RAM available, can be more aggressive
+
+model:
+  base_model: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
+
+lora:
+  rank: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+data:
+  max_length: 128
+  include_context: true
+
+training:
+  num_epochs: 3
+  batch_size: 4  # More RAM available
+  gradient_accumulation_steps: 4  # Effective batch = 16
+  learning_rate: 2.0e-4
+  warmup_steps: 100
+  logging_steps: 10
+  eval_steps: 50
+  save_steps: 100
+  bf16: true
+  gradient_checkpointing: true
+  num_workers: 0  # Avoid shared memory issues with large VLM images

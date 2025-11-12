@@ -40,6 +40,7 @@ import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException
 import android.hardware.camera2.CameraAccessException
+import com.example.fortuna_android.classification.DetectedObjectResult
 import kotlinx.coroutines.launch
 
 class ARFragment(
@@ -62,9 +63,6 @@ class ARFragment(
 
     // ARCore session manager - managed by this fragment
     private lateinit var sessionManager: ARSessionManager
-
-    // VLM state
-    private val vlmResponseBuilder = StringBuilder()
 
     // Track last tap coordinates for celebration animation
     private var lastTapX: Float = 0f
@@ -236,7 +234,6 @@ class ARFragment(
         binding.clearButton.setOnClickListener {
             if (::renderer.isInitialized) {
                 renderer.clearAnchors()
-                clearVLMDescription()
                 if (isAdded) {
                     CustomToast.show(requireContext(), "Anchors cleared")
                 }
@@ -265,6 +262,26 @@ class ARFragment(
     }
 
     /**
+     * Update bounding box overlay with detected objects
+     */
+    fun updateBoundingBoxes(objects: List<DetectedObjectResult>) {
+        view?.post {
+            val binding = _binding ?: return@post
+            binding.boundingBoxOverlay.setBoundingBoxes(objects)
+        }
+    }
+
+    /**
+     * Clear bounding box overlay
+     */
+    fun clearBoundingBoxes() {
+        view?.post {
+            val binding = _binding ?: return@post
+            binding.boundingBoxOverlay.clearBoundingBoxes()
+        }
+    }
+
+    /**
      * Called when object detection completes
      */
     fun onObjectDetectionCompleted(anchorsCreated: Int, objectsDetected: Int) {
@@ -279,49 +296,7 @@ class ARFragment(
         }
     }
 
-    /**
-     * Start VLM analysis - called by renderer when beginning VLM processing
-     */
-    fun onVLMAnalysisStarted() {
-        view?.post {
-            val binding = _binding ?: return@post
-            vlmResponseBuilder.clear()
-            binding.vlmDescriptionOverlay.text = "Analyzing scene..."
-            binding.vlmDescriptionOverlay.visibility = View.VISIBLE
-        }
-    }
-
-    /**
-     * Update VLM description with streaming token
-     * Called from background thread by ARRenderer
-     */
-    fun updateVLMDescription(token: String) {
-        view?.post {
-            val binding = _binding ?: return@post
-            vlmResponseBuilder.append(token)
-            binding.vlmDescriptionOverlay.text = vlmResponseBuilder.toString()
-            binding.vlmDescriptionOverlay.visibility = View.VISIBLE
-        }
-    }
-
-    /**
-     * Clear VLM description overlay
-     */
-    fun clearVLMDescription() {
-        view?.post {
-            val binding = _binding ?: return@post
-            vlmResponseBuilder.clear()
-            binding.vlmDescriptionOverlay.visibility = View.GONE
-        }
-    }
-
-    /**
-     * Called when VLM analysis completes
-     */
-    fun onVLMAnalysisCompleted() {
-        // VLM result stays visible - user can clear with Clear button
-        Log.d(TAG, "VLM analysis completed")
-    }
+    // VLM description overlay removed - using bounding box labels instead
 
     /**
      * Reset all element sound flags for new scan

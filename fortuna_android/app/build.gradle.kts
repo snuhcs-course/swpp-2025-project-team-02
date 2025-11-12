@@ -11,9 +11,9 @@ plugins {
 // ========================================
 // VLM Model Configuration (Single Source of Truth)
 // ========================================
-val VLM_MODEL_FILENAME = "SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
+val VLM_MODEL_FILENAME = "smolvlm_element_descriptive_q8.gguf"
 val VLM_MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
-val VLM_HUGGINGFACE_REPO = "ggml-org/SmolVLM2-500M-Video-Instruct-GGUF"
+val VLM_HUGGINGFACE_REPO = "kangjirm/SmolVLM2-500M-Video-Instruct-Chakra-Q8_0.gguf"
 
 android {
     namespace = "com.example.fortuna_android"
@@ -324,7 +324,7 @@ tasks.register("downloadVLMModels") {
 
         // Download main model if not exists
         if (!modelFile.exists()) {
-            println("📥 Downloading VLM model: $VLM_MODEL_FILENAME (~675MB)...")
+            println("📥 Downloading VLM model: $VLM_MODEL_FILENAME (~437MB)...")
             println("   This may take several minutes...")
             exec {
                 commandLine(
@@ -340,7 +340,7 @@ tasks.register("downloadVLMModels") {
 
         // Download mmproj (vision encoder) if not exists
         if (!mmprojFile.exists()) {
-            println("📥 Downloading vision encoder: $VLM_MMPROJ_FILENAME (~591MB)...")
+            println("📥 Downloading vision encoder: $VLM_MMPROJ_FILENAME (~109MB)...")
             exec {
                 commandLine(
                     "curl", "-L", "-o", mmprojFile.absolutePath,

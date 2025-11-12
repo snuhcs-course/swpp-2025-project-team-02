@@ -11,9 +11,9 @@ import com.google.ar.core.TrackingState
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.MLKitObjectDetector
+import com.example.fortuna_android.classification.VLMObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
-import com.example.fortuna_android.classification.utils.VLM_PROMPT
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
 import com.example.fortuna_android.vlm.SmolVLMManager
@@ -57,8 +57,10 @@ class ARRenderer(private val fragment: ARFragment) :
 
     private val arLabeledAnchors = Collections.synchronizedList(mutableListOf<ARLabeledAnchor>())
     private var scanButtonWasPressed = false
+    private var vlmClassificationComplete = false  // Track VLM completion to hide bounding box
 
     private val mlKitAnalyzer = MLKitObjectDetector(fragment.requireActivity())
+    private lateinit var vlmAnalyzer: VLMObjectDetector
     private var currentAnalyzer: ObjectDetector = mlKitAnalyzer
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
@@ -82,7 +84,11 @@ class ARRenderer(private val fragment: ARFragment) :
     // Animation timing
     private var lastFrameTime = 0L
 
-    data class ARLabeledAnchor(val anchor: Anchor, val element: ElementMapper.Element)
+    data class ARLabeledAnchor(
+        val anchor: Anchor,
+        val element: ElementMapper.Element,
+        val distance: Float = 1.5f  // Distance from camera when created (default 1.5m)
+    )
 
     override fun onResume(owner: LifecycleOwner) {
         displayRotationHelper.onResume()
@@ -97,6 +103,7 @@ class ARRenderer(private val fragment: ARFragment) :
      */
     fun startObjectDetection() {
         scanButtonWasPressed = true
+        vlmClassificationComplete = false  // Reset flag for new detection
         Log.d(TAG, "Object detection started")
     }
 
@@ -246,13 +253,34 @@ class ARRenderer(private val fragment: ARFragment) :
         }
         pointCloudRender.onSurfaceCreated(render)
         objectRenderer.onSurfaceCreated(render)
-        // Load VLM model in background
+
+        // Initialize VLM and VLMObjectDetector in background
         launch(Dispatchers.IO) {
             try {
                 Log.i(TAG, "Loading VLM model in background...")
                 vlmManager.initialize()
                 isVLMLoaded = true
-                Log.i(TAG, "VLM model loaded successfully")
+
+                // Create VLM-based detector with callback for async classification
+                vlmAnalyzer = VLMObjectDetector(
+                    context = fragment.requireActivity(),
+                    vlmManager = vlmManager,
+                    onVLMClassified = { result ->
+                        // VLM classification complete - update objectResults
+                        objectResults = listOf(result)
+                        vlmClassificationComplete = true  // Mark VLM as complete
+                        Log.i(TAG, "VLM classification complete: ${result.label}")
+
+                        // Clear bounding box immediately after VLM classification
+                        fragment.view?.post {
+                            fragment.clearBoundingBoxes()
+                            Log.i(TAG, "Bounding box cleared after VLM classification")
+                        }
+                    }
+                )
+                currentAnalyzer = vlmAnalyzer
+
+                Log.i(TAG, "VLM model loaded successfully - switched to VLM detection")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load VLM model", e)
             }
@@ -371,6 +399,13 @@ class ARRenderer(private val fragment: ARFragment) :
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
+            // Update bounding box overlay (skip if VLM classification already complete)
+            if (!vlmClassificationComplete) {
+                fragment.updateBoundingBoxes(objects)
+            } else {
+                Log.d(TAG, "Skipping bounding box update - VLM classification complete")
+            }
+
             // Map detected objects to element categories
             val elementResults = objects.map { obj ->
                 val element = elementMapper.mapLabelToElement(obj.label)
@@ -395,10 +430,11 @@ class ARRenderer(private val fragment: ARFragment) :
                 val (atX, atY) = obj.centerCoordinate
                 Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
 
-                val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                if (anchor != null) {
-                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
-                    ARLabeledAnchor(anchor, element)
+                val anchorResult = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                if (anchorResult != null) {
+                    val (anchor, distance) = anchorResult
+                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}, distance: ${distance}m")
+                    ARLabeledAnchor(anchor, element, distance)
                 } else {
                     Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
                     null
@@ -413,11 +449,6 @@ class ARRenderer(private val fragment: ARFragment) :
             // Notify fragment about detection results on main thread
             fragment.view?.post {
                 fragment.onObjectDetectionCompleted(anchors.size, objects.size)
-            }
-
-            // Trigger VLM analysis if model is loaded and not currently analyzing
-            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
-                analyzeCameraImageWithVLM(frame)
             }
         }
 
@@ -438,13 +469,14 @@ class ARRenderer(private val fragment: ARFragment) :
             }
 
             if (shouldShow) {
-                // Draw 3D sphere object for each element
+                // Draw 3D sphere object for each element with distance-based scaling
                 objectRenderer.draw(
                     render,
                     viewMatrix,
                     projectionMatrix,
                     anchor.pose,
-                    arLabeledAnchor.element
+                    arLabeledAnchor.element,
+                    arLabeledAnchor.distance
                 )
             }
         }
@@ -456,8 +488,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     /**
      * Create an anchor using (x, y) coordinates in the IMAGE_PIXELS coordinate space
+     * Returns Pair(Anchor, Distance) or null if failed
      */
-    private fun createAnchor(xImage: Float, yImage: Float, frame: Frame): Anchor? {
+    private fun createAnchor(xImage: Float, yImage: Float, frame: Frame): Pair<Anchor, Float>? {
         return try {
             // IMAGE_PIXELS -> VIEW
             convertFloats[0] = xImage
@@ -482,88 +515,14 @@ class ARRenderer(private val fragment: ARFragment) :
             }
 
             Log.d(TAG, "Hit result: trackable=${result.trackable::class.simpleName}, distance=${result.distance}")
-            result.trackable.createAnchor(result.hitPose)
+            val anchor = result.trackable.createAnchor(result.hitPose)
+            Pair(anchor, result.distance)
         } catch (e: NotYetAvailableException) {
             Log.w(TAG, "Camera pose not yet available for anchor creation")
             null
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create anchor", e)
             null
-        }
-    }
-
-    /**
-     * Analyze camera image with VLM for scene understanding
-     */
-    private fun analyzeCameraImageWithVLM(frame: Frame) {
-        if (isVLMAnalyzing) {
-            Log.d(TAG, "VLM analysis already in progress, skipping")
-            return
-        }
-
-        isVLMAnalyzing = true
-        fragment.view?.post {
-            fragment.onVLMAnalysisStarted()
-        }
-
-        launch(Dispatchers.IO) {
-            try {
-                Log.i(TAG, "Starting VLM analysis...")
-
-                // Acquire camera image
-                val cameraImage = frame.acquireCameraImage()
-
-                // Convert YUV to Bitmap
-                val bitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
-                cameraImage.close()
-
-                if (bitmap == null) {
-                    Log.e(TAG, "Failed to convert camera image to bitmap")
-                    isVLMAnalyzing = false
-                    return@launch
-                }
-
-                // Optimize for VLM (aggressive downscale for speed)
-                // 196x196 is ~2x faster than 336x336 with acceptable quality loss
-                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 196)
-                Log.i(TAG, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
-
-                // Clean up original if different
-                if (optimizedBitmap != bitmap) {
-                    bitmap.recycle()
-                }
-
-                // VLM prompt for scene description
-                // Stream VLM results
-                vlmManager.analyzeImage(optimizedBitmap, VLM_PROMPT)
-                    .catch { e ->
-                        Log.e(TAG, "VLM analysis error", e)
-                        fragment.view?.post {
-                            fragment.updateVLMDescription("\nError: ${e.message}")
-                        }
-                    }
-                    .collect { token ->
-                        fragment.updateVLMDescription(token)
-                    }
-
-                // Clean up optimized bitmap
-                optimizedBitmap.recycle()
-
-                Log.i(TAG, "VLM analysis completed")
-                fragment.view?.post {
-                    fragment.onVLMAnalysisCompleted()
-                }
-
-            } catch (e: NotYetAvailableException) {
-                Log.w(TAG, "Camera image not yet available for VLM", e)
-            } catch (e: Exception) {
-                Log.e(TAG, "VLM analysis failed", e)
-                fragment.view?.post {
-                    fragment.updateVLMDescription("\nAnalysis failed: ${e.message}")
-                }
-            } finally {
-                isVLMAnalyzing = false
-            }
         }
     }
 

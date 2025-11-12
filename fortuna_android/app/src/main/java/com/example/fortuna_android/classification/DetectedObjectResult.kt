@@ -21,9 +21,13 @@ package com.example.fortuna_android.classification
  * @property confidence The model's reported confidence for this inference result (normalized over `[0, 1]`).
  * @property label The model's reported label for this result.
  * @property centerCoordinate A point on the image that best describes the object's location.
+ * @property width The width of the bounding box in pixels.
+ * @property height The height of the bounding box in pixels.
  */
 data class DetectedObjectResult(
   val confidence: Float,
   val label: String,
-  val centerCoordinate: Pair<Int, Int>
+  val centerCoordinate: Pair<Int, Int>,
+  val width: Int,
+  val height: Int
 )

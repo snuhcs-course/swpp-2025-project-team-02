@@ -21,8 +21,11 @@ if (ANDROID)
     # ARM NEON is enabled by default on Android arm64-v8a
     set(GGML_NATIVE OFF CACHE BOOL "Disable native feature detection for cross-compile" FORCE)
 
+    # Enable OpenCL for GPU acceleration (Android compatible)
+    # OpenCL is more stable than Vulkan on Android
+    set(GGML_OPENCL ON CACHE BOOL "Enable OpenCL for GPU acceleration" FORCE)
+
     # Disable Vulkan due to cross-compilation issues with shader build
-    # CPU optimizations (NEON, KV Cache Q4, Flash Attention) are sufficient
     set(GGML_VULKAN OFF CACHE BOOL "Disable Vulkan for cross-compile compatibility" FORCE)
 
     if (ANDROID_ABI STREQUAL "arm64-v8a")
