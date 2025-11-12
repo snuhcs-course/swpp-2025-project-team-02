@@ -40,6 +40,7 @@ import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException
 import android.hardware.camera2.CameraAccessException
+import com.example.fortuna_android.classification.DetectedObjectResult
 import kotlinx.coroutines.launch
 
 class ARFragment(
@@ -261,6 +262,26 @@ class ARFragment(
                     text = "Scan"
                 }
             }
+        }
+    }
+
+    /**
+     * Update bounding box overlay with detected objects
+     */
+    fun updateBoundingBoxes(objects: List<DetectedObjectResult>) {
+        view?.post {
+            val binding = _binding ?: return@post
+            binding.boundingBoxOverlay.setBoundingBoxes(objects)
+        }
+    }
+
+    /**
+     * Clear bounding box overlay
+     */
+    fun clearBoundingBoxes() {
+        view?.post {
+            val binding = _binding ?: return@post
+            binding.boundingBoxOverlay.clearBoundingBoxes()
         }
     }
 

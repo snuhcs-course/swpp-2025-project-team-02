@@ -371,6 +371,9 @@ class ARRenderer(private val fragment: ARFragment) :
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
+            // Update bounding box overlay
+            fragment.updateBoundingBoxes(objects)
+
             // Map detected objects to element categories
             val elementResults = objects.map { obj ->
                 val element = elementMapper.mapLabelToElement(obj.label)

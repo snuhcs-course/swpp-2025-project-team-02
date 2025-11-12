@@ -13,6 +13,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Transparent Bounding Box Overlay (on top of AR view) -->
+    <com.example.fortuna_android.ui.BoundingBoxOverlayView
+        android:id="@+id/boundingBoxOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:visibility="visible" />
+
     <!-- Needed Element Banner (Top) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/neededElementBanner"
