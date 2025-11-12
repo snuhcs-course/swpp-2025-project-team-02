@@ -193,6 +193,12 @@ class ElementMapper(private val context: Context) {
             return Element.OTHERS
         }
 
+        // Skip processing if label starts with "Analyzing" (VLM is still processing)
+        if (detectedLabel.startsWith("Analyzing", ignoreCase = true)) {
+            Log.d(TAG, "Skipping label matching for in-progress VLM analysis: $detectedLabel")
+            return Element.OTHERS
+        }
+
         val normalizedLabel = detectedLabel.lowercase().trim()
 
         // VLM element name direct matching (for VLM-based detection)
