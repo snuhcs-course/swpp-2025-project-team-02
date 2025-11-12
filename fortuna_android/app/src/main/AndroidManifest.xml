@@ -48,10 +48,6 @@
             android:name=".vlm.VLMTestActivity"
             android:exported="true"
             android:label="SmolVLM Test" />
-        <activity
-            android:name=".vlm.SmolVLMTestActivity"
-            android:exported="true"
-            android:label="SmolVLM Descriptive Test" />
 
         <!-- Required for Fragment testing with Robolectric -->
         <activity
