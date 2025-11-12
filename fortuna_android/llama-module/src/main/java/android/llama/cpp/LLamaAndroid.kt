@@ -121,10 +121,10 @@ class LLamaAndroid {
                     val context = new_context(model)
                     if (context == 0L) throw IllegalStateException("new_context() failed")
 
-                    // Optimized batch size for mobile: 128 tokens
+                    // Optimized batch size for mobile: 64 tokens
                     // Smaller batch = less memory pressure = faster vision encoding
-                    // 128 is sufficient for ~93 tokens from 128x128 images
-                    val batch = new_batch(128, 0, 1)
+                    // 64 is sufficient for ~20-30 tokens from 32x32 images
+                    val batch = new_batch(64, 0, 1)
                     if (batch == 0L) throw IllegalStateException("new_batch() failed")
 
                     val sampler = new_sampler()
@@ -234,8 +234,8 @@ class LLamaAndroid {
                             state.context,
                             chunksPtr,
                             0,      // n_past (starting position)
-                            128     // n_batch: reduced from 512 to 128 for mobile memory efficiency
-                                    // 128x128 images produce ~93 tokens, so 128 batch fits perfectly
+                            64      // n_batch: reduced to 64 for fastest mobile inference
+                                    // 32x32 images produce ~20-30 tokens, so 64 batch is sufficient
                                     // Smaller batch = less memory pressure = faster single-pass encoding
                         )
 
