@@ -83,7 +83,11 @@ class ARRenderer(private val fragment: ARFragment) :
     // Animation timing
     private var lastFrameTime = 0L
 
-    data class ARLabeledAnchor(val anchor: Anchor, val element: ElementMapper.Element)
+    data class ARLabeledAnchor(
+        val anchor: Anchor,
+        val element: ElementMapper.Element,
+        val distance: Float = 1.5f  // Distance from camera when created (default 1.5m)
+    )
 
     override fun onResume(owner: LifecycleOwner) {
         displayRotationHelper.onResume()
@@ -418,10 +422,11 @@ class ARRenderer(private val fragment: ARFragment) :
                 val (atX, atY) = obj.centerCoordinate
                 Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
 
-                val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                if (anchor != null) {
-                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
-                    ARLabeledAnchor(anchor, element)
+                val anchorResult = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                if (anchorResult != null) {
+                    val (anchor, distance) = anchorResult
+                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}, distance: ${distance}m")
+                    ARLabeledAnchor(anchor, element, distance)
                 } else {
                     Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
                     null
@@ -456,13 +461,14 @@ class ARRenderer(private val fragment: ARFragment) :
             }
 
             if (shouldShow) {
-                // Draw 3D sphere object for each element
+                // Draw 3D sphere object for each element with distance-based scaling
                 objectRenderer.draw(
                     render,
                     viewMatrix,
                     projectionMatrix,
                     anchor.pose,
-                    arLabeledAnchor.element
+                    arLabeledAnchor.element,
+                    arLabeledAnchor.distance
                 )
             }
         }
@@ -474,8 +480,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     /**
      * Create an anchor using (x, y) coordinates in the IMAGE_PIXELS coordinate space
+     * Returns Pair(Anchor, Distance) or null if failed
      */
-    private fun createAnchor(xImage: Float, yImage: Float, frame: Frame): Anchor? {
+    private fun createAnchor(xImage: Float, yImage: Float, frame: Frame): Pair<Anchor, Float>? {
         return try {
             // IMAGE_PIXELS -> VIEW
             convertFloats[0] = xImage
@@ -500,7 +507,8 @@ class ARRenderer(private val fragment: ARFragment) :
             }
 
             Log.d(TAG, "Hit result: trackable=${result.trackable::class.simpleName}, distance=${result.distance}")
-            result.trackable.createAnchor(result.hitPose)
+            val anchor = result.trackable.createAnchor(result.hitPose)
+            Pair(anchor, result.distance)
         } catch (e: NotYetAvailableException) {
             Log.w(TAG, "Camera pose not yet available for anchor creation")
             null

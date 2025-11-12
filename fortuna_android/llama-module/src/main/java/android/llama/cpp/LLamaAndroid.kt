@@ -46,7 +46,7 @@ class LLamaAndroid {
     }.asCoroutineDispatcher()
 
     // Element classification only needs: "water", "fire", "earth", "metal", or "wood" (1-2 tokens)
-    private val nlen: Int = 32
+    private val nlen: Int = 24
 
     private external fun log_to_android()
     private external fun load_model(filename: String): Long
