@@ -7,14 +7,6 @@ import com.example.fortuna_android.vlm.SmolVLMManager
 import kotlinx.coroutines.flow.fold
 
 /**
- * Result of VLM element classification
- */
-data class VLMResult(
-    val element: ElementMapper.Element?,
-    val rawOutput: String
-)
-
-/**
  * Classifies detected objects into element categories using VLM
  */
 class VLMElementClassifier(private val context: Context) {
@@ -23,11 +15,10 @@ class VLMElementClassifier(private val context: Context) {
     private var isInitialized = false
 
     companion object {
-        // Prompt for element classification (descriptive format)
-        // Matches the training format: "{reason}. The element is {element}."
+        // Prompt for element classification
         private const val ELEMENT_CLASSIFICATION_PROMPT = """Classify this image into one of these elements: water, land, fire, wood, metal.
 
-Provide your answer with a brief description."""
+Element:"""
     }
 
     /**
@@ -44,10 +35,9 @@ Provide your answer with a brief description."""
 
     /**
      * Classify a cropped object bitmap into an element category
-     * Returns VLMResult containing both the Element enum and raw VLM output
-     * Returns null if classification fails
+     * Returns the Element enum or null if classification fails
      */
-    suspend fun classifyElement(croppedBitmap: Bitmap): VLMResult? {
+    suspend fun classifyElement(croppedBitmap: Bitmap): ElementMapper.Element? {
         if (!isInitialized) {
             Log.w(tag, "VLM not initialized, cannot classify")
             return null
@@ -58,14 +48,12 @@ Provide your answer with a brief description."""
             val fullResponse = vlmManager.analyzeImage(croppedBitmap, ELEMENT_CLASSIFICATION_PROMPT)
                 .fold("") { acc, token -> acc + token }
                 .trim()
+                .lowercase()
 
             Log.d(tag, "VLM raw response: '$fullResponse'")
 
             // Parse the response to extract element
-            val element = parseElementFromResponse(fullResponse.lowercase())
-
-            // Return both element and raw output
-            VLMResult(element = element, rawOutput = fullResponse)
+            parseElementFromResponse(fullResponse)
         } catch (e: Exception) {
             Log.e(tag, "Failed to classify element with VLM", e)
             null
@@ -74,8 +62,7 @@ Provide your answer with a brief description."""
 
     /**
      * Parse element from VLM response and map to Element enum
-     * Expected VLM output format: "{reason}. The element is {element}."
-     * Also handles fallback to simple element mentions
+     * Expected VLM output: "water", "land", "fire", "wood", "metal"
      * Maps "land" -> EARTH to match Element enum
      */
     private fun parseElementFromResponse(response: String): ElementMapper.Element? {
@@ -88,22 +75,10 @@ Provide your answer with a brief description."""
             "metal" to ElementMapper.Element.METAL
         )
 
-        // Try to extract element from "The element is {element}" pattern first
-        val pattern = "The element is (\\w+)".toRegex(RegexOption.IGNORE_CASE)
-        val match = pattern.find(response)
-        if (match != null) {
-            val elementWord = match.groupValues[1].lowercase()
-            val element = elementMap[elementWord]
-            if (element != null) {
-                Log.i(tag, "Extracted element from pattern '$elementWord' -> ${element.displayName}")
-                return element
-            }
-        }
-
-        // Fallback: Try to find any valid element in the response
+        // Try to find any valid element in the response
         for ((vlmLabel, element) in elementMap) {
             if (response.contains(vlmLabel)) {
-                Log.i(tag, "Detected VLM label '$vlmLabel' (fallback) -> ${element.displayName}")
+                Log.i(tag, "Detected VLM label '$vlmLabel' -> ${element.displayName}")
                 return element
             }
         }

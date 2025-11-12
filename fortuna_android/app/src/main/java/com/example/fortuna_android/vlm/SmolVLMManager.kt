@@ -8,7 +8,6 @@ import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -171,7 +170,7 @@ class SmolVLMManager(private val context: Context) {
      * @param prompt Text prompt/question about the image
      * @return Flow of generated text tokens
      */
-    fun analyzeImage(bitmap: Bitmap, prompt: String): Flow<String> = flow {
+    fun analyzeImage(bitmap: Bitmap, prompt: String): Flow<String> {
         if (!isModelLoaded || !isMmprojLoaded) {
             throw IllegalStateException("Model not loaded. Call initialize() first.")
         }
@@ -184,29 +183,7 @@ class SmolVLMManager(private val context: Context) {
         Log.i(tag, "📸 Resized image size: ${resizedBitmap.width}x${resizedBitmap.height}")
 
         val fullPrompt = buildVisionPrompt(prompt)
-
-        // Track tokens per second
-        var tokenCount = 0
-        val startTime = System.currentTimeMillis()
-        var maxTokens = 10  // Limit to 10 tokens to ensure complete element classification
-
-        llamaAndroid.sendWithImage(fullPrompt, resizedBitmap).collect { token ->
-            if (tokenCount < maxTokens) {
-                emit(token)
-                tokenCount++
-            } else {
-                // Stop generation after max tokens
-                val elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000.0
-                val tokensPerSecond = if (elapsedSeconds > 0) tokenCount / elapsedSeconds else 0.0
-                Log.i(tag, "⚡ Generation complete: $tokenCount tokens in ${elapsedSeconds}s (${String.format("%.2f", tokensPerSecond)} tokens/s)")
-                return@collect
-            }
-        }
-
-        // Log final stats
-        val elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000.0
-        val tokensPerSecond = if (elapsedSeconds > 0) tokenCount / elapsedSeconds else 0.0
-        Log.i(tag, "⚡ Generation complete: $tokenCount tokens in ${String.format("%.2f", elapsedSeconds)}s (${String.format("%.2f", tokensPerSecond)} tokens/s)")
+        return llamaAndroid.sendWithImage(fullPrompt, resizedBitmap)
     }
 
     /**

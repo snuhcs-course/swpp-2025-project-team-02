@@ -109,6 +109,11 @@ class MainActivity : AppCompatActivity() {
         // Login associated tasks
         setupGoogleSignIn()
         checkLoginStatus()
+
+        // SmolVLM Test button (Debug)
+        binding.fabSmolvlmTest.setOnClickListener {
+            startActivity(Intent(this, com.example.fortuna_android.vlm.SmolVLMTestActivity::class.java))
+        }
     }
 
     override fun onResume() {
