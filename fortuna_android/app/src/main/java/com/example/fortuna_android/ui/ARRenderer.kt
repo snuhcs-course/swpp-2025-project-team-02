@@ -11,6 +11,7 @@ import com.google.ar.core.TrackingState
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.MLKitObjectDetector
+import com.example.fortuna_android.classification.VLMObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.classification.utils.VLM_PROMPT
@@ -59,6 +60,7 @@ class ARRenderer(private val fragment: ARFragment) :
     private var scanButtonWasPressed = false
 
     private val mlKitAnalyzer = MLKitObjectDetector(fragment.requireActivity())
+    private lateinit var vlmAnalyzer: VLMObjectDetector
     private var currentAnalyzer: ObjectDetector = mlKitAnalyzer
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
@@ -246,13 +248,22 @@ class ARRenderer(private val fragment: ARFragment) :
         }
         pointCloudRender.onSurfaceCreated(render)
         objectRenderer.onSurfaceCreated(render)
-        // Load VLM model in background
+
+        // Initialize VLM and VLMObjectDetector in background
         launch(Dispatchers.IO) {
             try {
                 Log.i(TAG, "Loading VLM model in background...")
                 vlmManager.initialize()
                 isVLMLoaded = true
-                Log.i(TAG, "VLM model loaded successfully")
+
+                // Create VLM-based detector and switch to it
+                vlmAnalyzer = VLMObjectDetector(
+                    context = fragment.requireActivity(),
+                    vlmManager = vlmManager
+                )
+                currentAnalyzer = vlmAnalyzer
+
+                Log.i(TAG, "VLM model loaded successfully - switched to VLM detection")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load VLM model", e)
             }
