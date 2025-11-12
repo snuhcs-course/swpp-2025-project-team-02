@@ -252,7 +252,11 @@ class LLamaAndroid {
                         var lastFlush = System.nanoTime()
                         var tokenCount = 0
 
-                        while (ncur.value < maxTokens) {
+                        // Early stopping: element classification keywords (case-insensitive)
+                        val elementKeywords = setOf("water", "fire", "earth", "metal", "wood", "land")
+                        var foundElement = false
+
+                        while (ncur.value < maxTokens && !foundElement) {
                             val str = completion_loop(state.context, state.batch, state.sampler, maxTokens, ncur)
                             if (str == null) {
                                 Log.d(tag, "Generation ended after $tokenCount tokens")
@@ -262,10 +266,20 @@ class LLamaAndroid {
                             tokenCount++
                             buffer.append(str)
 
-                            // Flush buffer when: 1) accumulated 128 chars, or 2) 50ms elapsed
+                            // Check for element keywords in accumulated buffer (case-insensitive)
+                            val bufferLower = buffer.toString().lowercase()
+                            for (keyword in elementKeywords) {
+                                if (bufferLower.contains(keyword)) {
+                                    foundElement = true
+                                    Log.d(tag, "⚡ Early stop: Found element '$keyword' after $tokenCount tokens")
+                                    break
+                                }
+                            }
+
+                            // Flush buffer when: 1) accumulated 128 chars, or 2) 50ms elapsed, or 3) found element
                             // This balances responsiveness vs overhead
                             val now = System.nanoTime()
-                            val shouldFlush = buffer.length >= 128 || (now - lastFlush) > 50_000_000L
+                            val shouldFlush = buffer.length >= 128 || (now - lastFlush) > 50_000_000L || foundElement
 
                             if (shouldFlush) {
                                 emit(buffer.toString())
@@ -279,7 +293,7 @@ class LLamaAndroid {
                             emit(buffer.toString())
                         }
 
-                        Log.d(tag, "✅ Generation complete: $tokenCount tokens")
+                        Log.d(tag, "✅ Generation complete: $tokenCount tokens (early_stop=$foundElement)")
 
                         kv_cache_clear(state.context)
                     } finally {
