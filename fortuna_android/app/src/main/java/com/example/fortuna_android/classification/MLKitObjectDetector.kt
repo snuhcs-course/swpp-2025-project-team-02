@@ -87,7 +87,18 @@ class MLKitObjectDetector(
 
       val coords = boundingBox.exactCenterX().toInt() to boundingBox.exactCenterY().toInt()
       val rotatedCoordinates = coords.rotateCoordinates(rotatedImage.width, rotatedImage.height, imageRotation)
-      DetectedObjectResult(bestLabel.confidence, bestLabel.text, rotatedCoordinates)
+
+      // Rotate width/height based on image rotation (90 or 270 degrees swap width and height)
+      val (finalWidth, finalHeight) = when (imageRotation) {
+        90, 270 -> boundingBox.height() to boundingBox.width()
+        else -> boundingBox.width() to boundingBox.height()
+      }
+
+      android.util.Log.d("MLKitObjectDetector",
+        "Image: ${rotatedImage.width}x${rotatedImage.height} (rotation: $imageRotation°) -> " +
+        "Original coords: $coords, Rotated: $rotatedCoordinates, Box: ${finalWidth}x${finalHeight}")
+
+      DetectedObjectResult(bestLabel.confidence, bestLabel.text, rotatedCoordinates, finalWidth, finalHeight)
     }.sortedByDescending { it.confidence } // Sort by confidence (highest first)
       .take(maxDetectedObjects) // Limit number of detected objects
   }

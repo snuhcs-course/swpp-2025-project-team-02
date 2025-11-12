@@ -23,6 +23,12 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         private const val TAG = "BoundingBoxOverlayView"
     }
 
+    init {
+        // Allow touch events to pass through this overlay
+        isClickable = false
+        isFocusable = false
+    }
+
     private var boundingBoxes = listOf<DetectedObjectResult>()
 
     private val boxPaint = Paint().apply {
@@ -42,6 +48,12 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
     private val textBackgroundPaint = Paint().apply {
         color = Color.argb(180, 0, 0, 0)
         style = Paint.Style.FILL
+    }
+
+    private val centerPointPaint = Paint().apply {
+        color = Color.GREEN
+        style = Paint.Style.FILL
+        isAntiAlias = true
     }
 
     /**
@@ -71,6 +83,8 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         val viewWidth = width.toFloat()
         val viewHeight = height.toFloat()
 
+        Log.d(TAG, "=== View Size: ${viewWidth.toInt()} x ${viewHeight.toInt()} ===")
+
         for ((index, box) in boundingBoxes.withIndex()) {
             drawBoundingBox(canvas, box, viewWidth, viewHeight, index)
         }
@@ -83,10 +97,21 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         viewHeight: Float,
         index: Int
     ) {
-        val (centerX, centerY) = box.centerCoordinate
+        // IMPORTANT: Coordinates are swapped due to rotation (height, width)
+        // So we swap X and Y to match screen orientation
+        val (rawY, rawX) = box.centerCoordinate
 
-        val boxWidth = viewWidth * 0.3f
-        val boxHeight = viewHeight * 0.3f
+        // Scale coordinates from camera image size to view size
+        // Camera: 1080x1920, View: 1080x2280
+        val scaleX = viewWidth / 1080f
+        val scaleY = viewHeight / 1920f
+
+        val centerX = rawX * scaleX
+        val centerY = rawY * scaleY
+
+        // Use actual bounding box dimensions from ML Kit (also swapped)
+        val boxWidth = box.height.toFloat() * scaleX
+        val boxHeight = box.width.toFloat() * scaleY
 
         val left = centerX.toFloat() - boxWidth / 2f
         val top = centerY.toFloat() - boxHeight / 2f
@@ -94,6 +119,9 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         val bottom = top + boxHeight
 
         canvas.drawRect(left, top, right, bottom, boxPaint)
+
+        // Draw center point for debugging
+        canvas.drawCircle(centerX.toFloat(), centerY.toFloat(), 15f, centerPointPaint)
 
         val label = "${box.label} (${(box.confidence * 100).toInt()}%)"
         val textWidth = textPaint.measureText(label)
@@ -111,6 +139,8 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         )
         canvas.drawText(label, textX + 8f, textY, textPaint)
 
-        Log.d(TAG, "Drew box $index: ${box.label} at ($centerX, $centerY)")
+        Log.d(TAG, "Drew box $index: ${box.label} at center($centerX, $centerY) " +
+                "size(${box.width}x${box.height}) " +
+                "bounds[L:${left.toInt()}, T:${top.toInt()}, R:${right.toInt()}, B:${bottom.toInt()}]")
     }
 }
