@@ -127,141 +127,67 @@
 
             </LinearLayout>
 
-            <!-- 통계 카드 1: 지금까지 수집한 원소 -->
-            <LinearLayout
+            <!-- 당신의 사주팔자 -->
+            <com.example.fortuna_android.ui.SajuPaljaView
+                android:id="@+id/sajuPaljaView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/card_background"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="⭐ 지금까지 수집한 원소"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <!-- 원소 배지들 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/element_badge_1"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:background="@drawable/button_default"
-                        android:gravity="center"
-                        android:text="0"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/element_badge_2"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:background="@drawable/button_default"
-                        android:gravity="center"
-                        android:text="0"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/element_badge_3"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:background="@drawable/button_default"
-                        android:gravity="center"
-                        android:text="0"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/element_badge_4"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:background="@drawable/button_default"
-                        android:gravity="center"
-                        android:text="0"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/element_badge_5"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="4dp"
-                        android:background="@drawable/button_default"
-                        android:gravity="center"
-                        android:text="0"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-            </LinearLayout>
+                android:layout_marginBottom="8dp" />
 
             <!-- 프로필 수정하기 버튼 -->
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_edit_profile"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
                 android:layout_marginBottom="12dp"
-                android:background="@drawable/button_default"
-                android:paddingVertical="14dp"
+                android:minWidth="200dp"
+                android:background="@drawable/button_white_rounded"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
                 android:text="프로필 수정하기"
-                android:textColor="#FFFFFF"
+                android:textColor="#000000"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
             <!-- 로그아웃 버튼 -->
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_logout"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:background="@drawable/button_default"
-                android:paddingVertical="14dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="16dp"
+                android:minWidth="200dp"
+                android:background="@drawable/button_black_white_border"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
                 android:text="로그아웃"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
-            <!-- 회원 탈퇴 버튼 -->
-            <Button
+            <!-- 회원 탈퇴 텍스트 (밑줄) -->
+            <TextView
                 android:id="@+id/btn_delete_account"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="24dp"
-                android:background="@drawable/button_default"
-                android:paddingVertical="14dp"
                 android:text="회원 탈퇴"
-                android:textColor="#F93E3E"
-                android:textSize="16sp" />
+                android:textColor="#AAAAAA"
+                android:textSize="14sp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true" />
 
         </LinearLayout>
 
