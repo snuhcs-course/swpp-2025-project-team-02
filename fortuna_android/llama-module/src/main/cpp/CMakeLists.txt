@@ -21,9 +21,9 @@ if (ANDROID)
     # ARM NEON is enabled by default on Android arm64-v8a
     set(GGML_NATIVE OFF CACHE BOOL "Disable native feature detection for cross-compile" FORCE)
 
-    # Disable Vulkan due to cross-compilation issues with shader build
-    # CPU optimizations (NEON, KV Cache Q4, Flash Attention) are sufficient
-    set(GGML_VULKAN OFF CACHE BOOL "Disable Vulkan for cross-compile compatibility" FORCE)
+    # Enable Vulkan for GPU acceleration (experimental)
+    # May have cross-compilation issues, but worth trying for 2-5x speedup
+    set(GGML_VULKAN ON CACHE BOOL "Enable Vulkan for GPU acceleration" FORCE)
 
     if (ANDROID_ABI STREQUAL "arm64-v8a")
         message(STATUS "✅ Building for Android ARM64 (${ANDROID_ABI})")
