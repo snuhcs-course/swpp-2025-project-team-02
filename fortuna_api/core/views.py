@@ -31,6 +31,7 @@ from .serializers import (
     NeededElementResponseSerializer,
     TodayProgressResponseSerializer,
     MonthlyHistoryResponseSerializer,
+    ElementFocusedHistoryResponseSerializer,
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
@@ -631,6 +632,103 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'completion_rate': completion_rate,
                     'total_collected': total_collected
                 }
+            }
+        }, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        summary="Get Element-Focused Collection History",
+        description="Get collection history for a specific element type, sorted by date descending",
+        parameters=[
+            OpenApiParameter(
+                name='element',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Element type (wood/fire/earth/metal/water)',
+                required=True
+            )
+        ],
+        responses={
+            200: ElementFocusedHistoryResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='element-focused-history')
+    def element_focused_history(self, request):
+        """
+        Get collection history focused on a specific element.
+        Returns all dates where the element was collected, with counts, sorted by date descending.
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get and validate element parameter
+        element_param = request.query_params.get('element')
+        if not element_param:
+            return Response({
+                'status': 'error',
+                'message': 'Element parameter is required (wood/fire/earth/metal/water)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate element
+        valid_elements = ['wood', 'fire', 'earth', 'metal', 'water']
+        element_en = element_param.lower()
+        if element_en not in valid_elements:
+            return Response({
+                'status': 'error',
+                'message': f'Invalid element. Must be one of: {", ".join(valid_elements)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Map element to Korean
+        element_mapping = {
+            'wood': '목',
+            'fire': '화',
+            'earth': '토',
+            'metal': '금',
+            'water': '수'
+        }
+        element_kr = element_mapping[element_en]
+
+        # Get all ChakraImages for this element
+        chakra_images = ChakraImage.objects.filter(
+            user=user,
+            chakra_type=element_en
+        ).values('date').annotate(
+            collected_count=Count('id')
+        ).order_by('-date')  # Sort by date descending (most recent first)
+
+        # Build history list
+        history = []
+        total_count = 0
+        for item in chakra_images:
+            history.append({
+                'date': item['date'].isoformat(),
+                'collected_count': item['collected_count']
+            })
+            total_count += item['collected_count']
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'element': element_en,
+                'element_kr': element_kr,
+                'total_count': total_count,
+                'history': history
             }
         }, status=status.HTTP_200_OK)
 

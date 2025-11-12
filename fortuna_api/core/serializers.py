@@ -429,3 +429,30 @@ class MonthlyHistoryResponseSerializer(serializers.Serializer):
 
     status = serializers.CharField()
     data = MonthlyHistoryDataSerializer()
+
+
+# ============================================================================
+# Element-Focused History Serializers
+# ============================================================================
+
+class ElementFocusedHistoryDaySerializer(serializers.Serializer):
+    """Serializer for a single day's collection in element-focused history."""
+
+    date = serializers.DateField(format='%Y-%m-%d', help_text="Date")
+    collected_count = serializers.IntegerField(help_text="Number of collected elements for this day")
+
+
+class ElementFocusedHistoryDataSerializer(serializers.Serializer):
+    """Serializer for element-focused history data."""
+
+    element = serializers.CharField(help_text="Element type in English (wood/fire/earth/metal/water)")
+    element_kr = serializers.CharField(help_text="Element type in Korean (목/화/토/금/수)")
+    total_count = serializers.IntegerField(help_text="Total number of this element collected across all dates")
+    history = ElementFocusedHistoryDaySerializer(many=True, help_text="List of dates with collection counts, sorted by date descending")
+
+
+class ElementFocusedHistoryResponseSerializer(serializers.Serializer):
+    """Serializer for element-focused history response."""
+
+    status = serializers.CharField()
+    data = ElementFocusedHistoryDataSerializer()
