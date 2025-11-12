@@ -26,8 +26,8 @@ class SmolVLMManager(private val context: Context) {
     private var mmprojPath: String? = null
 
     companion object {
-        // Using fine-tuned SmolVLM for element classification
-        private const val MODEL_FILENAME = "smolvlm_element_q8.gguf"
+        // Using fine-tuned SmolVLM for element classification (descriptive format)
+        private const val MODEL_FILENAME = "smolvlm_element_descriptive_q8.gguf"
         private const val MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
         private const val MODELS_DIR = "models"
         private const val IMAGE_MARKER = "<__media__>"
