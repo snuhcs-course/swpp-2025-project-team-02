@@ -195,7 +195,32 @@ class ElementMapper(private val context: Context) {
 
         val normalizedLabel = detectedLabel.lowercase().trim()
 
-        // Direct match
+        // VLM element name direct matching (for VLM-based detection)
+        // VLM returns: Water, Fire, Earth, Metal, Wood (capitalized)
+        when (normalizedLabel) {
+            "water" -> {
+                Log.d(TAG, "VLM element match: '$detectedLabel' -> Water")
+                return Element.WATER
+            }
+            "fire" -> {
+                Log.d(TAG, "VLM element match: '$detectedLabel' -> Fire")
+                return Element.FIRE
+            }
+            "earth" -> {
+                Log.d(TAG, "VLM element match: '$detectedLabel' -> Earth")
+                return Element.EARTH
+            }
+            "metal" -> {
+                Log.d(TAG, "VLM element match: '$detectedLabel' -> Metal")
+                return Element.METAL
+            }
+            "wood" -> {
+                Log.d(TAG, "VLM element match: '$detectedLabel' -> Wood")
+                return Element.WOOD
+            }
+        }
+
+        // Direct match with class.txt mappings
         labelToElementMap[normalizedLabel]?.let { element ->
             Log.d(TAG, "Direct match: '$detectedLabel' -> ${element.displayName}")
             return element
