@@ -45,7 +45,7 @@ class LLamaAndroid {
         }
     }.asCoroutineDispatcher()
 
-    // Maximum tokens to generate (32 = single word classification, optimized for speed)
+    // Element classification only needs: "water", "fire", "earth", "metal", or "wood" (1-2 tokens)
     private val nlen: Int = 32
 
     private external fun log_to_android()

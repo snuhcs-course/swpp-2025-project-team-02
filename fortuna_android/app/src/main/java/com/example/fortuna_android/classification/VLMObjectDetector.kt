@@ -82,14 +82,23 @@ class VLMObjectDetector(
      */
     private suspend fun classifyWithVLM(bitmap: Bitmap): String {
         return try {
+            val startTime = System.currentTimeMillis()
+
             // Collect all tokens from VLM streaming response
             val result = StringBuilder()
             vlmManager.analyzeImage(bitmap, VLM_ELEMENT_PROMPT)
                 .fold("") { acc, token -> acc + token }
                 .trim()
                 .let { response ->
+                    val elapsedTime = System.currentTimeMillis() - startTime
+
+                    // Log VLM raw output and inference time
+                    android.util.Log.i("VLMObjectDetector", "⚡ VLM Response (${elapsedTime}ms): \"$response\"")
+
                     // Extract element name from VLM response
-                    parseElementFromResponse(response)
+                    val element = parseElementFromResponse(response)
+                    android.util.Log.i("VLMObjectDetector", "🎯 Parsed Element: \"$element\" (from \"$response\")")
+                    element
                 }
         } catch (e: Exception) {
             android.util.Log.e("VLMObjectDetector", "VLM classification failed", e)

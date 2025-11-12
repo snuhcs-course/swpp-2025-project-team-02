@@ -34,7 +34,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
     private val boxPaint = Paint().apply {
         color = Color.GREEN
         style = Paint.Style.STROKE
-        strokeWidth = 8f
+        strokeWidth = 4f
         isAntiAlias = true
     }
 
@@ -56,12 +56,40 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
+    private val spinnerPaint = Paint().apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 6f
+        isAntiAlias = true
+    }
+
+    // Spinner animation state
+    private var spinnerRotation = 0f
+    private val spinnerAnimationRunnable = object : Runnable {
+        override fun run() {
+            spinnerRotation = (spinnerRotation + 10f) % 360f
+            invalidate()
+            postDelayed(this, 16) // ~60 FPS
+        }
+    }
+
     /**
      * Update bounding boxes to display
      */
     fun setBoundingBoxes(boxes: List<DetectedObjectResult>) {
+        val hadAnalyzing = boundingBoxes.any { it.label == "Analyzing..." }
+        val hasAnalyzing = boxes.any { it.label == "Analyzing..." }
+
         boundingBoxes = boxes
         Log.d(TAG, "Updated with ${boxes.size} bounding boxes")
+
+        // Start/stop spinner animation based on "Analyzing..." status
+        if (hasAnalyzing && !hadAnalyzing) {
+            post(spinnerAnimationRunnable)
+        } else if (!hasAnalyzing && hadAnalyzing) {
+            removeCallbacks(spinnerAnimationRunnable)
+        }
+
         invalidate()  // Request redraw
     }
 
@@ -123,6 +151,11 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         // Draw center point for debugging
         canvas.drawCircle(centerX.toFloat(), centerY.toFloat(), 15f, centerPointPaint)
 
+        // Draw spinner if analyzing
+        if (box.label == "Analyzing...") {
+            drawSpinner(canvas, centerX.toFloat(), centerY.toFloat(), 40f)
+        }
+
         val label = "${box.label} (${(box.confidence * 100).toInt()}%)"
         val textWidth = textPaint.measureText(label)
         val textHeight = textPaint.textSize
@@ -142,5 +175,29 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         Log.d(TAG, "Drew box $index: ${box.label} at center($centerX, $centerY) " +
                 "size(${box.width}x${box.height}) " +
                 "bounds[L:${left.toInt()}, T:${top.toInt()}, R:${right.toInt()}, B:${bottom.toInt()}]")
+    }
+
+    /**
+     * Draw animated spinner (circular loading indicator)
+     */
+    private fun drawSpinner(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        // Draw circular arc that rotates
+        val sweepAngle = 270f
+        val startAngle = spinnerRotation
+
+        canvas.save()
+        canvas.drawArc(
+            cx - radius, cy - radius,
+            cx + radius, cy + radius,
+            startAngle, sweepAngle,
+            false, spinnerPaint
+        )
+        canvas.restore()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // Stop spinner animation when view is detached
+        removeCallbacks(spinnerAnimationRunnable)
     }
 }
