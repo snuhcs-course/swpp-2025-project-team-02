@@ -1,5 +1,6 @@
 package com.example.fortuna_android
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -21,8 +22,8 @@ class TutorialOverlayFragment : Fragment() {
     private var currentDialogueIndex = 0
     private val dialogues = listOf(
         "모든 것은 오행이요,\n오행의 조화가 복을 의미합니다.",
-        "가장 먼저 보이는 오행은\n당신에게 오늘 부족한 기운을 의미합니다!",
-        "하루하루 부족한 기운을 채워\n하루 운세 점수를 올려보세요!",
+        "가장 먼저 보이는 오행은\n오늘 당신에게 부족한 기운을 의미합니다!",
+        "오늘의 운세 점수입니다\n부족한 기운을 수집해 점수를 올려보세요!",
         "오늘의 운을 열러 가볼까요?"
     )
 
@@ -184,6 +185,11 @@ class TutorialOverlayFragment : Fragment() {
     }
 
     private fun navigateToARScreen() {
+        // Mark home tutorial as seen
+        val prefs = requireContext().getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("has_seen_home_tutorial", true).apply()
+        Log.d(TAG, "Home tutorial marked as seen")
+
         // Navigate to AR screen (camera tab)
         val intent = Intent(requireContext(), MainActivity::class.java).apply {
             putExtra("navigate_to_ar", true)

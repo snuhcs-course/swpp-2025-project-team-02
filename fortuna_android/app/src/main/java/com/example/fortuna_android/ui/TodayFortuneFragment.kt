@@ -78,10 +78,10 @@ class TodayFortuneFragment : Fragment() {
                     ilun = elements["일운"]
                 )
 
-                // Set up refresh fortune button click listener - Show Tutorial Overlay
+                // Set up refresh fortune button click listener - Show Tutorial or Navigate to AR
                 binding.fortuneCardView.setOnRefreshFortuneClickListener {
-                    Log.d(TAG, "Refresh fortune button clicked - showing tutorial overlay")
-                    showTutorialOverlay()
+                    Log.d(TAG, "Refresh fortune button clicked")
+                    checkTutorialStatusAndNavigate()
                 }
             }
         }
@@ -118,6 +118,38 @@ class TodayFortuneFragment : Fragment() {
                 fortuneViewModel.clearError()
             }
         }
+    }
+
+    /**
+     * Check tutorial status and decide whether to show tutorial or navigate directly to AR
+     */
+    private fun checkTutorialStatusAndNavigate() {
+        val prefs = requireContext().getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
+        val hasSeenHomeTutorial = prefs.getBoolean("has_seen_home_tutorial", false)
+        val hasSeenARTutorial = prefs.getBoolean("has_seen_ar_tutorial", false)
+
+        Log.d(TAG, "Tutorial status check - Home: $hasSeenHomeTutorial, AR: $hasSeenARTutorial")
+
+        if (hasSeenHomeTutorial && hasSeenARTutorial) {
+            // Both tutorials already seen - skip directly to AR
+            Log.i(TAG, "Both tutorials already seen, navigating directly to AR")
+            navigateDirectlyToAR()
+        } else {
+            // Show home tutorial (which will navigate to AR after completion)
+            Log.i(TAG, "Showing home tutorial overlay")
+            showTutorialOverlay()
+        }
+    }
+
+    /**
+     * Navigate directly to AR screen without showing tutorial
+     */
+    private fun navigateDirectlyToAR() {
+        val intent = Intent(requireContext(), com.example.fortuna_android.MainActivity::class.java).apply {
+            putExtra("navigate_to_ar", true)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        startActivity(intent)
     }
 
     private fun showTutorialOverlay() {

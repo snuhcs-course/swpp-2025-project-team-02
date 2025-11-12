@@ -641,12 +641,17 @@ class ARFragment(
                     }
 
                     Log.i(TAG, "Today's progress loaded: ${progressData.currentCount}/${progressData.targetCount} - ${neededElement?.displayName}")
+
+                    // Show AR tutorial after loading progress (so we know the element)
+                    showARTutorialIfFirstTime()
                 } else {
                     Log.w(TAG, "Failed to fetch today's progress: ${response.code()}")
                     // Show all elements if API fails
                     if (::renderer.isInitialized) {
                         renderer.setNeededElement(null)
                     }
+                    // Still show tutorial even if API fails
+                    showARTutorialIfFirstTime()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching today's progress", e)
@@ -654,6 +659,8 @@ class ARFragment(
                 if (::renderer.isInitialized) {
                     renderer.setNeededElement(null)
                 }
+                // Still show tutorial even on error
+                showARTutorialIfFirstTime()
             }
         }
     }
@@ -673,6 +680,83 @@ class ARFragment(
             val color = ElementMapper.getElementColor(element)
             val background = elementColorIndicator.background as? GradientDrawable
             background?.setColor(color)
+        }
+    }
+
+    /**
+     * Show AR tutorial overlay if it's the first time user enters AR
+     */
+    private fun showARTutorialIfFirstTime() {
+        if (!isAdded) {
+            Log.w(TAG, "Fragment not added, skipping AR tutorial")
+            return
+        }
+
+        val prefs = requireContext().getSharedPreferences("fortuna_prefs", android.content.Context.MODE_PRIVATE)
+        val hasSeenARTutorial = prefs.getBoolean("has_seen_ar_tutorial", false)
+
+        Log.d(TAG, "Checking AR tutorial: hasSeenARTutorial=$hasSeenARTutorial, neededElement=$neededElement")
+
+        if (!hasSeenARTutorial) {
+            // Show AR tutorial overlay
+            Log.i(TAG, "Showing AR tutorial for first time")
+            showARTutorial()
+
+            // Mark as seen
+            prefs.edit().putBoolean("has_seen_ar_tutorial", true).apply()
+            Log.d(TAG, "AR tutorial marked as seen")
+        } else {
+            Log.d(TAG, "AR tutorial already seen, skipping")
+        }
+    }
+
+    /**
+     * Show AR tutorial overlay with instructions
+     */
+    private fun showARTutorial() {
+        val binding = _binding ?: return
+
+        // Inflate tutorial overlay
+        val tutorialView = LayoutInflater.from(requireContext())
+            .inflate(com.example.fortuna_android.R.layout.overlay_ar_tutorial, binding.root as ViewGroup, false)
+
+        // Add to root view (CoordinatorLayout in fragment_ar.xml)
+        val rootView = binding.root as? ViewGroup
+        if (rootView != null) {
+            rootView.addView(tutorialView)
+            Log.d(TAG, "AR tutorial overlay added to view hierarchy")
+        } else {
+            Log.e(TAG, "Failed to add AR tutorial: root is not a ViewGroup")
+        }
+
+        // Get element name for personalized message
+        val elementName = when (neededElement) {
+            ElementMapper.Element.WOOD -> "나무(木)"
+            ElementMapper.Element.FIRE -> "불(火)"
+            ElementMapper.Element.EARTH -> "흙(土)"
+            ElementMapper.Element.METAL -> "쇠(金)"
+            ElementMapper.Element.WATER -> "물(水)"
+            null -> ""
+            else -> ""
+        }
+
+        // Update message with element
+        val messageView = tutorialView.findViewById<TextView>(com.example.fortuna_android.R.id.tvTutorialMessage)
+        if (neededElement != null) {
+            messageView.text = "주변에서 $elementName 와 관련된\n대상을 찾아보세요!"
+        }
+
+        // Setup Got It button
+        tutorialView.findViewById<View>(com.example.fortuna_android.R.id.btnGotIt).setOnClickListener {
+            // Remove tutorial overlay with fade out animation
+            val fadeOut = ObjectAnimator.ofFloat(tutorialView, "alpha", 1f, 0f)
+            fadeOut.duration = 300
+            fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    (binding.root as? ViewGroup)?.removeView(tutorialView)
+                }
+            })
+            fadeOut.start()
         }
     }
 
