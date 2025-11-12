@@ -43,10 +43,10 @@ class VLMObjectDetector(
         // Get the first (and only) detection from ML Kit
         val detection = mlKitResults[0]
 
-        // Step 2: Return ML Kit result immediately with "Analyzing..." label
+        // Step 2: Return ML Kit result immediately with ML Kit label + "Analyzing..." indicator
         val preliminaryResult = DetectedObjectResult(
             confidence = detection.confidence,
-            label = "Analyzing...",  // Temporary label while VLM processes
+            label = "Analyzing ${detection.label} ...",  // Show ML Kit prediction while VLM processes
             centerCoordinate = detection.centerCoordinate,
             width = detection.width,
             height = detection.height
