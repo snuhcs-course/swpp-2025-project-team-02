@@ -87,7 +87,18 @@ class MainActivity : AppCompatActivity() {
         setupBottomNavigation(navController)
 
         // Handle tutorial navigation to AR screen
+        handleNavigationIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNavigationIntent(intent)
+    }
+
+    private fun handleNavigationIntent(intent: Intent) {
         if (intent.getBooleanExtra("navigate_to_ar", false)) {
+            Log.d(TAG, "Navigating to AR screen from tutorial")
             // Navigate to AR tab (index 2 - camera tab)
             binding.bottomNavigation.selectedItemId = R.id.arFragment
         }

@@ -76,13 +76,20 @@ class TutorialOverlayFragment : Fragment() {
         // Show arrow indicator for all dialogues
         binding.tvArrow.visibility = View.VISIBLE
 
-        // Enable spotlight on 2nd dialogue (index 1) to highlight fortune card element
-        if (currentDialogueIndex == 1) {
-            // Find the fortune card's element character view and spotlight it
-            highlightFortuneCardElement()
-        } else {
-            // Clear spotlight for other dialogues
-            binding.spotlightOverlay.clearSpotlight()
+        // Enable spotlight based on dialogue index
+        when (currentDialogueIndex) {
+            1 -> {
+                // 2nd dialogue: Highlight fortune card element
+                highlightFortuneCardElement()
+            }
+            2 -> {
+                // 3rd dialogue: Highlight fortune score
+                highlightFortuneScore()
+            }
+            else -> {
+                // Clear spotlight for other dialogues
+                binding.spotlightOverlay.clearSpotlight()
+            }
         }
     }
 
@@ -120,6 +127,49 @@ class TutorialOverlayFragment : Fragment() {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error highlighting fortune card element", e)
+                    binding.spotlightOverlay.clearSpotlight()
+                }
+            }
+        } else {
+            // Fallback: clear spotlight if activity not found
+            binding.spotlightOverlay.clearSpotlight()
+        }
+    }
+
+    /**
+     * Highlight the fortune score with circular spotlight
+     */
+    private fun highlightFortuneScore() {
+        // Need to find the FortuneCardView in the parent activity
+        val mainActivity = requireActivity() as? MainActivity
+        if (mainActivity != null) {
+            // Post to ensure the view is laid out before we get its location
+            binding.root.post {
+                try {
+                    // Find the fortune card view by ID from MainActivity's layout
+                    val fortuneCardView = mainActivity.findViewById<FortuneCardView>(
+                        resources.getIdentifier("fortuneCardView", "id", requireContext().packageName)
+                    )
+
+                    if (fortuneCardView != null) {
+                        // Find the score TextView (tvOverallFortune) inside the fortune card
+                        val scoreView = fortuneCardView.findViewById<View>(
+                            resources.getIdentifier("tvOverallFortune", "id", requireContext().packageName)
+                        )
+
+                        if (scoreView != null) {
+                            // Set spotlight with 60dp padding around the score
+                            binding.spotlightOverlay.setSpotlight(scoreView, 60f * resources.displayMetrics.density)
+                        } else {
+                            // Fallback: clear spotlight if view not found
+                            binding.spotlightOverlay.clearSpotlight()
+                        }
+                    } else {
+                        // Fallback: clear spotlight if fortune card not found
+                        binding.spotlightOverlay.clearSpotlight()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error highlighting fortune score", e)
                     binding.spotlightOverlay.clearSpotlight()
                 }
             }

@@ -27,13 +27,13 @@
         app:tint="@android:color/white"
         android:contentDescription="Close tutorial" />
 
-    <!-- 우측 하단 작은 마스코트 -->
+    <!-- 좌측 하단 작은 마스코트 -->
     <FrameLayout
         android:id="@+id/mascotContainer"
         android:layout_width="150dp"
         android:layout_height="150dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="20dp"
         android:layout_marginBottom="220dp">
 
         <com.example.fortuna_android.ui.SimpleMascotView
