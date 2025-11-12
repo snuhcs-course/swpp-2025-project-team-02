@@ -32,6 +32,15 @@
             android:layout_marginBottom="2dp"
             android:visibility="gone" />
 
+        <!-- 완료 체크 표시 (5개 모두 수집 시) -->
+        <ImageView
+            android:id="@+id/checkIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_check"
+            android:visibility="gone"
+            android:contentDescription="Completed" />
+
         <!-- 수집 진행도 표시 (5개 점) -->
         <LinearLayout
             android:id="@+id/progressDots"
