@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 ELEMENTS = ["water", "land", "fire", "wood", "metal"]
 
-INSTRUCTION_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nElement:"
+INSTRUCTION_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nProvide your answer with a brief description."
 
 
 def validate_model(
@@ -95,7 +95,12 @@ def validate_model(
         if 'element' in item:
             gt_element = item['element']
         elif 'conversations' in item and len(item['conversations']) > 1:
-            gt_element = item['conversations'][1]['content']
+            content = item['conversations'][1]['content']
+            # Extract element from descriptive format: "...The element is fire."
+            if "The element is " in content:
+                gt_element = content.split("The element is ")[-1].rstrip(".").split()[0].lower()
+            else:
+                gt_element = content
         else:
             print(f"Warning: No element in item: {item}")
             continue
@@ -123,7 +128,7 @@ def validate_model(
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=10,
+                max_new_tokens=100,  # Increased for descriptive format
                 do_sample=False,
             )
 
