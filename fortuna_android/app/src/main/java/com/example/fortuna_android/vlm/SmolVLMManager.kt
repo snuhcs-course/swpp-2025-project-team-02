@@ -26,7 +26,7 @@ class SmolVLMManager(private val context: Context) {
     private var mmprojPath: String? = null
 
     companion object {
-        private const val MODEL_FILENAME = "SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
+        private const val MODEL_FILENAME = "smolvlm_element_descriptive_q8.gguf"
         private const val MMPROJ_FILENAME = "mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf"
         private const val MODELS_DIR = "models"
         private const val IMAGE_MARKER = "<__media__>"

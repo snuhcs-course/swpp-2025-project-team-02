@@ -14,7 +14,6 @@ import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.VLMObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
-import com.example.fortuna_android.classification.utils.VLM_PROMPT
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
 import com.example.fortuna_android.vlm.SmolVLMManager
@@ -256,10 +255,20 @@ class ARRenderer(private val fragment: ARFragment) :
                 vlmManager.initialize()
                 isVLMLoaded = true
 
-                // Create VLM-based detector and switch to it
+                // Create VLM-based detector with callback for async classification
                 vlmAnalyzer = VLMObjectDetector(
                     context = fragment.requireActivity(),
-                    vlmManager = vlmManager
+                    vlmManager = vlmManager,
+                    onVLMClassified = { result ->
+                        // VLM classification complete - update objectResults
+                        objectResults = listOf(result)
+                        Log.i(TAG, "VLM classification complete: ${result.label}")
+
+                        // Update bounding box overlay with final label
+                        fragment.view?.post {
+                            fragment.updateBoundingBoxes(listOf(result))
+                        }
+                    }
                 )
                 currentAnalyzer = vlmAnalyzer
 
@@ -428,11 +437,6 @@ class ARRenderer(private val fragment: ARFragment) :
             fragment.view?.post {
                 fragment.onObjectDetectionCompleted(anchors.size, objects.size)
             }
-
-            // Trigger VLM analysis if model is loaded and not currently analyzing
-            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
-                analyzeCameraImageWithVLM(frame)
-            }
         }
 
         // Draw 3D sphere objects at their anchor positions - create a safe copy to avoid concurrent modification
@@ -503,70 +507,6 @@ class ARRenderer(private val fragment: ARFragment) :
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create anchor", e)
             null
-        }
-    }
-
-    /**
-     * Analyze camera image with VLM for scene understanding
-     */
-    private fun analyzeCameraImageWithVLM(frame: Frame) {
-        if (isVLMAnalyzing) {
-            Log.d(TAG, "VLM analysis already in progress, skipping")
-            return
-        }
-
-        isVLMAnalyzing = true
-
-        launch(Dispatchers.IO) {
-            try {
-                Log.i(TAG, "Starting VLM analysis...")
-
-                // Acquire camera image
-                val cameraImage = frame.acquireCameraImage()
-
-                // Convert YUV to Bitmap
-                val bitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
-                cameraImage.close()
-
-                if (bitmap == null) {
-                    Log.e(TAG, "Failed to convert camera image to bitmap")
-                    isVLMAnalyzing = false
-                    return@launch
-                }
-
-                // Optimize for VLM (aggressive downscale for speed)
-                // 196x196 is ~2x faster than 336x336 with acceptable quality loss
-                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 196)
-                Log.i(TAG, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
-
-                // Clean up original if different
-                if (optimizedBitmap != bitmap) {
-                    bitmap.recycle()
-                }
-
-                // VLM prompt for scene description
-                val vlmResult = StringBuilder()
-                // Stream VLM results
-                vlmManager.analyzeImage(optimizedBitmap, VLM_PROMPT)
-                    .catch { e ->
-                        Log.e(TAG, "VLM analysis error", e)
-                    }
-                    .collect { token ->
-                        vlmResult.append(token)
-                    }
-
-                // Clean up optimized bitmap
-                optimizedBitmap.recycle()
-
-                Log.i(TAG, "VLM analysis completed: ${vlmResult.toString()}")
-
-            } catch (e: NotYetAvailableException) {
-                Log.w(TAG, "Camera image not yet available for VLM", e)
-            } catch (e: Exception) {
-                Log.e(TAG, "VLM analysis failed", e)
-            } finally {
-                isVLMAnalyzing = false
-            }
         }
     }
 

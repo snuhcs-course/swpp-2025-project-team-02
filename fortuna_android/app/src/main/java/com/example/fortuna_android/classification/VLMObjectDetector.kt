@@ -5,19 +5,22 @@ import android.graphics.Bitmap
 import android.media.Image
 import com.example.fortuna_android.classification.utils.ImageUtils
 import com.example.fortuna_android.vlm.SmolVLMManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.fold
+import kotlinx.coroutines.launch
 
 /**
  * Hybrid object detector that uses ML Kit for bounding boxes and VLM for classification
  *
- * Architecture:
- * 1. ML Kit detects objects and provides bounding boxes (coordinates + dimensions)
- * 2. VLM analyzes the image and classifies the detected object
- * 3. Combine ML Kit's spatial data with VLM's classification
+ * Progressive detection flow:
+ * 1. ML Kit detects objects instantly → returns bounding box with "Analyzing..." label
+ * 2. VLM classifies in background → updates label via callback
  */
 class VLMObjectDetector(
     context: Activity,
-    private val vlmManager: SmolVLMManager
+    private val vlmManager: SmolVLMManager,
+    private val onVLMClassified: ((DetectedObjectResult) -> Unit)? = null
 ) : ObjectDetector(context) {
 
     // Use ML Kit for fast and accurate bounding box detection
@@ -30,7 +33,7 @@ class VLMObjectDetector(
     private val VLM_ELEMENT_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nElement:"
 
     override suspend fun analyze(image: Image, imageRotation: Int): List<DetectedObjectResult> {
-        // Step 1: Get bounding box from ML Kit
+        // Step 1: Get bounding box from ML Kit (fast)
         val mlKitResults = mlKitDetector.analyze(image, imageRotation)
 
         if (mlKitResults.isEmpty()) {
@@ -40,23 +43,37 @@ class VLMObjectDetector(
         // Get the first (and only) detection from ML Kit
         val detection = mlKitResults[0]
 
-        // Step 2: Convert camera image to Bitmap for VLM
+        // Step 2: Return ML Kit result immediately with "Analyzing..." label
+        val preliminaryResult = DetectedObjectResult(
+            confidence = detection.confidence,
+            label = "Analyzing...",  // Temporary label while VLM processes
+            centerCoordinate = detection.centerCoordinate,
+            width = detection.width,
+            height = detection.height
+        )
+
+        // Step 3: Run VLM classification in background
         val bitmap = convertYuv(image)
         val rotatedBitmap = ImageUtils.rotateBitmap(bitmap, imageRotation)
 
-        // Step 3: Get classification from VLM
-        val vlmClassification = classifyWithVLM(rotatedBitmap)
+        // Start VLM classification asynchronously
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val vlmClassification = classifyWithVLM(rotatedBitmap)
 
-        // Step 4: Combine ML Kit's bounding box with VLM's classification
-        return listOf(
-            DetectedObjectResult(
-                confidence = detection.confidence,  // Use ML Kit's confidence for detection
-                label = vlmClassification,          // Use VLM's classification as label
-                centerCoordinate = detection.centerCoordinate,
-                width = detection.width,
-                height = detection.height
-            )
-        )
+                // Update result with VLM classification
+                val finalResult = preliminaryResult.copy(label = vlmClassification)
+                onVLMClassified?.invoke(finalResult)
+            } catch (e: Exception) {
+                // If VLM completely fails, update with error state
+                android.util.Log.e("VLMObjectDetector", "VLM classification failed in coroutine", e)
+                val errorResult = preliminaryResult.copy(label = "Detection Failed")
+                onVLMClassified?.invoke(errorResult)
+            }
+        }
+
+        // Return preliminary result immediately (box appears right away)
+        return listOf(preliminaryResult)
     }
 
     /**
