@@ -15,16 +15,23 @@
         android:focusable="true" />
 
     <!-- 좌측 상단 종료 버튼 -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnClose"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:src="@android:drawable/ic_menu_close_clear_cancel"
-        app:fabSize="mini"
-        app:tint="@android:color/white"
+        android:text="닫기"
+        android:textColor="#000000"
+        android:textSize="14sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        app:backgroundTint="#FFFFFF"
+        app:cornerRadius="8dp"
+        app:elevation="4dp"
         android:contentDescription="Close tutorial" />
 
     <!-- 좌측 하단 작은 마스코트 -->

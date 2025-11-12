@@ -33,6 +33,7 @@ class FortuneCardView @JvmOverloads constructor(
     private val binding: CardFortuneBinding
 
     private var onRefreshFortuneClickListener: (() -> Unit)? = null
+    private var onRefreshFortuneLongClickListener: (() -> Unit)? = null
 
     // Store base entropy score for bonus calculation
     private var baseEntropyScore: Int = 0
@@ -52,6 +53,12 @@ class FortuneCardView @JvmOverloads constructor(
         // 오늘의 기운 보충하러가기 버튼 클릭 리스너
         binding.btnRefreshFortune.setOnClickListener {
             onRefreshFortuneClickListener?.invoke()
+        }
+
+        // 오늘의 기운 보충하러가기 버튼 롱 클릭 리스너 (3초)
+        binding.btnRefreshFortune.setOnLongClickListener {
+            onRefreshFortuneLongClickListener?.invoke()
+            true // Consume the event
         }
 
         // 버튼 애니메이션 시작
@@ -85,6 +92,13 @@ class FortuneCardView @JvmOverloads constructor(
      */
     fun setOnRefreshFortuneClickListener(listener: () -> Unit) {
         onRefreshFortuneClickListener = listener
+    }
+
+    /**
+     * 오늘의 기운 보충하러가기 버튼 롱 클릭 리스너 설정 (hidden feature)
+     */
+    fun setOnRefreshFortuneLongClickListener(listener: () -> Unit) {
+        onRefreshFortuneLongClickListener = listener
     }
 
     /**
