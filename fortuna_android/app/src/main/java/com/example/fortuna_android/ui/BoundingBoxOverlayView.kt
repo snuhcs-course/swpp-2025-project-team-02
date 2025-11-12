@@ -98,7 +98,9 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
      */
     fun clearBoundingBoxes() {
         boundingBoxes = emptyList()
+        removeCallbacks(spinnerAnimationRunnable)  // Stop spinner animation
         invalidate()
+        Log.d(TAG, "Cleared all bounding boxes and stopped spinner animation")
     }
 
     override fun onDraw(canvas: Canvas) {

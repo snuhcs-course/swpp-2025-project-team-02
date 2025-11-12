@@ -57,6 +57,7 @@ class ARRenderer(private val fragment: ARFragment) :
 
     private val arLabeledAnchors = Collections.synchronizedList(mutableListOf<ARLabeledAnchor>())
     private var scanButtonWasPressed = false
+    private var vlmClassificationComplete = false  // Track VLM completion to hide bounding box
 
     private val mlKitAnalyzer = MLKitObjectDetector(fragment.requireActivity())
     private lateinit var vlmAnalyzer: VLMObjectDetector
@@ -102,6 +103,7 @@ class ARRenderer(private val fragment: ARFragment) :
      */
     fun startObjectDetection() {
         scanButtonWasPressed = true
+        vlmClassificationComplete = false  // Reset flag for new detection
         Log.d(TAG, "Object detection started")
     }
 
@@ -266,11 +268,13 @@ class ARRenderer(private val fragment: ARFragment) :
                     onVLMClassified = { result ->
                         // VLM classification complete - update objectResults
                         objectResults = listOf(result)
+                        vlmClassificationComplete = true  // Mark VLM as complete
                         Log.i(TAG, "VLM classification complete: ${result.label}")
 
-                        // Update bounding box overlay with final label
+                        // Clear bounding box immediately after VLM classification
                         fragment.view?.post {
-                            fragment.updateBoundingBoxes(listOf(result))
+                            fragment.clearBoundingBoxes()
+                            Log.i(TAG, "Bounding box cleared after VLM classification")
                         }
                     }
                 )
@@ -395,8 +399,12 @@ class ARRenderer(private val fragment: ARFragment) :
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
-            // Update bounding box overlay
-            fragment.updateBoundingBoxes(objects)
+            // Update bounding box overlay (skip if VLM classification already complete)
+            if (!vlmClassificationComplete) {
+                fragment.updateBoundingBoxes(objects)
+            } else {
+                Log.d(TAG, "Skipping bounding box update - VLM classification complete")
+            }
 
             // Map detected objects to element categories
             val elementResults = objects.map { obj ->
