@@ -31,8 +31,9 @@ class SmolVLMManager(private val context: Context) {
         private const val MODELS_DIR = "models"
         private const val IMAGE_MARKER = "<__media__>"
 
-        // Target image size for VLM processing (256x256 is optimal for mobile VLM speed)
-        private const val TARGET_IMAGE_SIZE = 256
+        // Target image size for VLM processing (128x128 for faster inference on mobile)
+        // Smaller size = 4x faster vision encoder (trade-off: slightly lower accuracy)
+        private const val TARGET_IMAGE_SIZE = 128
 
         @Volatile
         private var instance: SmolVLMManager? = null
