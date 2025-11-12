@@ -13,9 +13,10 @@ import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
-import com.example.fortuna_android.classification.VLMElementClassifier
+import com.example.fortuna_android.classification.utils.VLM_PROMPT
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
+import com.example.fortuna_android.vlm.SmolVLMManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.example.fortuna_android.common.samplerender.arcore.BackgroundRenderer
 import com.example.fortuna_android.render.ObjectRender
@@ -73,9 +74,10 @@ class ARRenderer(private val fragment: ARFragment) :
 
     // Pending tap to process on next frame
     private var pendingTap: Pair<Float, Float>? = null
-    // VLM classifier for element detection
-    private val vlmClassifier = VLMElementClassifier(fragment.requireContext())
+    // VLM manager for scene understanding
+    private val vlmManager = SmolVLMManager.getInstance(fragment.requireContext())
     private var isVLMLoaded = false
+    private var isVLMAnalyzing = false
 
     // Animation timing
     private var lastFrameTime = 0L
@@ -244,15 +246,15 @@ class ARRenderer(private val fragment: ARFragment) :
         }
         pointCloudRender.onSurfaceCreated(render)
         objectRenderer.onSurfaceCreated(render)
-        // Load VLM classifier model in background
+        // Load VLM model in background
         launch(Dispatchers.IO) {
             try {
-                Log.i(TAG, "Loading VLM classifier model in background...")
-                vlmClassifier.initialize()
+                Log.i(TAG, "Loading VLM model in background...")
+                vlmManager.initialize()
                 isVLMLoaded = true
-                Log.i(TAG, "VLM classifier model loaded successfully")
+                Log.i(TAG, "VLM model loaded successfully")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load VLM classifier model", e)
+                Log.e(TAG, "Failed to load VLM model", e)
             }
         }
     }
@@ -369,98 +371,53 @@ class ARRenderer(private val fragment: ARFragment) :
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
             Log.i(TAG, "ML Kit detected ${objects.size} objects")
 
-            // Classify detected objects using VLM
-            if (isVLMLoaded && vlmClassifier.isReady()) {
-                launch(Dispatchers.IO) {
-                    val elementResults = objects.mapNotNull { obj ->
-                        Log.i(TAG, "Classifying object '${obj.label}' with VLM...")
-                        val element = vlmClassifier.classifyElement(obj.croppedBitmap)
-                        if (element != null) {
-                            Log.i(TAG, "VLM classified '${obj.label}' as: ${element.displayName}")
-                            obj to element
-                        } else {
-                            Log.w(TAG, "VLM failed to classify '${obj.label}', using fallback")
-                            // Fallback to ElementMapper if VLM fails
-                            obj to elementMapper.mapLabelToElement(obj.label)
-                        }
-                    }
+            // Map detected objects to element categories
+            val elementResults = objects.map { obj ->
+                val element = elementMapper.mapLabelToElement(obj.label)
+                Log.i(TAG, "Object '${obj.label}' mapped to element: ${element.displayName}")
+                obj to element
+            }
 
-                    elementResults.forEachIndexed { index, (obj, element) ->
-                        val (atX, atY) = obj.centerCoordinate
-                        Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
-                    }
+            elementResults.forEachIndexed { index, (obj, element) ->
+                val (atX, atY) = obj.centerCoordinate
+                Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
+            }
 
-                    // Check for detected elements and notify fragment with sound effects
-                    val detectedElements = elementResults.map { (_, element) -> element }.toSet()
-                    detectedElements.forEach { element ->
-                        fragment.view?.post {
-                            fragment.onElementDetected(element)
-                        }
-                    }
-
-                    val anchors = elementResults.mapNotNull { (obj, element) ->
-                        val (atX, atY) = obj.centerCoordinate
-                        Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
-
-                        val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                        if (anchor != null) {
-                            Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
-                            ARLabeledAnchor(anchor, element)
-                        } else {
-                            Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
-                            null
-                        }
-                    }
-
-                    // Thread-safe way to add anchors
-                    synchronized(arLabeledAnchors) {
-                        arLabeledAnchors.addAll(anchors)
-                    }
-
-                    // Notify fragment about detection results on main thread
-                    fragment.view?.post {
-                        fragment.onObjectDetectionCompleted(anchors.size, objects.size)
-                    }
-                }
-            } else {
-                Log.w(TAG, "VLM not ready, using ElementMapper fallback")
-                // Fallback to ElementMapper if VLM not loaded
-                val elementResults = objects.map { obj ->
-                    val element = elementMapper.mapLabelToElement(obj.label)
-                    Log.i(TAG, "Object '${obj.label}' mapped to element: ${element.displayName}")
-                    obj to element
-                }
-
-                // Process with ElementMapper (same logic as before)
-                elementResults.forEachIndexed { index, (obj, element) ->
-                    val (atX, atY) = obj.centerCoordinate
-                    Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
-                }
-
-                val detectedElements = elementResults.map { (_, element) -> element }.toSet()
-                detectedElements.forEach { element ->
-                    fragment.view?.post {
-                        fragment.onElementDetected(element)
-                    }
-                }
-
-                val anchors = elementResults.mapNotNull { (obj, element) ->
-                    val (atX, atY) = obj.centerCoordinate
-                    val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                    if (anchor != null) {
-                        ARLabeledAnchor(anchor, element)
-                    } else {
-                        null
-                    }
-                }
-
-                synchronized(arLabeledAnchors) {
-                    arLabeledAnchors.addAll(anchors)
-                }
-
+            // Check for detected elements and notify fragment with sound effects
+            val detectedElements = elementResults.map { (_, element) -> element }.toSet()
+            detectedElements.forEach { element ->
                 fragment.view?.post {
-                    fragment.onObjectDetectionCompleted(anchors.size, objects.size)
+                    fragment.onElementDetected(element)
                 }
+            }
+
+            val anchors = elementResults.mapNotNull { (obj, element) ->
+                val (atX, atY) = obj.centerCoordinate
+                Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
+
+                val anchor = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                if (anchor != null) {
+                    Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}")
+                    ARLabeledAnchor(anchor, element)
+                } else {
+                    Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
+                    null
+                }
+            }
+
+            // Thread-safe way to add anchors
+            synchronized(arLabeledAnchors) {
+                arLabeledAnchors.addAll(anchors)
+            }
+
+            // Notify fragment about detection results on main thread
+            fragment.view?.post {
+                fragment.onObjectDetectionCompleted(anchors.size, objects.size)
+            }
+
+            // Trigger VLM analysis if model is loaded and not currently analyzing
+            if (isVLMLoaded && !isVLMAnalyzing && objects.isNotEmpty()) {
+                analyzeCameraImageWithVLM(frame)
             }
         }
 
@@ -532,6 +489,81 @@ class ARRenderer(private val fragment: ARFragment) :
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create anchor", e)
             null
+        }
+    }
+
+    /**
+     * Analyze camera image with VLM for scene understanding
+     */
+    private fun analyzeCameraImageWithVLM(frame: Frame) {
+        if (isVLMAnalyzing) {
+            Log.d(TAG, "VLM analysis already in progress, skipping")
+            return
+        }
+
+        isVLMAnalyzing = true
+        fragment.view?.post {
+            fragment.onVLMAnalysisStarted()
+        }
+
+        launch(Dispatchers.IO) {
+            try {
+                Log.i(TAG, "Starting VLM analysis...")
+
+                // Acquire camera image
+                val cameraImage = frame.acquireCameraImage()
+
+                // Convert YUV to Bitmap
+                val bitmap = ImageUtils.convertYuvImageToBitmap(cameraImage)
+                cameraImage.close()
+
+                if (bitmap == null) {
+                    Log.e(TAG, "Failed to convert camera image to bitmap")
+                    isVLMAnalyzing = false
+                    return@launch
+                }
+
+                // Optimize for VLM (aggressive downscale for speed)
+                // 196x196 is ~2x faster than 336x336 with acceptable quality loss
+                val optimizedBitmap = ImageUtils.optimizeImageForVLM(bitmap, 196)
+                Log.i(TAG, "Image optimized: ${bitmap.width}x${bitmap.height} → ${optimizedBitmap.width}x${optimizedBitmap.height}")
+
+                // Clean up original if different
+                if (optimizedBitmap != bitmap) {
+                    bitmap.recycle()
+                }
+
+                // VLM prompt for scene description
+                // Stream VLM results
+                vlmManager.analyzeImage(optimizedBitmap, VLM_PROMPT)
+                    .catch { e ->
+                        Log.e(TAG, "VLM analysis error", e)
+                        fragment.view?.post {
+                            fragment.updateVLMDescription("\nError: ${e.message}")
+                        }
+                    }
+                    .collect { token ->
+                        fragment.updateVLMDescription(token)
+                    }
+
+                // Clean up optimized bitmap
+                optimizedBitmap.recycle()
+
+                Log.i(TAG, "VLM analysis completed")
+                fragment.view?.post {
+                    fragment.onVLMAnalysisCompleted()
+                }
+
+            } catch (e: NotYetAvailableException) {
+                Log.w(TAG, "Camera image not yet available for VLM", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "VLM analysis failed", e)
+                fragment.view?.post {
+                    fragment.updateVLMDescription("\nAnalysis failed: ${e.message}")
+                }
+            } finally {
+                isVLMAnalyzing = false
+            }
         }
     }
 

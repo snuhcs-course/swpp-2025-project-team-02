@@ -85,29 +85,9 @@ class MLKitObjectDetector(
         return@mapNotNull null
       }
 
-      // Crop the bounding box region from the rotated image
-      val croppedBitmap = try {
-        Bitmap.createBitmap(
-          rotatedImage,
-          boundingBox.left.coerceAtLeast(0),
-          boundingBox.top.coerceAtLeast(0),
-          boundingBox.width().coerceAtMost(rotatedImage.width - boundingBox.left),
-          boundingBox.height().coerceAtMost(rotatedImage.height - boundingBox.top)
-        )
-      } catch (e: Exception) {
-        // If cropping fails, skip this object
-        return@mapNotNull null
-      }
-
       val coords = boundingBox.exactCenterX().toInt() to boundingBox.exactCenterY().toInt()
       val rotatedCoordinates = coords.rotateCoordinates(rotatedImage.width, rotatedImage.height, imageRotation)
-      DetectedObjectResult(
-        bestLabel.confidence,
-        bestLabel.text,
-        rotatedCoordinates,
-        boundingBox,
-        croppedBitmap
-      )
+      DetectedObjectResult(bestLabel.confidence, bestLabel.text, rotatedCoordinates)
     }.sortedByDescending { it.confidence } // Sort by confidence (highest first)
       .take(maxDetectedObjects) // Limit number of detected objects
   }
