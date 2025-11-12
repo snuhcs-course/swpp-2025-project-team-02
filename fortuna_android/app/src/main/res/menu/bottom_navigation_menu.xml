@@ -17,7 +17,7 @@
 
     <item
         android:id="@+id/atomFragment"
-        android:icon="@drawable/ic_atom"
+        android:icon="@drawable/ic_calendar"
         android:title="Atom" />
 
     <item

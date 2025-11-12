@@ -47,6 +47,7 @@
         <item name="android:gravity">center</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:textColor">#000000</item>
         <item name="android:layout_margin">2dp</item>
     </style>
 
@@ -56,6 +57,7 @@
         <item name="android:layout_columnWeight">1</item>
         <item name="android:gravity">center</item>
         <item name="android:textSize">13sp</item>
+        <item name="android:textColor">#000000</item>
         <item name="android:background">#E0E0E0</item>
         <item name="android:layout_margin">2dp</item>
     </style>
