@@ -4,6 +4,7 @@ DRF ViewSets for Fortuna Core API.
 
 from datetime import datetime, timedelta
 from django.db.models import Count
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -256,7 +257,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Authentication required'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-        now = datetime.now()
+        now = timezone.now()
 
         # Create ChakraImage without image (PoC mode)
         try:
@@ -403,7 +404,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Invalid date format. Use YYYY-MM-DD'
                 }, status=status.HTTP_400_BAD_REQUEST)
         else:
-            today_date = datetime.now().date()
+            today_date = timezone.now().date()
 
         # Calculate fortune balance which now includes needed_element
         fortune_score = fortune_service.calculate_fortune_balance(user, datetime.combine(today_date, datetime.min.time()))
@@ -449,7 +450,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Authentication required'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-        today = datetime.now().date()
+        today = timezone.now().date()
 
         # Get today's FortuneResult
         try:
@@ -567,7 +568,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         end_date = datetime(year, month, last_day).date()
 
         # Only include days up to today
-        today = datetime.now().date()
+        today = timezone.now().date()
         if end_date > today:
             end_date = today
 
@@ -761,7 +762,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
     def today(self, request):
         """Get today's fortune with balance score (DB cached)."""
         user = request.user
-        today_date = datetime.now().date()
+        today_date = timezone.now().date()
 
         # Helper functions to convert GanJi/Saju objects (used in both branches)
         def ganji_to_dict(ganji):
