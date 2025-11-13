@@ -284,7 +284,7 @@ class ARFragment(
             if (::renderer.isInitialized) {
                 renderer.clearAnchors()
                 if (isAdded) {
-                    CustomToast.show(requireContext(), "Anchors cleared")
+                    CustomToast.show(requireContext(), "리셋")
                 }
             }
         }
@@ -336,12 +336,11 @@ class ARFragment(
     fun onObjectDetectionCompleted(anchorsCreated: Int, objectsDetected: Int) {
         setScanningActive(false)
         val message = when {
-            objectsDetected == 0 -> "No objects detected"
-            anchorsCreated == 0 -> "Objects detected but couldn't create anchors"
-            else -> "Detected $objectsDetected objects, created $anchorsCreated anchors"
+            objectsDetected == 0 -> "원소를 찾을 수 없습니다. 다시 시도해보세요."
+            else -> "원소 $objectsDetected 감지 성공!"
         }
         if (isAdded) {
-           // CustomToast.show(requireContext(), message)
+            CustomToast.show(requireContext(), message)
         }
     }
 
@@ -1087,7 +1086,7 @@ class ARFragment(
 
         // Subtitle message
         val subtitleMessage = TextView(requireContext()).apply {
-            text = "계속 탐험하거나 뒤로가기를 눌러 종료하세요"
+            text = "계속 탐험 하거나 뒤로가기를 눌러 종료"
             textSize = 14f
             setTextColor(android.graphics.Color.parseColor("#666666"))
             gravity = android.view.Gravity.CENTER
