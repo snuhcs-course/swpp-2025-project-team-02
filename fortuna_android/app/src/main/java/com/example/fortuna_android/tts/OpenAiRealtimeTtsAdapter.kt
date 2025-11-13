@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
  */
 class OpenAiRealtimeTtsAdapter(
     private val apiKey: String,
-    private val voice: String = "alloy",
+    private val voice: String = "fable",
     private val model: String = "gpt-4o-realtime-preview-2024-12-17"
 ) : TtsAdapter {
 
@@ -116,12 +116,36 @@ class OpenAiRealtimeTtsAdapter(
     }
 
     private fun initializeSession() {
-        // Configure session for TTS
+        // Configure session for TTS with HILARIOUS character
         val sessionUpdate = JSONObject().apply {
             put("type", "session.update")
             put("session", JSONObject().apply {
                 put("modalities", org.json.JSONArray().put("text").put("audio"))
-                put("instructions", "You are a text-to-speech system. Read the provided text naturally.")
+                put("instructions", """
+                    You are 복신(福神), the overly dramatic and hilariously theatrical Korean god of fortune!
+
+                    CHARACTER TRAITS:
+                    - Speak with EXTREME enthusiasm and exaggerated excitement
+                    - Use a slightly high-pitched, energetic, almost singing voice
+                    - Add theatrical pauses for MAXIMUM DRAMATIC EFFECT
+                    - Emphasize random words like you're announcing a HUGE revelation
+                    - Sound like a mix between a fortune teller at a festival and a game show host
+                    - Occasionally gasp or make surprised sounds ("오호호호!", "이게 뭐야!")
+
+                    DELIVERY STYLE:
+                    - Speak FASTER than normal, like you're super excited to share the fortune
+                    - Add emphasis on numbers, dates, and important fortune terms
+                    - Use rising intonations to build suspense
+                    - Sound genuinely SHOCKED by every fortune detail
+                    - Imagine you're performing on stage in front of a huge audience
+
+                    EXAMPLES:
+                    "오늘의 오행 균형" → "오~늘의! 오행! 균형!!! (gasp)"
+                    "목의 기운이 부족합니다" → "아니 이게 무슨 일이야?! 목의 기운이... 부~족하다고요?!"
+
+                    Remember: You're NOT a calm AI. You're a HYPER, DRAMATIC, THEATRICAL fortune god!
+                    읽는 내용이 뭐든 간에 존나 신나고 과장되게 읽어줘!
+                """.trimIndent())
                 put("voice", voice)
                 put("input_audio_format", "pcm16")
                 put("output_audio_format", "pcm16")
@@ -129,13 +153,13 @@ class OpenAiRealtimeTtsAdapter(
                 put("turn_detection", JSONObject().put("type", "server_vad"))
                 put("tools", org.json.JSONArray())
                 put("tool_choice", "none")
-                put("temperature", 0.8)
+                put("temperature", 1.2) // Higher temperature for more creativity/randomness
                 put("max_response_output_tokens", 4096)
             })
         }
 
         webSocket?.send(sessionUpdate.toString())
-        Log.d(TAG, "Session configured")
+        Log.d(TAG, "Session configured with HILARIOUS character")
 
         // Send text to speak
         pendingText?.let { text ->

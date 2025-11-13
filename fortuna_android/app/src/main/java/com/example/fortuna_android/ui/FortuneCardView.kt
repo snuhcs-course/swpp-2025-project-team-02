@@ -48,14 +48,19 @@ class FortuneCardView @JvmOverloads constructor(
         val useOpenAiTts = BuildConfig.OPENAI_API_KEY.isNotEmpty()
 
         val adapter = if (useOpenAiTts) {
-            Log.d("FortuneCardView", "Using OpenAI Realtime TTS")
+            Log.d("FortuneCardView", "Using OpenAI Realtime TTS - HILARIOUS MODE")
             OpenAiRealtimeTtsAdapter(
                 apiKey = BuildConfig.OPENAI_API_KEY,
-                voice = "alloy" // Options: alloy, echo, fable, onyx, nova, shimmer
+                voice = "nova" // Nova: energetic female voice - PERFECT for dramatic fortune god!
+                // Other options: alloy, echo, fable, onyx, shimmer
             )
         } else {
-            Log.d("FortuneCardView", "Using Android native TTS")
-            AndroidTtsAdapter(context)
+            Log.d("FortuneCardView", "Using Android native TTS - CHIPMUNK MODE")
+            AndroidTtsAdapter(
+                context,
+                pitch = 1.5f,      // Higher pitch = chipmunk voice (1.0 = normal)
+                speechRate = 1.3f  // Faster speech (1.0 = normal)
+            )
         }
 
         FortuneTtsManager(adapter)
