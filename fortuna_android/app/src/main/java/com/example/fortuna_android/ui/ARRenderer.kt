@@ -314,7 +314,10 @@ class ARRenderer(private val fragment: ARFragment) :
                             // Notify fragment about detection results on main thread
                             fragment.view?.post {
                                 fragment.onObjectDetectionCompleted(newAnchors.size, pending.size)
-                                fragment.onElementDetected(element)
+                                // Only play music if anchors were successfully created
+                                if (newAnchors.isNotEmpty()) {
+                                    fragment.onElementDetected(element)
+                                }
                             }
                         }
 
