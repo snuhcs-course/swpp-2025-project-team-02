@@ -23,6 +23,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.activity.addCallback
+import androidx.activity.OnBackPressedCallback
+import androidx.navigation.NavController
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.classification.ElementMapper
@@ -60,6 +63,7 @@ class ARFragment(
     private lateinit var gestureDetector: GestureDetectorCompat
     private var neededElement: ElementMapper.Element? = null
     private var localCollectedCount: Int = 0  // Track local collection count during AR session
+    private var questCompletionShown: Boolean = false  // Track if completion notification was already shown
 
     // ARCore session manager - managed by this fragment
     private lateinit var sessionManager: ARSessionManager
@@ -85,6 +89,9 @@ class ARFragment(
     private var metalSoundPlayed = false
     private var woodSoundPlayed = false
 
+    // Navigation destination change listener for cleanup on navigation away from AR
+    private var navDestinationListener: NavController.OnDestinationChangedListener? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -97,13 +104,40 @@ class ARFragment(
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
+        setupNavigationHandling()
         setupARSession()
         setupClickListeners()
         setupTouchDetection()
         setupBackgroundMusic()
         setupElementSoundEffects()
         fetchTodayProgress()
+    }
+
+    private fun setupNavigationHandling() {
+        // Handle system back button press
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Log.d(TAG, "System back button pressed - using cleanup exit")
+                cleanupAndExit()
+            }
+        })
+
+        // Handle navigation away from AR fragment via bottom navigation
+        try {
+            val navController = findNavController()
+            navDestinationListener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                // Check if we're navigating away from ARFragment
+                if (destination.id != com.example.fortuna_android.R.id.arFragment && isAdded) {
+                    Log.d(TAG, "Navigation away from AR detected via destination change - performing cleanup")
+                    // Perform immediate cleanup but don't navigate (navigation already in progress)
+                    performImmediateCleanup()
+                }
+            }
+            navController.addOnDestinationChangedListener(navDestinationListener!!)
+            Log.d(TAG, "Navigation destination listener added")
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set up navigation destination listener", e)
+        }
     }
 
     private fun setupARSession() {
@@ -219,7 +253,7 @@ class ARFragment(
         val binding = _binding ?: return
 
         binding.btnBack.setOnClickListener {
-            findNavController().popBackStack()
+            cleanupAndExit()
         }
 
         binding.scanButton.setOnClickListener {
@@ -251,11 +285,11 @@ class ARFragment(
             when (active) {
                 true -> {
                     isEnabled = false
-                    text = "Scanning..."
+                    text = "수집 중..."
                 }
                 false -> {
                     isEnabled = true
-                    text = "Scan"
+                    text = "수집"
                 }
             }
         }
@@ -555,9 +589,11 @@ class ARFragment(
 
     override fun onResume(owner: LifecycleOwner) {
         try {
+            // Show surface view when resuming
+            _binding?.surfaceview?.visibility = View.VISIBLE
             surfaceView?.onResume()
             startBackgroundMusic()
-            Log.d(TAG, "Surface view resumed and BGM started")
+            Log.d(TAG, "Surface view shown, resumed and BGM started")
         } catch (e: Exception) {
             Log.w(TAG, "Error resuming surface view", e)
         }
@@ -566,9 +602,11 @@ class ARFragment(
     override fun onPause(owner: LifecycleOwner) {
         Log.d(TAG, "ARFragment onPause - pausing AR session")
         try {
+            // Hide surface view to prevent green screen during pause
+            _binding?.surfaceview?.visibility = View.INVISIBLE
             surfaceView?.onPause()
             pauseBackgroundMusic()
-            Log.d(TAG, "Surface view paused and BGM paused in onPause")
+            Log.d(TAG, "Surface view hidden, paused and BGM paused in onPause")
         } catch (e: Exception) {
             Log.w(TAG, "Error pausing surface view in onPause", e)
         }
@@ -579,9 +617,11 @@ class ARFragment(
         // Do not manually remove session helper - let MainActivity manage ARCore lifecycle
         // Just ensure our surface view is properly stopped
         try {
+            // Ensure surface view is hidden and paused
+            _binding?.surfaceview?.visibility = View.INVISIBLE
             surfaceView?.onPause()
             pauseBackgroundMusic()
-            Log.d(TAG, "Surface view paused and BGM paused in onStop")
+            Log.d(TAG, "Surface view hidden, paused and BGM paused in onStop")
         } catch (e: Exception) {
             Log.w(TAG, "Error pausing surface view in onStop", e)
         }
@@ -750,22 +790,18 @@ class ARFragment(
     }
 
     /**
-     * Handle quest completion - close AR and return to home
+     * Handle quest completion - show completion notification overlay
      * API calls are already made on each sphere collection
      */
     private fun onQuestComplete() {
-        if (isAdded) {
-            CustomToast.show(requireContext(), "오늘의 기운 수집 완료!")
+        // Prevent showing completion notification multiple times
+        if (questCompletionShown) {
+            return
         }
-        Log.i(TAG, "Daily energy quest completed!")
+        questCompletionShown = true
 
-        // Close AR after a short delay to let user see the completion message
-        view?.postDelayed({
-            if (isAdded) {
-                Log.i(TAG, "Closing AR view after quest completion")
-                findNavController().popBackStack()
-            }
-        }, 1500)
+        Log.i(TAG, "Daily energy quest completed!")
+        showQuestCompletionOverlay()
     }
 
     /**
@@ -948,11 +984,209 @@ class ARFragment(
         }
     }
 
+    /**
+     * Show quest completion overlay with congratulations message
+     */
+    private fun showQuestCompletionOverlay() {
+        val binding = _binding ?: return
+
+        // Use the dedicated quest completion overlay (not celebration overlay)
+        binding.questCompletionOverlay.removeAllViews()
+        binding.questCompletionOverlay.visibility = View.VISIBLE
+
+        // Create a semi-transparent background
+        val backgroundView = View(requireContext()).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#80000000")) // Semi-transparent black
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            alpha = 0f
+        }
+
+        // Create completion notification card
+        val completionCard = com.google.android.material.card.MaterialCardView(requireContext()).apply {
+            cardElevation = 16f
+            radius = 24f
+            setCardBackgroundColor(android.graphics.Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.CENTER
+                setMargins(48, 48, 48, 48)
+            }
+            alpha = 0f
+        }
+
+        // Create content inside the card
+        val contentLayout = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER
+            setPadding(64, 48, 64, 48)
+        }
+
+        // Success icon
+        val successIcon = TextView(requireContext()).apply {
+            text = "🎉"
+            textSize = 48f
+            gravity = android.view.Gravity.CENTER
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = 16
+            }
+        }
+
+        // Completion message
+        val completionMessage = TextView(requireContext()).apply {
+            text = "오늘의 기운 수집 완료!"
+            textSize = 24f
+            setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+            gravity = android.view.Gravity.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = 8
+            }
+        }
+
+        // Subtitle message
+        val subtitleMessage = TextView(requireContext()).apply {
+            text = "계속 탐험하거나 뒤로가기를 눌러 종료하세요"
+            textSize = 14f
+            setTextColor(android.graphics.Color.parseColor("#666666"))
+            gravity = android.view.Gravity.CENTER
+        }
+
+        // Assemble the views
+        contentLayout.addView(successIcon)
+        contentLayout.addView(completionMessage)
+        contentLayout.addView(subtitleMessage)
+        completionCard.addView(contentLayout)
+
+        binding.questCompletionOverlay.addView(backgroundView)
+        binding.questCompletionOverlay.addView(completionCard)
+
+        // Animate the notification in
+        val backgroundFadeIn = ObjectAnimator.ofFloat(backgroundView, "alpha", 0f, 1f)
+        val cardFadeIn = ObjectAnimator.ofFloat(completionCard, "alpha", 0f, 1f)
+        val cardScaleX = ObjectAnimator.ofFloat(completionCard, "scaleX", 0.7f, 1.0f)
+        val cardScaleY = ObjectAnimator.ofFloat(completionCard, "scaleY", 0.7f, 1.0f)
+
+        val animatorSet = AnimatorSet()
+        animatorSet.playTogether(backgroundFadeIn, cardFadeIn, cardScaleX, cardScaleY)
+        animatorSet.duration = 600
+        animatorSet.interpolator = OvershootInterpolator()
+        animatorSet.start()
+
+        // Auto-hide after 4 seconds
+        binding.questCompletionOverlay.postDelayed({
+            hideQuestCompletionOverlay()
+        }, 4000)
+
+        Log.i(TAG, "Quest completion overlay shown")
+    }
+
+    /**
+     * Hide quest completion overlay with fade out animation
+     */
+    private fun hideQuestCompletionOverlay() {
+        val binding = _binding ?: return
+        val overlay = binding.questCompletionOverlay
+
+        if (overlay.childCount == 0) return
+
+        val fadeOut = ObjectAnimator.ofFloat(overlay, "alpha", 1f, 0f)
+        fadeOut.duration = 400
+        fadeOut.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                overlay.removeAllViews()
+                overlay.visibility = View.GONE
+                overlay.alpha = 1f // Reset alpha for next time
+            }
+        })
+        fadeOut.start()
+
+        Log.i(TAG, "Quest completion overlay hidden")
+    }
+
+    /**
+     * Perform immediate cleanup without navigation (used when navigation is already in progress)
+     */
+    private fun performImmediateCleanup() {
+        Log.d(TAG, "Performing immediate cleanup for navigation")
+
+        try {
+            // Hide surface view immediately to prevent green screen
+            _binding?.surfaceview?.visibility = View.INVISIBLE
+
+            // Pause GLSurfaceView immediately
+            surfaceView?.onPause()
+
+            // Stop background music
+            pauseBackgroundMusic()
+
+            // Clear any ongoing operations
+            if (::renderer.isInitialized) {
+                renderer.clearAnchors()
+                setScanningActive(false)
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during immediate cleanup", e)
+        }
+    }
+
+    /**
+     * Clean up AR session and exit gracefully to prevent green screen glitch
+     */
+    private fun cleanupAndExit() {
+        Log.d(TAG, "Starting cleanup and exit process")
+
+        try {
+            // Perform the same cleanup as immediate cleanup
+            performImmediateCleanup()
+
+            // Add a small delay to ensure cleanup is complete before navigation
+            view?.postDelayed({
+                if (isAdded) {
+                    findNavController().popBackStack()
+                }
+            }, 100)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during cleanup and exit", e)
+            // Fallback: navigate immediately even if cleanup fails
+            if (isAdded) {
+                try {
+                    findNavController().popBackStack()
+                } catch (navException: Exception) {
+                    Log.e(TAG, "Navigation failed during cleanup", navException)
+                }
+            }
+        }
+    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
 
         try {
+            // Remove navigation destination listener
+            navDestinationListener?.let { listener ->
+                try {
+                    findNavController().removeOnDestinationChangedListener(listener)
+                    Log.d(TAG, "Navigation destination listener removed")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not remove navigation destination listener", e)
+                }
+                navDestinationListener = null
+            }
+
             // Remove this fragment's lifecycle observer
             lifecycle.removeObserver(this)
 
