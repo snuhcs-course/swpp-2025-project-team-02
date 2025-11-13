@@ -287,44 +287,66 @@ class ARRenderer(private val fragment: ARFragment) :
                     context = fragment.requireActivity(),
                     vlmManager = vlmManager,
                     onVLMClassified = { result ->
-                        // VLM classification complete - now use stored anchors
-                        vlmClassificationComplete = true  // Mark VLM as complete
-                        Log.i(TAG, "VLM classification complete: ${result.label}")
+                        try {
+                            // VLM classification complete - now use stored anchors
+                            vlmClassificationComplete = true  // Mark VLM as complete
+                            Log.i(TAG, "VLM classification complete: ${result.label}")
 
-                        // Process pending classifications using stored anchors
-                        synchronized(pendingVLMClassifications) {
-                            val pending = pendingVLMClassifications.toList()
-                            pendingVLMClassifications.clear()
+                            // Process pending classifications using stored anchors
+                            synchronized(pendingVLMClassifications) {
+                                val pending = pendingVLMClassifications.toList()
+                                pendingVLMClassifications.clear()
 
-                            // Map VLM result to element
-                            val element = elementMapper.mapLabelToElement(result.label)
-                            Log.i(TAG, "VLM object '${result.label}' mapped to element: ${element.displayName}")
+                                if (pending.isNotEmpty()) {
+                                    // Map VLM result to element
+                                    val element = elementMapper.mapLabelToElement(result.label)
+                                    Log.i(TAG, "VLM object '${result.label}' mapped to element: ${element.displayName}")
 
-                            // Create labeled anchors using stored anchor positions
-                            val newAnchors = pending.map { pendingClassification ->
-                                Log.i(TAG, "✅ Using stored anchor for '${element.displayName}' (was '${pendingClassification.originalLabel}') at pose: ${pendingClassification.anchor.pose}")
-                                ARLabeledAnchor(pendingClassification.anchor, element, pendingClassification.distance)
-                            }
+                                    // Create labeled anchors using stored anchor positions
+                                    val newAnchors = pending.map { pendingClassification ->
+                                        Log.i(TAG, "✅ Using stored anchor for '${element.displayName}' (was '${pendingClassification.originalLabel}') at pose: ${pendingClassification.anchor.pose}")
+                                        ARLabeledAnchor(pendingClassification.anchor, element, pendingClassification.distance)
+                                    }
 
-                            // Add to main anchors list
-                            synchronized(arLabeledAnchors) {
-                                arLabeledAnchors.addAll(newAnchors)
-                            }
+                                    // Add to main anchors list
+                                    synchronized(arLabeledAnchors) {
+                                        arLabeledAnchors.addAll(newAnchors)
+                                    }
 
-                            // Notify fragment about detection results on main thread
-                            fragment.view?.post {
-                                fragment.onObjectDetectionCompleted(newAnchors.size, pending.size)
-                                // Only play music if anchors were successfully created
-                                if (newAnchors.isNotEmpty()) {
-                                    fragment.onElementDetected(element)
+                                    // Notify fragment about detection results on main thread
+                                    fragment.view?.post {
+                                        fragment.onObjectDetectionCompleted(newAnchors.size, pending.size)
+                                        // Only play music if anchors were successfully created
+                                        if (newAnchors.isNotEmpty()) {
+                                            fragment.onElementDetected(element)
+                                        }
+                                    }
+                                } else {
+                                    // No pending classifications - still need to reset scan button
+                                    Log.w(TAG, "VLM classification complete but no pending classifications found")
+                                    fragment.view?.post {
+                                        fragment.onObjectDetectionCompleted(0, 0)
+                                    }
                                 }
                             }
-                        }
 
-                        // Clear bounding box immediately after VLM classification
-                        fragment.view?.post {
-                            fragment.clearBoundingBoxes()
-                            Log.i(TAG, "Bounding box cleared after VLM classification")
+                            // Clear bounding box immediately after VLM classification
+                            fragment.view?.post {
+                                fragment.clearBoundingBoxes()
+                                Log.i(TAG, "Bounding box cleared after VLM classification")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error in VLM callback processing", e)
+                            // Ensure scan button is reset even if callback processing fails
+                            vlmClassificationComplete = true
+                            fragment.view?.post {
+                                fragment.onObjectDetectionCompleted(0, 0)
+                                fragment.clearBoundingBoxes()
+                            }
+                            // Clear pending classifications on error
+                            synchronized(pendingVLMClassifications) {
+                                pendingVLMClassifications.clear()
+                            }
                         }
                     }
                 )

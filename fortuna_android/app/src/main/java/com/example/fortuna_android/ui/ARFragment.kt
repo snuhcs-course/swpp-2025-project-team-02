@@ -336,8 +336,8 @@ class ARFragment(
     fun onObjectDetectionCompleted(anchorsCreated: Int, objectsDetected: Int) {
         setScanningActive(false)
         val message = when {
-            objectsDetected == 0 -> "원소를 찾을 수 없습니다. 다시 시도해보세요."
-            anchorsCreated == 0 -> "원소를 찾을 수 없습니다. 휴대폰을 움직여 주변 환경을 인식시켜주세요."
+            objectsDetected == 0 -> "원소를 찾을 수 없습니다.\n휴대폰을 움직여 주변 환경을 인식시켜주세요."
+            anchorsCreated == 0 -> "원소를 찾을 수 없습니다.\n휴대폰을 움직여 주변 환경을 인식시켜주세요."
             else -> "원소 $objectsDetected 개 감지 성공!"
         }
         if (isAdded) {
