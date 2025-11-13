@@ -3,6 +3,9 @@ package com.example.fortuna_android.ui
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.app.Activity
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import android.opengl.GLSurfaceView
@@ -898,6 +901,9 @@ class ARFragment(
         // Always show celebration animation for any tap
         showCelebrationAnimation()
 
+        // Trigger haptic feedback for sphere interaction
+        triggerHapticFeedback(wasNeededElement)
+
         if (wasNeededElement && localCollectedCount < TARGET_COLLECTION_COUNT) {
             // Needed element: Normal collection behavior, but only if under target
             localCollectedCount++
@@ -1034,6 +1040,28 @@ class ARFragment(
                     hideCelebrationAnimation()
                 }, 1200)
             }
+        }
+    }
+
+    /**
+     * Trigger haptic feedback for sphere interaction
+     */
+    private fun triggerHapticFeedback(wasNeededElement: Boolean) {
+        try {
+            val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+            val vibrationEffect = if (wasNeededElement) {
+                // Strong vibration for needed elements (success)
+                VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE)
+            } else {
+                // Light vibration for non-needed elements
+                VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
+            }
+            vibrator.vibrate(vibrationEffect)
+
+            Log.d(TAG, "Haptic feedback triggered: ${if (wasNeededElement) "strong (needed)" else "light (not needed)"}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error triggering haptic feedback", e)
         }
     }
 
