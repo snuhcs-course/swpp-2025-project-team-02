@@ -114,6 +114,17 @@
 
     </FrameLayout>
 
+    <!-- Quest Completion Notification Overlay -->
+    <FrameLayout
+        android:id="@+id/questCompletionOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:clickable="false"
+        android:focusable="false">
+
+    </FrameLayout>
+
     <!-- UI Controls -->
     <LinearLayout
         android:id="@+id/linearLayout"
@@ -155,7 +166,7 @@
                 android:layout_height="48dp"
                 android:background="@drawable/rounded_button_background"
                 android:minWidth="120dp"
-                android:text="SCAN"
+                android:text="수집"
                 android:textColor="@android:color/white"
                 android:textSize="16sp" />
 
