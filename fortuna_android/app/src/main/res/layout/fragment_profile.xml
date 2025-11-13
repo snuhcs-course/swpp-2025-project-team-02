@@ -10,11 +10,6 @@
     android:paddingEnd="16dp"
     android:paddingBottom="16dp">
 
-    <!-- 상단 앱바 -->
-    <include
-        android:id="@+id/header_fortuna"
-        layout="@layout/header_fortuna" />
-
     <!-- 로딩 인디케이터 -->
     <FrameLayout
         android:id="@+id/loading_container"

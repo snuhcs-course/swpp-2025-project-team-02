@@ -13,7 +13,7 @@
     <item
         android:id="@+id/arFragment"
         android:icon="@drawable/ic_camera_highlighted"
-        android:title="" />
+        android:title="개운" />
 
     <item
         android:id="@+id/atomFragment"

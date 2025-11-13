@@ -43,8 +43,8 @@ class ElementHistoryDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Make dialog full screen with rounded corners
-        setStyle(STYLE_NO_TITLE, R.style.Theme_Fortuna_android)
+        // Use dialog style instead of activity theme to enable dimming
+        setStyle(STYLE_NORMAL, android.R.style.Theme_Material_Dialog)
     }
 
     override fun onCreateView(
@@ -170,6 +170,14 @@ class ElementHistoryDialogFragment : DialogFragment() {
             (resources.displayMetrics.widthPixels * 0.9).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+
+        // Add dim effect to background
+        dialog?.window?.apply {
+            // Enable dim flag
+            addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            // Set dim amount (0.0 = no dim, 1.0 = full dim)
+            setDimAmount(0.7f)
+        }
     }
 
     override fun onDestroyView() {

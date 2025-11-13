@@ -395,35 +395,27 @@ class MainActivity : AppCompatActivity() {
         // This prevents infinite loops by handling navigation state properly
         binding.bottomNavigation.setupWithNavController(navController)
 
-        // Apply gradient background to the 3rd tab (AR Fragment - Camera tab)
+        // Make AR icon (index 2) much bigger and apply gradient
         binding.bottomNavigation.post {
-            applyGradientToTab(2) // Index 2 is the 3rd tab
-        }
-    }
+            val menuView = binding.bottomNavigation.getChildAt(0) as? ViewGroup ?: return@post
+            if (menuView.childCount > 2) {
+                val arTab = menuView.getChildAt(2) as? ViewGroup ?: return@post
 
-    private fun applyGradientToTab(tabIndex: Int) {
-        try {
-            // Get the BottomNavigationMenuView (first child of BottomNavigationView)
-            val menuView = binding.bottomNavigation.getChildAt(0) as? ViewGroup ?: return
+                // Apply gradient background
+                arTab.setBackgroundResource(R.drawable.nav_tab_gradient_background)
 
-            // Get the specific tab item view
-            if (tabIndex >= menuView.childCount) return
-            val tabView = menuView.getChildAt(tabIndex) as? ViewGroup ?: return
-
-            // Apply gradient background
-            tabView.setBackgroundResource(R.drawable.nav_tab_gradient_background)
-
-            // Hide the label text for this tab (since title is empty)
-            for (i in 0 until tabView.childCount) {
-                val child = tabView.getChildAt(i)
-                if (child is android.widget.TextView) {
-                    child.visibility = android.view.View.GONE
+                // Find ImageView and make it bigger (20% increase: 48 -> 58dp)
+                for (i in 0 until arTab.childCount) {
+                    val child = arTab.getChildAt(i)
+                    if (child is android.widget.ImageView) {
+                        val params = child.layoutParams
+                        params.width = (58 * resources.displayMetrics.density).toInt()
+                        params.height = (58 * resources.displayMetrics.density).toInt()
+                        child.layoutParams = params
+                        child.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                    }
                 }
             }
-
-            Log.d(TAG, "Gradient background applied to tab $tabIndex with hidden label")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to apply gradient background to tab", e)
         }
     }
 

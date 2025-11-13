@@ -150,7 +150,7 @@ class AtomFragment : Fragment() {
 
         Log.d(TAG, "Displaying summary - Completed: $completedDays/$totalDaysInMonth, Rate: $completionRate%, Total: ${summary.totalCollected}")
 
-        binding.tvCompletedDays.text = "$completedDays / $totalDaysInMonth"
+        binding.tvCompletedDays.text = "$completedDays 일"
         binding.tvCompletionRate.text = "$completionRate%"
         binding.tvTotalCollected.text = summary.totalCollected.toString()
     }
