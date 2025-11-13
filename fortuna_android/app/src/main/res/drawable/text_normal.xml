@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- Transparent background for normal state -->
+    <solid android:color="#00000000" />
+
+    <!-- Padding for text (same as active state for consistency) -->
+    <padding
+        android:left="12dp"
+        android:top="8dp"
+        android:right="12dp"
+        android:bottom="8dp" />
+</shape>
