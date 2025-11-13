@@ -56,19 +56,33 @@ class CalendarAdapter(private var days: List<CalendarDay>) :
             if (day.dayData != null && day.isCurrentMonth) {
                 val data = day.dayData
 
-                // 원소 색상 동그라미 표시
+                // 원소 색상
                 val elementColor = getElementColor(data.neededElement)
 
-                // 동그라미 배경 설정
-                val circleDrawable = android.graphics.drawable.GradientDrawable()
-                circleDrawable.shape = android.graphics.drawable.GradientDrawable.OVAL
-                circleDrawable.setColor(elementColor)
-                binding.elementCircle.background = circleDrawable
-                binding.elementCircle.visibility = View.VISIBLE
+                // 5개 모두 수집한 경우 체크 표시
+                if (data.isCompleted && data.collectedCount >= 5) {
+                    // 체크 아이콘 표시
+                    binding.checkIcon.visibility = View.VISIBLE
+                    binding.checkIcon.setColorFilter(elementColor)
 
-                // 진행도 점 표시
-                binding.progressDots.visibility = View.VISIBLE
-                updateProgressDots(data.collectedCount, elementColor)
+                    // 동그라미와 점들 숨김
+                    binding.elementCircle.visibility = View.GONE
+                    binding.progressDots.visibility = View.GONE
+                } else {
+                    // 체크 아이콘 숨김
+                    binding.checkIcon.visibility = View.GONE
+
+                    // 동그라미 배경 설정
+                    val circleDrawable = android.graphics.drawable.GradientDrawable()
+                    circleDrawable.shape = android.graphics.drawable.GradientDrawable.OVAL
+                    circleDrawable.setColor(elementColor)
+                    binding.elementCircle.background = circleDrawable
+                    binding.elementCircle.visibility = View.VISIBLE
+
+                    // 진행도 점 표시
+                    binding.progressDots.visibility = View.VISIBLE
+                    updateProgressDots(data.collectedCount, elementColor)
+                }
 
                 // 완료된 경우 배경 색상 변경
                 if (data.isCompleted) {
@@ -78,6 +92,7 @@ class CalendarAdapter(private var days: List<CalendarDay>) :
                 }
             } else {
                 // 데이터가 없는 경우
+                binding.checkIcon.visibility = View.GONE
                 binding.elementCircle.visibility = View.GONE
                 binding.progressDots.visibility = View.GONE
                 binding.dayContainer.setBackgroundColor(Color.parseColor("#1E1E1E"))

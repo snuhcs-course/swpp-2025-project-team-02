@@ -74,4 +74,9 @@ interface ApiService {
     suspend fun getMonthlyHistory(
         @Query("month") month: String
     ): Response<MonthlyHistoryResponse>
+
+    @GET("api/chakra/element-focused-history/")
+    suspend fun getElementHistory(
+        @Query("element") element: String
+    ): Response<ElementHistoryResponse>
 }

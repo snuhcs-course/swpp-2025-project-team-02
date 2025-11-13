@@ -29,6 +29,7 @@ urlpatterns = [
     path('chakra/needed-element/', ChakraImageViewSet.as_view({'get': 'needed_element'}), name='needed_element'),
     path('chakra/today-progress/', ChakraImageViewSet.as_view({'get': 'today_progress'}), name='chakra_today_progress'),
     path('chakra/monthly-history/', ChakraImageViewSet.as_view({'get': 'monthly_history'}), name='chakra_monthly_history'),
+    path('chakra/element-focused-history/', ChakraImageViewSet.as_view({'get': 'element_focused_history'}), name='chakra_element_history'),
 
     path('fortune/today/', FortuneViewSet.as_view({'get': 'today'}), name='today_fortune'),
 ]

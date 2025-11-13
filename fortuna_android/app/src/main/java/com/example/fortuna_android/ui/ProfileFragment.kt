@@ -69,7 +69,17 @@ class ProfileFragment : Fragment() {
             (activity as? MainActivity)?.logout()
         }
 
-        // 회원 탈퇴 버튼
+        // 회원 탈퇴 텍스트 (밑줄 추가)
+        val deleteText = binding.btnDeleteAccount.text.toString()
+        val spannableString = SpannableString(deleteText)
+        spannableString.setSpan(
+            android.text.style.UnderlineSpan(),
+            0,
+            deleteText.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        binding.btnDeleteAccount.text = spannableString
+
         binding.btnDeleteAccount.setOnClickListener {
             showDeleteAccountDialog()
         }
@@ -231,7 +241,7 @@ class ProfileFragment : Fragment() {
             binding.profileElementTag.text = spannable
         }
 
-        // 수집한 원소 표시 (색상과 카운트 적용)
+        // 수집한 원소 표시
         updateCollectedElements(profile)
     }
 
@@ -254,44 +264,60 @@ class ProfileFragment : Fragment() {
         updateElementBadge(
             badge = binding.elementBadge1,
             count = collectionStatus?.wood ?: 0,
-            color = woodColor
+            color = woodColor,
+            elementType = "wood",
+            elementKr = "목"
         )
 
         // Update badge 2: 화 (Fire) - Red
         updateElementBadge(
             badge = binding.elementBadge2,
             count = collectionStatus?.fire ?: 0,
-            color = fireColor
+            color = fireColor,
+            elementType = "fire",
+            elementKr = "화"
         )
 
         // Update badge 3: 토 (Earth) - Orange
         updateElementBadge(
             badge = binding.elementBadge3,
             count = collectionStatus?.earth ?: 0,
-            color = earthColor
+            color = earthColor,
+            elementType = "earth",
+            elementKr = "토"
         )
 
         // Update badge 4: 금 (Metal) - Gray
         updateElementBadge(
             badge = binding.elementBadge4,
             count = collectionStatus?.metal ?: 0,
-            color = metalColor
+            color = metalColor,
+            elementType = "metal",
+            elementKr = "금"
         )
 
         // Update badge 5: 수 (Water) - Blue
         updateElementBadge(
             badge = binding.elementBadge5,
             count = collectionStatus?.water ?: 0,
-            color = waterColor
+            color = waterColor,
+            elementType = "water",
+            elementKr = "수"
         )
 
         Log.d(TAG, "Collected elements updated: 목=${collectionStatus?.wood}, 화=${collectionStatus?.fire}, 토=${collectionStatus?.earth}, 금=${collectionStatus?.metal}, 수=${collectionStatus?.water}")
     }
 
     /**
-     * Update a single element badge with count and color
+     * Update a single element badge with count, color, and click listener
      */
-    private fun updateElementBadge(badge: TextView, count: Int, color: Int) {
+    private fun updateElementBadge(
+        badge: TextView,
+        count: Int,
+        color: Int,
+        elementType: String,
+        elementKr: String
+    ) {
         badge.text = count.toString()
 
         // Create rounded rectangle background with element color
@@ -304,6 +330,23 @@ class ProfileFragment : Fragment() {
 
         // Set text color to white for better visibility
         badge.setTextColor(Color.WHITE)
+
+        // Make badge clickable
+        badge.isClickable = true
+        badge.isFocusable = true
+
+        // Add click listener to show history dialog
+        badge.setOnClickListener {
+            showElementHistoryDialog(elementType, elementKr, color)
+        }
+    }
+
+    /**
+     * Show element history dialog
+     */
+    private fun showElementHistoryDialog(elementType: String, elementKr: String, color: Int) {
+        val dialog = ElementHistoryDialogFragment.newInstance(elementType, elementKr, color)
+        dialog.show(childFragmentManager, "ElementHistoryDialog")
     }
 
     private fun getElementFromCheongan(cheongan: String): String {

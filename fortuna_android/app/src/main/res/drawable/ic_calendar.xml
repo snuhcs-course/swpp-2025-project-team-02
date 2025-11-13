@@ -1,0 +1,57 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Calendar body -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M5,8h14v11c0,1.1 -0.9,2 -2,2H7c-1.1,0 -2,-0.9 -2,-2V8z"/>
+    <!-- Calendar header -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M5,5c0,-1.1 0.9,-2 2,-2h10c1.1,0 2,0.9 2,2v3H5V5z"/>
+    <!-- Left hook -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M8,3v3"/>
+    <!-- Right hook -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M16,3v3"/>
+    <!-- Dots representing dates -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M9,12m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,12m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M15,12m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M9,15m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,15m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M15,15m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M9,18m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,18m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0"/>
+</vector>

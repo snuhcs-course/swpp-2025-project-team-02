@@ -412,3 +412,24 @@ data class SummaryData(
     @SerializedName("total_collected")
     val totalCollected: Int
 )
+
+// GET /api/chakra/element-focused-history/
+data class ElementHistoryResponse(
+    val status: String,
+    val data: ElementHistoryData
+)
+
+data class ElementHistoryData(
+    val element: String,  // English: wood/fire/earth/metal/water
+    @SerializedName("element_kr")
+    val elementKr: String,  // Korean: 목/화/토/금/수
+    @SerializedName("total_count")
+    val totalCount: Int,
+    val history: List<ElementHistoryDay>
+)
+
+data class ElementHistoryDay(
+    val date: String,  // YYYY-MM-DD format
+    @SerializedName("collected_count")
+    val collectedCount: Int
+)

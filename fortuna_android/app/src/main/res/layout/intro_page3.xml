@@ -3,21 +3,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="#000000">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:background="#000000">
 
         <TextView
             android:id="@+id/title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="일주 - 나를 나타내는 기둥"
-            android:textSize="26sp"
+            android:text="천간과 지지"
+            android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="48dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -27,145 +29,103 @@
             android:id="@+id/subtitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="2열(일주)이 본인을 나타냅니다"
+            android:text="천간 10개, 지지 12개의 조합"
             android:textSize="16sp"
-            android:textColor="@color/text_secondary"
+            android:textColor="#AAAAAA"
             android:layout_marginTop="12dp"
             app:layout_constraintTop_toBottomOf="@id/title"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- 일주 강조 사주 -->
-        <LinearLayout
-            android:id="@+id/iljuMatrix"
+        <!-- 천간 Grid -->
+        <TextView
+            android:id="@+id/cheonganLabel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@android:drawable/dialog_holo_light_frame"
-            android:padding="16dp"
+            android:text="천간 (天干)"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="32dp"
             app:layout_constraintTop_toBottomOf="@id/subtitle"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <GridLayout
+            android:id="@+id/cheonganGrid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:columnCount="5"
+            android:rowCount="2"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/cheonganLabel"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="4">
+            <TextView style="@style/GanJiCell" android:text="甲\n갑" android:background="#A5D6A7" />
+            <TextView style="@style/GanJiCell" android:text="乙\n을" android:background="#C8E6C9" />
+            <TextView style="@style/GanJiCell" android:text="丙\n병" android:background="#EF9A9A" />
+            <TextView style="@style/GanJiCell" android:text="丁\n정" android:background="#FFCDD2" />
+            <TextView style="@style/GanJiCell" android:text="戊\n무" android:background="#FFCC80" />
+            <TextView style="@style/GanJiCell" android:text="己\n기" android:background="#FFE0B2" />
+            <TextView style="@style/GanJiCell" android:text="庚\n경" android:background="#BCAAA4" />
+            <TextView style="@style/GanJiCell" android:text="辛\n신" android:background="#D7CCC8" />
+            <TextView style="@style/GanJiCell" android:text="壬\n임" android:background="#90CAF9" />
+            <TextView style="@style/GanJiCell" android:text="癸\n계" android:background="#BBDEFB" />
+        </GridLayout>
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="시간"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:background="#E8E8E8"
-                    android:layout_margin="4dp" />
+        <!-- 지지 Grid -->
+        <TextView
+            android:id="@+id/jijiLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="지지 (地支)"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/cheonganGrid"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="정"
-                    android:gravity="center"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:background="#FF5722"
-                    android:layout_margin="4dp" />
+        <GridLayout
+            android:id="@+id/jijiGrid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:columnCount="6"
+            android:rowCount="2"
+            android:layout_marginTop="12dp"
+            app:layout_constraintTop_toBottomOf="@id/jijiLabel"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="월간"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:background="#E8E8E8"
-                    android:layout_margin="4dp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="연간"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:background="#E8E8E8"
-                    android:layout_margin="4dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="4">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="시지"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:background="#E8E8E8"
-                    android:layout_margin="4dp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="해"
-                    android:gravity="center"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:background="#EF5350"
-                    android:layout_margin="4dp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="월지"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:background="#E8E8E8"
-                    android:layout_margin="4dp" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="연지"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:background="#E8E8E8"
-                    android:layout_margin="4dp" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="예: 정해일주 (丁亥日柱)"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginTop="8dp"
-                android:layout_gravity="center" />
-        </LinearLayout>
+            <TextView style="@style/GanJiCellSmall" android:text="子\n자" android:background="#90CAF9" />
+            <TextView style="@style/GanJiCellSmall" android:text="丑\n축" android:background="#FFCC80" />
+            <TextView style="@style/GanJiCellSmall" android:text="寅\n인" android:background="#A5D6A7" />
+            <TextView style="@style/GanJiCellSmall" android:text="卯\n묘" android:background="#C8E6C9" />
+            <TextView style="@style/GanJiCellSmall" android:text="辰\n진" android:background="#FFE0B2" />
+            <TextView style="@style/GanJiCellSmall" android:text="巳\n사" android:background="#EF9A9A" />
+            <TextView style="@style/GanJiCellSmall" android:text="午\n오" android:background="#FFCDD2" />
+            <TextView style="@style/GanJiCellSmall" android:text="未\n미" android:background="#FFCC80" />
+            <TextView style="@style/GanJiCellSmall" android:text="申\n신" android:background="#BCAAA4" />
+            <TextView style="@style/GanJiCellSmall" android:text="酉\n유" android:background="#D7CCC8" />
+            <TextView style="@style/GanJiCellSmall" android:text="戌\n술" android:background="#FFE0B2" />
+            <TextView style="@style/GanJiCellSmall" android:text="亥\n해" android:background="#BBDEFB" />
+        </GridLayout>
 
         <TextView
             android:id="@+id/description"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="일주의 천간(1행)이 본인의 속성을 나타냅니다\n\n예시:\n• 정해일주 → 정(丁) = 음(-)의 불(화)\n• 병술일주 → 병(丙) = 양(+)의 불(화)\n• 갑술일주 → 갑(甲) = 양(+)의 나무(목)"
+            android:text="천간 + 지지 조합 = 60갑자\n(10 × 12 ÷ 2 = 60가지)"
             android:textSize="15sp"
-            android:lineSpacingExtra="6dp"
-            android:textColor="@color/black"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"
+            android:textColor="#FFFFFF"
+            android:background="#1A1A1A"
+            android:padding="16dp"
             android:layout_marginTop="24dp"
-            app:layout_constraintTop_toBottomOf="@id/iljuMatrix"
+            app:layout_constraintTop_toBottomOf="@id/jijiGrid"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 

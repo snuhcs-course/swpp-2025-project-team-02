@@ -3,21 +3,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="#000000">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:background="#000000">
 
         <TextView
             android:id="@+id/title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="사주의 구조"
+            android:text="사주란?"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
+            android:textColor="#FFFFFF"
             android:layout_marginTop="48dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -27,9 +29,9 @@
             android:id="@+id/subtitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="사주는 2행 4열의 구조로 이루어져 있습니다"
+            android:text="사주는 2행 4열로 이루어진 각자 타고난 운명입니다."
             android:textSize="16sp"
-            android:textColor="@color/text_secondary"
+            android:textColor="#AAAAAA"
             android:layout_marginTop="12dp"
             app:layout_constraintTop_toBottomOf="@id/title"
             app:layout_constraintStart_toStartOf="parent"
@@ -41,7 +43,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@android:drawable/dialog_holo_light_frame"
+            android:background="#1A1A1A"
             android:padding="16dp"
             android:layout_marginTop="32dp"
             app:layout_constraintTop_toBottomOf="@id/subtitle"
@@ -55,49 +57,122 @@
                 android:orientation="horizontal"
                 android:weightSum="4">
 
-                <TextView
+                <!-- 시간 -->
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="시\n時"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:background="#F5F5F5"
-                    android:layout_margin="4dp" />
+                    android:orientation="vertical"
+                    android:background="#2C2C2C"
+                    android:padding="8dp"
+                    android:layout_margin="4dp">
 
-                <TextView
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="시\n時"
+                        android:textSize="10sp"
+                        android:textColor="#888888"
+                        android:gravity="center" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="시간"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:gravity="center"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <!-- 일간 (나) -->
+                <LinearLayout
+                    android:id="@+id/ilganColumn"
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="일\n日"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
+                    android:orientation="vertical"
                     android:background="#FFE082"
-                    android:layout_margin="4dp" />
+                    android:padding="8dp"
+                    android:layout_margin="4dp">
 
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="60dp"
-                    android:layout_weight="1"
-                    android:text="월\n月"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:background="#F5F5F5"
-                    android:layout_margin="4dp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="일\n日"
+                        android:textSize="10sp"
+                        android:textColor="#666666"
+                        android:gravity="center" />
 
-                <TextView
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="일간"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#000000"
+                        android:gravity="center"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <!-- 월간 -->
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="연\n年"
-                    android:gravity="center"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:background="#F5F5F5"
-                    android:layout_margin="4dp" />
+                    android:orientation="vertical"
+                    android:background="#2C2C2C"
+                    android:padding="8dp"
+                    android:layout_margin="4dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="월\n月"
+                        android:textSize="10sp"
+                        android:textColor="#888888"
+                        android:gravity="center" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="월간"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:gravity="center"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <!-- 연간 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="#2C2C2C"
+                    android:padding="8dp"
+                    android:layout_margin="4dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="연\n年"
+                        android:textSize="10sp"
+                        android:textColor="#888888"
+                        android:gravity="center" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="연간"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:gravity="center"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Row 2: 지지 -->
@@ -114,7 +189,8 @@
                     android:text="시지"
                     android:gravity="center"
                     android:textSize="16sp"
-                    android:background="#E8E8E8"
+                    android:textColor="#FFFFFF"
+                    android:background="#3C3C3C"
                     android:layout_margin="4dp" />
 
                 <TextView
@@ -124,6 +200,7 @@
                     android:text="일지"
                     android:gravity="center"
                     android:textSize="16sp"
+                    android:textColor="#000000"
                     android:background="#FFCC80"
                     android:layout_margin="4dp" />
 
@@ -134,7 +211,8 @@
                     android:text="월지"
                     android:gravity="center"
                     android:textSize="16sp"
-                    android:background="#E8E8E8"
+                    android:textColor="#FFFFFF"
+                    android:background="#3C3C3C"
                     android:layout_margin="4dp" />
 
                 <TextView
@@ -144,7 +222,8 @@
                     android:text="연지"
                     android:gravity="center"
                     android:textSize="16sp"
-                    android:background="#E8E8E8"
+                    android:textColor="#FFFFFF"
+                    android:background="#3C3C3C"
                     android:layout_margin="4dp" />
             </LinearLayout>
 
@@ -153,23 +232,56 @@
                 android:layout_height="wrap_content"
                 android:text="1행: 천간 / 2행: 지지"
                 android:textSize="12sp"
-                android:textColor="@color/text_secondary"
+                android:textColor="#AAAAAA"
                 android:layout_marginTop="8dp"
                 android:layout_gravity="center" />
         </LinearLayout>
 
+        <!-- Guideline: 2열의 시작 (25% 위치) -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guidelineColumn2Start"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.25" />
+
+        <!-- Guideline: 2열의 끝 (50% 위치) -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guidelineColumn2End"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.50" />
+
+        <!-- 화살표 -->
         <TextView
-            android:id="@+id/description"
+            android:id="@+id/arrowIndicator"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="• 1행(천간)과 2행(지지)의 조합으로 구성\n• 각 열은 하나의 '주(柱)'를 나타냄\n• 일주(2열)가 본인을 나타냄"
-            android:textSize="15sp"
-            android:lineSpacingExtra="6dp"
-            android:textColor="@color/black"
-            android:layout_marginTop="24dp"
+            android:text="↑"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
             app:layout_constraintTop_toBottomOf="@id/sajuMatrix"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintStart_toStartOf="@id/guidelineColumn2Start"
+            app:layout_constraintEnd_toEndOf="@id/guidelineColumn2End" />
+
+        <!-- '나' 텍스트 -->
+        <TextView
+            android:id="@+id/meIndicator"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="나"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@id/arrowIndicator"
+            app:layout_constraintStart_toStartOf="@id/guidelineColumn2Start"
+            app:layout_constraintEnd_toEndOf="@id/guidelineColumn2End" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

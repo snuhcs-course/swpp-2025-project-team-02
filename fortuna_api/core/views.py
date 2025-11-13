@@ -4,6 +4,7 @@ DRF ViewSets for Fortuna Core API.
 
 from datetime import datetime, timedelta
 from django.db.models import Count
+from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -31,6 +32,7 @@ from .serializers import (
     NeededElementResponseSerializer,
     TodayProgressResponseSerializer,
     MonthlyHistoryResponseSerializer,
+    ElementFocusedHistoryResponseSerializer,
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
@@ -255,7 +257,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Authentication required'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-        now = datetime.now()
+        now = timezone.now()
 
         # Create ChakraImage without image (PoC mode)
         try:
@@ -402,7 +404,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Invalid date format. Use YYYY-MM-DD'
                 }, status=status.HTTP_400_BAD_REQUEST)
         else:
-            today_date = datetime.now().date()
+            today_date = timezone.now().date()
 
         # Calculate fortune balance which now includes needed_element
         fortune_score = fortune_service.calculate_fortune_balance(user, datetime.combine(today_date, datetime.min.time()))
@@ -448,7 +450,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Authentication required'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-        today = datetime.now().date()
+        today = timezone.now().date()
 
         # Get today's FortuneResult
         try:
@@ -566,7 +568,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         end_date = datetime(year, month, last_day).date()
 
         # Only include days up to today
-        today = datetime.now().date()
+        today = timezone.now().date()
         if end_date > today:
             end_date = today
 
@@ -634,6 +636,103 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             }
         }, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary="Get Element-Focused Collection History",
+        description="Get collection history for a specific element type, sorted by date descending",
+        parameters=[
+            OpenApiParameter(
+                name='element',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Element type (wood/fire/earth/metal/water)',
+                required=True
+            )
+        ],
+        responses={
+            200: ElementFocusedHistoryResponseSerializer,
+            400: APIResponseSerializer
+        }
+    )
+    @action(detail=False, methods=['get'], url_path='element-focused-history')
+    def element_focused_history(self, request):
+        """
+        Get collection history focused on a specific element.
+        Returns all dates where the element was collected, with counts, sorted by date descending.
+        """
+        # For development: use test user if not authenticated
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.conf import settings
+            from user.models import User
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                user = User.objects.filter(email='test@fortuna.com').first()
+                if not user:
+                    return Response({
+                        'status': 'error',
+                        'message': 'Test user not found. Please create test user first.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': 'Authentication required'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Get and validate element parameter
+        element_param = request.query_params.get('element')
+        if not element_param:
+            return Response({
+                'status': 'error',
+                'message': 'Element parameter is required (wood/fire/earth/metal/water)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate element
+        valid_elements = ['wood', 'fire', 'earth', 'metal', 'water']
+        element_en = element_param.lower()
+        if element_en not in valid_elements:
+            return Response({
+                'status': 'error',
+                'message': f'Invalid element. Must be one of: {", ".join(valid_elements)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Map element to Korean
+        element_mapping = {
+            'wood': '목',
+            'fire': '화',
+            'earth': '토',
+            'metal': '금',
+            'water': '수'
+        }
+        element_kr = element_mapping[element_en]
+
+        # Get all ChakraImages for this element
+        chakra_images = ChakraImage.objects.filter(
+            user=user,
+            chakra_type=element_en
+        ).values('date').annotate(
+            collected_count=Count('id')
+        ).order_by('-date')  # Sort by date descending (most recent first)
+
+        # Build history list
+        history = []
+        total_count = 0
+        for item in chakra_images:
+            history.append({
+                'date': item['date'].isoformat(),
+                'collected_count': item['collected_count']
+            })
+            total_count += item['collected_count']
+
+        return Response({
+            'status': 'success',
+            'data': {
+                'element': element_en,
+                'element_kr': element_kr,
+                'total_count': total_count,
+                'history': history
+            }
+        }, status=status.HTTP_200_OK)
+
 
 @extend_schema_view(
     list=extend_schema(exclude=True),
@@ -663,7 +762,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
     def today(self, request):
         """Get today's fortune with balance score (DB cached)."""
         user = request.user
-        today_date = datetime.now().date()
+        today_date = timezone.now().date()
 
         # Helper functions to convert GanJi/Saju objects (used in both branches)
         def ganji_to_dict(ganji):
