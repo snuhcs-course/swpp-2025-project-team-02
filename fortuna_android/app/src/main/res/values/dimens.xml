@@ -9,6 +9,7 @@
     <dimen name="spacing_xxl">48dp</dimen>
 
     <!-- Font Sizes (BeReal uses bold, clear typography) -->
+    <dimen name="text_xxs">10sp</dimen>
     <dimen name="text_xs">12sp</dimen>
     <dimen name="text_sm">14sp</dimen>
     <dimen name="text_base">16sp</dimen>

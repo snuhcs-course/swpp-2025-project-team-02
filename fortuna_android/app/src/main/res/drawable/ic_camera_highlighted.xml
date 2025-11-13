@@ -1,18 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="48dp"
-    android:height="48dp"
-    android:viewportWidth="48"
-    android:viewportHeight="48">
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
 
-    <!-- 노란색 원형 배경 -->
+    <!-- 십자키 수직선 -->
     <path
-        android:fillColor="#FFCC4D"
-        android:pathData="M24,24m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"/>
+        android:strokeColor="#CCCCCC"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M8.5,11v3"/>
 
-    <!-- 카메라 아이콘 (흰색) -->
+    <!-- 십자키 수평선 -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M18,16h12l2,2h6c1.1,0 2,0.9 2,2v14c0,1.1-0.9,2-2,2H10c-1.1,0-2-0.9-2-2V18c0-1.1 0.9-2 2-2h6l2-2z
-                        M24,31c2.76,0 5-2.24 5-5s-2.24-5-5-5s-5,2.24-5,5S21.24,31 24,31z"/>
+        android:strokeColor="#CCCCCC"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M7,12.5h3"/>
+
+    <!-- 게임패드 본체 -->
+    <path
+        android:strokeColor="#CCCCCC"
+        android:strokeWidth="1.5"
+        android:pathData="M21.92,17.377l-1.085-4.517c-0.613-2.553-0.92-3.83-1.79-4.666q-0.331-0.319-0.725-0.56C17.284,7,15.937,7,13.243,7h-2.486c-2.694,0-4.041,0-5.077,0.634q-0.394,0.241-0.725,0.56c-0.87,0.837-1.177,2.113-1.79,4.666L2.08,17.377c-0.381,1.587,0.633,3.175,2.264,3.546c1.376,0.312,2.791-0.342,3.413-1.576l0.128-0.255c0.57-1.133,1.754-1.852,3.051-1.852h2.128c1.297,0,2.48,0.719,3.051,1.852l0.128,0.255c0.622,1.234,2.037,1.888,3.413,1.575c1.631-0.37,2.645-1.958,2.264-3.545Z"/>
+
+    <!-- 상단 손잡이 -->
+    <path
+        android:strokeColor="#CCCCCC"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M12,7V6a1,1 0,0 1,1-1h1a1,1 0,0 0,1-1V3"/>
+
+    <!-- 버튼 2개 (filled) -->
+    <path
+        android:fillColor="#CCCCCC"
+        android:pathData="M16,11m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0"/>
+
+    <path
+        android:fillColor="#CCCCCC"
+        android:pathData="M18,14m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0"/>
 </vector>

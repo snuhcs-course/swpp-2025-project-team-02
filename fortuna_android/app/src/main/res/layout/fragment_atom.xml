@@ -184,7 +184,7 @@
                     android:id="@+id/tvCompletedDays"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 / 0"
+                    android:text=" 일"
                     android:textColor="#0BEFA0"
                     android:textSize="16sp"
                     android:textStyle="bold" />
