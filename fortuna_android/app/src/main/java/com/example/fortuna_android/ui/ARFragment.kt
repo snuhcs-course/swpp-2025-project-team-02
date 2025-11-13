@@ -879,8 +879,8 @@ class ARFragment(
         // Always show celebration animation for any tap
         showCelebrationAnimation()
 
-        if (wasNeededElement) {
-            // Needed element: Normal collection behavior
+        if (wasNeededElement && localCollectedCount < TARGET_COLLECTION_COUNT) {
+            // Needed element: Normal collection behavior, but only if under target
             localCollectedCount++
 
             // Update UI with new count
@@ -893,18 +893,23 @@ class ARFragment(
 
             // Trigger API call in background
             collectElementInBackground()
+        } else if (wasNeededElement && localCollectedCount >= TARGET_COLLECTION_COUNT) {
+            // Needed element but target already reached
+            if (isAdded) {
+                CustomToast.show(requireContext(), "목표 달성 완료! (${TARGET_COLLECTION_COUNT}/${TARGET_COLLECTION_COUNT})")
+            }
         } else {
             // Non-needed element: Show different feedback, no progress update
             if (isAdded) {
                 val elementName = when (tappedAnchor.element) {
-                    ElementMapper.Element.FIRE -> "불"
-                    ElementMapper.Element.WATER -> "물"
-                    ElementMapper.Element.WOOD -> "나무"
-                    ElementMapper.Element.METAL -> "금속"
-                    ElementMapper.Element.EARTH -> "땅"
+                    ElementMapper.Element.FIRE -> "불은"
+                    ElementMapper.Element.WATER -> "물은"
+                    ElementMapper.Element.WOOD -> "나무는"
+                    ElementMapper.Element.METAL -> "금속은"
+                    ElementMapper.Element.EARTH -> "땅은"
                     else -> tappedAnchor.element.displayName
                 }
-                CustomToast.show(requireContext(), "잘못된 원소! ($elementName 는 필요하지 않아요)")
+                CustomToast.show(requireContext(), "$elementName 더 이상 필요하지 않아요")
             }
             // No UI update, no count increment, no API call
         }

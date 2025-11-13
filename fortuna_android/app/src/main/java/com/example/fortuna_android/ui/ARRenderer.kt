@@ -209,13 +209,15 @@ class ARRenderer(private val fragment: ARFragment) :
                 arLabeledAnchors.remove(closestAnchor)
             }
 
-            // Only count towards collected if it matches the needed element
-            val shouldCount = neededElement == null || closestAnchor.element == neededElement
+            // Only count towards collected if it matches the needed element and hasn't reached target
+            val shouldCount = (neededElement == null || closestAnchor.element == neededElement) && collectedCount < 5
             if (shouldCount) {
                 collectedCount++
                 Log.i(TAG, "🎮 Collected ${closestAnchor.element.displayName} sphere! Total: $collectedCount (distance: ${closestDistance.toInt()} px)")
-            } else {
+            } else if (neededElement != null && closestAnchor.element != neededElement) {
                 Log.i(TAG, "🗑️ Eliminated ${closestAnchor.element.displayName} sphere (not needed, wanted ${neededElement?.displayName})")
+            } else if (collectedCount >= 5) {
+                Log.i(TAG, "🎯 Target reached! Cannot collect more ${closestAnchor.element.displayName} spheres (${collectedCount}/5)")
             }
 
             return Pair(closestAnchor, shouldCount)
@@ -423,6 +425,22 @@ class ARRenderer(private val fragment: ARFragment) :
                         val imageRotation = displayRotationHelper.getCameraSensorToDisplayRotation(cameraId)
                         objectResults = currentAnalyzer.analyze(cameraImage, imageRotation)
                         cameraImage.close()
+
+                        // For VLM mode, set a timeout to reset scan button if VLM callback doesn't fire
+                        if (currentAnalyzer is VLMObjectDetector) {
+                            launch(Dispatchers.Main) {
+                                kotlinx.coroutines.delay(15000) // 15 second timeout
+                                if (!vlmClassificationComplete) {
+                                    Log.w(TAG, "VLM analysis timeout - resetting scan button")
+                                    fragment.setScanningActive(false)
+                                    fragment.view?.post {
+                                        fragment.clearBoundingBoxes()
+                                        // Show same feedback as when no objects detected
+                                        fragment.onObjectDetectionCompleted(0, 0)
+                                    }
+                                }
+                            }
+                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during object analysis", e)
                         cameraImage.close()
