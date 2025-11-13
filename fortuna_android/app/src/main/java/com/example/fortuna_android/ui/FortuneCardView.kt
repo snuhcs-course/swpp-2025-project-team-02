@@ -16,7 +16,11 @@ import com.example.fortuna_android.R
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.BuildConfig
 import com.example.fortuna_android.databinding.CardFortuneBinding
+import com.example.fortuna_android.tts.AndroidTtsAdapter
+import com.example.fortuna_android.tts.FortuneTtsManager
+import com.example.fortuna_android.tts.OpenAiRealtimeTtsAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,6 +41,30 @@ class FortuneCardView @JvmOverloads constructor(
 
     // Store base entropy score for bonus calculation
     private var baseEntropyScore: Int = 0
+
+    // TTS manager for reading fortune text
+    // Toggle between Android TTS (fast, free) and OpenAI Realtime TTS (high quality, paid)
+    private val ttsManager: FortuneTtsManager by lazy {
+        val useOpenAiTts = BuildConfig.OPENAI_API_KEY.isNotEmpty()
+
+        val adapter = if (useOpenAiTts) {
+            Log.d("FortuneCardView", "Using OpenAI Realtime TTS - HILARIOUS MODE")
+            OpenAiRealtimeTtsAdapter(
+                apiKey = BuildConfig.OPENAI_API_KEY,
+                voice = "verse" // Shimmer: warm, energetic female - PERFECT for crazy energetic fortune god!
+                // Other options: alloy, echo, fable, onyx, nova
+            )
+        } else {
+            Log.d("FortuneCardView", "Using Android native TTS - CHIPMUNK MODE")
+            AndroidTtsAdapter(
+                context,
+                pitch = 1.5f,      // Higher pitch = chipmunk voice (1.0 = normal)
+                speechRate = 1.3f  // Faster speech (1.0 = normal)
+            )
+        }
+
+        FortuneTtsManager(adapter)
+    }
 
     init {
         // Set CardView background to black to prevent white corners
@@ -63,6 +91,32 @@ class FortuneCardView @JvmOverloads constructor(
 
         // 버튼 애니메이션 시작
         startButtonAnimations()
+
+        // Set up TTS click listeners for fortune text sections
+        setupTtsClickListeners()
+    }
+
+    /**
+     * Set up click listeners for TTS on fortune text sections
+     */
+    private fun setupTtsClickListeners() {
+        // 오행 균형 설명 클릭 시 TTS 재생/중단
+        binding.tvElementBalanceDescription.setOnClickListener {
+            ttsManager.handleTextClick(
+                textView = binding.tvElementBalanceDescription,
+                glowBackground = R.drawable.text_glow_active,
+                normalBackground = R.drawable.text_normal
+            )
+        }
+
+        // 사주를 좋게 하는 방법 클릭 시 TTS 재생/중단
+        binding.tvDailyGuidance.setOnClickListener {
+            ttsManager.handleTextClick(
+                textView = binding.tvDailyGuidance,
+                glowBackground = R.drawable.text_glow_active,
+                normalBackground = R.drawable.text_normal
+            )
+        }
     }
 
     /**
@@ -319,6 +373,24 @@ class FortuneCardView @JvmOverloads constructor(
             "water", "물", "수" -> Color.parseColor("#2BB3FC")    // 파랑
             else -> Color.parseColor("#FFFFFF")
         }
+    }
+
+    /**
+     * Stop TTS when view is detached from window
+     * This ensures TTS stops when user navigates away or view becomes invisible
+     */
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        Log.d("FortuneCardView", "View detached, stopping TTS")
+        ttsManager.onViewDetached(R.drawable.text_normal)
+    }
+
+    /**
+     * Release TTS resources when view is finalized
+     */
+    @Suppress("deprecation")
+    protected fun finalize() {
+        ttsManager.release()
     }
 
 }

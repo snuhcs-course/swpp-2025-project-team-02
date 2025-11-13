@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">fortuna_android</string>
+    <string name="app_name">Fortuna</string>
 
     <!-- 태어난 시간 선택 옵션 -->
     <string-array name="birth_time_units">

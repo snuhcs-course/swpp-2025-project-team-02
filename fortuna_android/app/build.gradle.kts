@@ -39,6 +39,7 @@ android {
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_CLIENT_ID", "")}\"")
         buildConfigField("String", "API_BASE_URL", "\"${localProperties.getProperty("API_BASE_URL", "")}\"")
         buildConfigField("String", "API_HOST", "\"${localProperties.getProperty("API_HOST", "")}\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"${localProperties.getProperty("OPENAI_API_KEY", "")}\"")
 
         // VLM model filenames (from top-level constants)
         buildConfigField("String", "VLM_MODEL_FILENAME", "\"$VLM_MODEL_FILENAME\"")
