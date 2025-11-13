@@ -425,22 +425,6 @@ class ARRenderer(private val fragment: ARFragment) :
                         val imageRotation = displayRotationHelper.getCameraSensorToDisplayRotation(cameraId)
                         objectResults = currentAnalyzer.analyze(cameraImage, imageRotation)
                         cameraImage.close()
-
-                        // For VLM mode, set a timeout to reset scan button if VLM callback doesn't fire
-                        if (currentAnalyzer is VLMObjectDetector) {
-                            launch(Dispatchers.Main) {
-                                kotlinx.coroutines.delay(15000) // 15 second timeout
-                                if (!vlmClassificationComplete) {
-                                    Log.w(TAG, "VLM analysis timeout - resetting scan button")
-                                    fragment.setScanningActive(false)
-                                    fragment.view?.post {
-                                        fragment.clearBoundingBoxes()
-                                        // Show same feedback as when no objects detected
-                                        fragment.onObjectDetectionCompleted(0, 0)
-                                    }
-                                }
-                            }
-                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during object analysis", e)
                         cameraImage.close()
