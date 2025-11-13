@@ -51,8 +51,8 @@ class FortuneCardView @JvmOverloads constructor(
             Log.d("FortuneCardView", "Using OpenAI Realtime TTS - HILARIOUS MODE")
             OpenAiRealtimeTtsAdapter(
                 apiKey = BuildConfig.OPENAI_API_KEY,
-                voice = "verse" // Nova: energetic female voice - PERFECT for dramatic fortune god!
-                // Other options: alloy, echo, fable, onyx, shimmer
+                voice = "verse" // Shimmer: warm, energetic female - PERFECT for crazy energetic fortune god!
+                // Other options: alloy, echo, fable, onyx, nova
             )
         } else {
             Log.d("FortuneCardView", "Using Android native TTS - CHIPMUNK MODE")
