@@ -92,6 +92,23 @@ class ARFragment(
     // Navigation destination change listener for cleanup on navigation away from AR
     private var navDestinationListener: NavController.OnDestinationChangedListener? = null
 
+    /**
+     * Safely execute navigation operations with proper error handling
+     */
+    private fun safeNavigation(action: () -> Unit) {
+        try {
+            if (isAdded) {
+                action()
+            } else {
+                Log.w(TAG, "Fragment not added, skipping navigation operation")
+            }
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Navigation operation failed - NavController not available", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error during navigation operation", e)
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -123,7 +140,7 @@ class ARFragment(
         })
 
         // Handle navigation away from AR fragment via bottom navigation
-        try {
+        safeNavigation {
             val navController = findNavController()
             navDestinationListener = NavController.OnDestinationChangedListener { _, destination, _ ->
                 // Check if we're navigating away from ARFragment
@@ -135,8 +152,6 @@ class ARFragment(
             }
             navController.addOnDestinationChangedListener(navDestinationListener!!)
             Log.d(TAG, "Navigation destination listener added")
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not set up navigation destination listener", e)
         }
     }
 
@@ -145,10 +160,8 @@ class ARFragment(
         if (mainActivity == null) {
             Log.e(TAG, "Activity is not MainActivity")
             // Only try to navigate back if NavController is available
-            try {
+            safeNavigation {
                 findNavController().popBackStack()
-            } catch (e: IllegalStateException) {
-                Log.w(TAG, "NavController not available, likely in test environment")
             }
             return
         }
@@ -237,7 +250,9 @@ class ARFragment(
 
         // Setup GL Surface View
         surfaceView = binding.surfaceview.apply {
-            SampleRender(this, renderer, requireContext().assets)
+            if (isAdded) {
+                SampleRender(this, renderer, requireContext().assets)
+            }
         }
 
         lifecycle.addObserver(this)
@@ -409,6 +424,11 @@ class ARFragment(
      * Setup background music for AR experience
      */
     private fun setupBackgroundMusic() {
+        if (!isAdded) {
+            Log.w(TAG, "Fragment not added, skipping background music setup")
+            return
+        }
+
         try {
             bgmPlayer = MediaPlayer().apply {
                 setOnPreparedListener { mediaPlayer ->
@@ -528,6 +548,12 @@ class ARFragment(
         resourceId: Int,
         soundName: String
     ) {
+        if (!isAdded) {
+            Log.w(TAG, "Fragment not added, skipping $soundName sound setup")
+            playerSetter(null)
+            return
+        }
+
         try {
             val player = MediaPlayer().apply {
                 setOnPreparedListener { mediaPlayer ->
@@ -730,6 +756,11 @@ class ARFragment(
      */
     private fun showARTutorial() {
         val binding = _binding ?: return
+
+        if (!isAdded) {
+            Log.w(TAG, "Fragment not added, skipping AR tutorial")
+            return
+        }
 
         // Inflate tutorial overlay
         val tutorialView = LayoutInflater.from(requireContext())
@@ -1153,7 +1184,7 @@ class ARFragment(
 
             // Add a small delay to ensure cleanup is complete before navigation
             view?.postDelayed({
-                if (isAdded) {
+                safeNavigation {
                     findNavController().popBackStack()
                 }
             }, 100)
@@ -1161,12 +1192,8 @@ class ARFragment(
         } catch (e: Exception) {
             Log.e(TAG, "Error during cleanup and exit", e)
             // Fallback: navigate immediately even if cleanup fails
-            if (isAdded) {
-                try {
-                    findNavController().popBackStack()
-                } catch (navException: Exception) {
-                    Log.e(TAG, "Navigation failed during cleanup", navException)
-                }
+            safeNavigation {
+                findNavController().popBackStack()
             }
         }
     }
@@ -1178,11 +1205,9 @@ class ARFragment(
         try {
             // Remove navigation destination listener
             navDestinationListener?.let { listener ->
-                try {
+                safeNavigation {
                     findNavController().removeOnDestinationChangedListener(listener)
                     Log.d(TAG, "Navigation destination listener removed")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Could not remove navigation destination listener", e)
                 }
                 navDestinationListener = null
             }
