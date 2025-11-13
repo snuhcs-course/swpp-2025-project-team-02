@@ -135,8 +135,8 @@ class ARRenderer(private val fragment: ARFragment) :
 
     /**
      * Set the needed element for AR Game mode
-     * Only spheres matching this element will be displayed
-     * Pass null to show all elements
+     * All detected spheres will be displayed, but only the needed element will count towards collection
+     * Pass null to count all elements
      */
     fun setNeededElement(element: ElementMapper.Element?) {
         neededElement = element
@@ -160,9 +160,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     /**
      * Process a queued tap (called from onDrawFrame on GL thread)
-     * Returns the collected anchor or null
+     * Returns Pair(tappedAnchor, wasNeededElement) or null if no tap
      */
-    private fun processTap(x: Float, y: Float): ARLabeledAnchor? {
+    private fun processTap(x: Float, y: Float): Pair<ARLabeledAnchor, Boolean>? {
         // Screen-space distance threshold (in pixels)
         val tapThreshold = 150f // pixels
 
@@ -179,11 +179,6 @@ class ARRenderer(private val fragment: ARFragment) :
             for (labeledAnchor in arLabeledAnchors) {
                 val anchor = labeledAnchor.anchor
                 if (anchor.trackingState != TrackingState.TRACKING) continue
-
-                // Skip if not the needed element (if filter is set)
-                if (neededElement != null && labeledAnchor.element != neededElement) {
-                    continue
-                }
 
                 // Project anchor position to screen coordinates
                 val anchorPose = anchor.pose
@@ -208,14 +203,22 @@ class ARRenderer(private val fragment: ARFragment) :
             }
         }
 
-        // If we found a close enough anchor, collect it
+        // If we found a close enough anchor, remove it and handle counting
         if (closestAnchor != null) {
             synchronized(arLabeledAnchors) {
                 arLabeledAnchors.remove(closestAnchor)
             }
-            collectedCount++
-            Log.i(TAG, "🎮 Collected ${closestAnchor.element.displayName} sphere! Total: $collectedCount (distance: ${closestDistance.toInt()} px)")
-            return closestAnchor
+
+            // Only count towards collected if it matches the needed element
+            val shouldCount = neededElement == null || closestAnchor.element == neededElement
+            if (shouldCount) {
+                collectedCount++
+                Log.i(TAG, "🎮 Collected ${closestAnchor.element.displayName} sphere! Total: $collectedCount (distance: ${closestDistance.toInt()} px)")
+            } else {
+                Log.i(TAG, "🗑️ Eliminated ${closestAnchor.element.displayName} sphere (not needed, wanted ${neededElement?.displayName})")
+            }
+
+            return Pair(closestAnchor, shouldCount)
         }
 
         if (closestDistance == Float.MAX_VALUE) {
@@ -397,12 +400,13 @@ class ARRenderer(private val fragment: ARFragment) :
         val tap = pendingTap
         if (tap != null) {
             pendingTap = null
-            val collectedAnchor = processTap(tap.first, tap.second)
+            val tapResult = processTap(tap.first, tap.second)
 
             // Notify fragment on main thread
-            if (collectedAnchor != null) {
+            if (tapResult != null) {
+                val (tappedAnchor, wasNeededElement) = tapResult
                 fragment.view?.post {
-                    fragment.onSphereCollected(collectedCount)
+                    fragment.onSphereCollected(tappedAnchor, wasNeededElement, collectedCount)
                 }
             }
         }
@@ -534,24 +538,16 @@ class ARRenderer(private val fragment: ARFragment) :
             val anchor = arLabeledAnchor.anchor
             if (anchor.trackingState != TrackingState.TRACKING) continue
 
-            // AR Game: Filter to show only needed element (if set)
-            val shouldShow = if (neededElement != null) {
-                arLabeledAnchor.element == neededElement
-            } else {
-                true // Show all elements if no filter is set
-            }
-
-            if (shouldShow) {
-                // Draw 3D sphere object for each element with distance-based scaling
-                objectRenderer.draw(
-                    render,
-                    viewMatrix,
-                    projectionMatrix,
-                    anchor.pose,
-                    arLabeledAnchor.element,
-                    arLabeledAnchor.distance
-                )
-            }
+            // Always show all detected elements - no filtering for display
+            // Draw 3D sphere object for each element with distance-based scaling
+            objectRenderer.draw(
+                render,
+                viewMatrix,
+                projectionMatrix,
+                anchor.pose,
+                arLabeledAnchor.element,
+                arLabeledAnchor.distance
+            )
         }
     }
 

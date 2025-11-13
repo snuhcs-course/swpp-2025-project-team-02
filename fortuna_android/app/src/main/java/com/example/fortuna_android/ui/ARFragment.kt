@@ -870,28 +870,44 @@ class ARFragment(
     }
 
     /**
-     * Called from renderer when a sphere is successfully collected
-     * Immediately updates UI and triggers API call in background
+     * Called from renderer when a sphere is tapped
+     * Handles both needed and non-needed element taps differently
      */
-    fun onSphereCollected(count: Int) {
-        Log.i(TAG, "Sphere collected! Local count: $count")
+    fun onSphereCollected(tappedAnchor: ARRenderer.ARLabeledAnchor, wasNeededElement: Boolean, currentCount: Int) {
+        Log.i(TAG, "Sphere tapped! Element: ${tappedAnchor.element.displayName}, wasNeeded: $wasNeededElement, count: $currentCount")
 
-        // Increment local collection count
-        localCollectedCount++
-
-        // Update UI with new count
-        updateCollectionProgress()
-
-        // Show celebration animation
+        // Always show celebration animation for any tap
         showCelebrationAnimation()
 
-        // Show feedback to user
-        if (isAdded) {
-            CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
-        }
+        if (wasNeededElement) {
+            // Needed element: Normal collection behavior
+            localCollectedCount++
 
-        // Trigger API call in background
-        collectElementInBackground()
+            // Update UI with new count
+            updateCollectionProgress()
+
+            // Show success feedback
+            if (isAdded) {
+                CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+            }
+
+            // Trigger API call in background
+            collectElementInBackground()
+        } else {
+            // Non-needed element: Show different feedback, no progress update
+            if (isAdded) {
+                val elementName = when (tappedAnchor.element) {
+                    ElementMapper.Element.FIRE -> "불"
+                    ElementMapper.Element.WATER -> "물"
+                    ElementMapper.Element.WOOD -> "나무"
+                    ElementMapper.Element.METAL -> "금속"
+                    ElementMapper.Element.EARTH -> "땅"
+                    else -> tappedAnchor.element.displayName
+                }
+                CustomToast.show(requireContext(), "잘못된 원소! ($elementName 는 필요하지 않아요)")
+            }
+            // No UI update, no count increment, no API call
+        }
     }
 
     /**
