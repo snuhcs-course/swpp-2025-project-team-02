@@ -462,6 +462,7 @@ class FortuneService:
 
         ---
         위 정보를 바탕으로 오늘의 오행 균형 설명과 개운 조언을 2-3문장씩 간결하게 작성해주세요.
+        반드시 한글로 작성해야합니다.
         """
         # Generate fortune using OpenAI
         try:
@@ -469,7 +470,7 @@ class FortuneService:
                 raise ValueError("OpenAI client not initialized")
             
             response = self.client.chat.completions.parse(
-                model="gpt-5-nano",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": context},
                     {"role": "user", "content": "운세를 자세히 풀어주세요."}
