@@ -184,7 +184,7 @@
                 android:background="@drawable/rounded_button_background"
                 android:minWidth="60dp"
                 android:paddingHorizontal="8dp"
-                android:text="Clear"
+                android:text="리셋"
                 android:textColor="@android:color/white"
                 android:textSize="12sp" />
 
