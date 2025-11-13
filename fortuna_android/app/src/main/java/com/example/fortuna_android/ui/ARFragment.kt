@@ -3,6 +3,9 @@ package com.example.fortuna_android.ui
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.app.Activity
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.media.MediaPlayer
 import android.opengl.GLSurfaceView
@@ -271,6 +274,12 @@ class ARFragment(
             cleanupAndExit()
         }
 
+        // Disable scan button initially - will be enabled when VLM is ready
+        binding.scanButton.apply {
+            isEnabled = false
+            text = "수집 준비 중..."
+        }
+
         binding.scanButton.setOnClickListener {
             if (::renderer.isInitialized) {
                 // Reset all element sound flags for new scan
@@ -311,6 +320,18 @@ class ARFragment(
     }
 
     /**
+     * Enable scan button when VLM is ready
+     */
+    fun enableScanButton() {
+        val binding = _binding ?: return
+        binding.scanButton.apply {
+            isEnabled = true
+            text = "수집"
+        }
+        Log.d(TAG, "Scan button enabled - VLM is ready")
+    }
+
+    /**
      * Update bounding box overlay with detected objects
      */
     fun updateBoundingBoxes(objects: List<DetectedObjectResult>) {
@@ -336,8 +357,9 @@ class ARFragment(
     fun onObjectDetectionCompleted(anchorsCreated: Int, objectsDetected: Int) {
         setScanningActive(false)
         val message = when {
-            objectsDetected == 0 -> "원소를 찾을 수 없습니다. 다시 시도해보세요."
-            else -> "원소 $objectsDetected 감지 성공!"
+            objectsDetected == 0 -> "원소를 찾을 수 없습니다.\n휴대폰을 움직여 주변 환경을 인식시켜주세요."
+            anchorsCreated == 0 -> "원소를 찾을 수 없습니다.\n휴대폰을 움직여 주변 환경을 인식시켜주세요."
+            else -> "원소 $objectsDetected 개 감지 성공!"
         }
         if (isAdded) {
             CustomToast.show(requireContext(), message)
@@ -870,28 +892,52 @@ class ARFragment(
     }
 
     /**
-     * Called from renderer when a sphere is successfully collected
-     * Immediately updates UI and triggers API call in background
+     * Called from renderer when a sphere is tapped
+     * Handles both needed and non-needed element taps differently
      */
-    fun onSphereCollected(count: Int) {
-        Log.i(TAG, "Sphere collected! Local count: $count")
+    fun onSphereCollected(tappedAnchor: ARRenderer.ARLabeledAnchor, wasNeededElement: Boolean, currentCount: Int) {
+        Log.i(TAG, "Sphere tapped! Element: ${tappedAnchor.element.displayName}, wasNeeded: $wasNeededElement, count: $currentCount")
 
-        // Increment local collection count
-        localCollectedCount++
-
-        // Update UI with new count
-        updateCollectionProgress()
-
-        // Show celebration animation
+        // Always show celebration animation for any tap
         showCelebrationAnimation()
 
-        // Show feedback to user
-        if (isAdded) {
-            CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
-        }
+        // Trigger haptic feedback for sphere interaction
+        triggerHapticFeedback(wasNeededElement)
 
-        // Trigger API call in background
-        collectElementInBackground()
+        if (wasNeededElement && localCollectedCount < TARGET_COLLECTION_COUNT) {
+            // Needed element: Normal collection behavior, but only if under target
+            localCollectedCount++
+
+            // Update UI with new count
+            updateCollectionProgress()
+
+            // Show success feedback
+            if (isAdded) {
+                CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$TARGET_COLLECTION_COUNT)")
+            }
+
+            // Trigger API call in background
+            collectElementInBackground()
+        } else if (wasNeededElement && localCollectedCount >= TARGET_COLLECTION_COUNT) {
+            // Needed element but target already reached
+            if (isAdded) {
+                CustomToast.show(requireContext(), "목표 달성 완료! (${TARGET_COLLECTION_COUNT}/${TARGET_COLLECTION_COUNT})")
+            }
+        } else {
+            // Non-needed element: Show different feedback, no progress update
+            if (isAdded) {
+                val elementName = when (tappedAnchor.element) {
+                    ElementMapper.Element.FIRE -> "불은"
+                    ElementMapper.Element.WATER -> "물은"
+                    ElementMapper.Element.WOOD -> "나무는"
+                    ElementMapper.Element.METAL -> "금속은"
+                    ElementMapper.Element.EARTH -> "땅은"
+                    else -> tappedAnchor.element.displayName
+                }
+                CustomToast.show(requireContext(), "$elementName 더 이상 필요하지 않아요")
+            }
+            // No UI update, no count increment, no API call
+        }
     }
 
     /**
@@ -994,6 +1040,28 @@ class ARFragment(
                     hideCelebrationAnimation()
                 }, 1200)
             }
+        }
+    }
+
+    /**
+     * Trigger haptic feedback for sphere interaction
+     */
+    private fun triggerHapticFeedback(wasNeededElement: Boolean) {
+        try {
+            val vibrator = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+            val vibrationEffect = if (wasNeededElement) {
+                // Strong vibration for needed elements (success)
+                VibrationEffect.createOneShot(1000, VibrationEffect.DEFAULT_AMPLITUDE)
+            } else {
+                // Light vibration for non-needed elements
+                VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
+            }
+            vibrator.vibrate(vibrationEffect)
+
+            Log.d(TAG, "Haptic feedback triggered: ${if (wasNeededElement) "strong (needed)" else "light (not needed)"}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Error triggering haptic feedback", e)
         }
     }
 

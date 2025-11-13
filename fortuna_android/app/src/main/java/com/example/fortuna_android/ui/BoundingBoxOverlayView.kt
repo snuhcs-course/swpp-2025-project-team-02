@@ -127,21 +127,41 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         viewHeight: Float,
         index: Int
     ) {
-        // IMPORTANT: Coordinates are swapped due to rotation (height, width)
-        // So we swap X and Y to match screen orientation
-        val (rawY, rawX) = box.centerCoordinate
+        // DetectedObjectResult coordinates are in IMAGE_PIXELS coordinate space
+        // We need to convert them to VIEW coordinates like ARCore does
+        val (imageX, imageY) = box.centerCoordinate
 
-        // Scale coordinates from camera image size to view size
-        // Camera: 1080x1920, View: 1080x2280
-        val scaleX = viewWidth / 1080f
-        val scaleY = viewHeight / 1920f
+        // The key insight: ARCore's camera view is typically displayed with these transformations:
+        // 1. Camera captures in landscape orientation
+        // 2. View displays in portrait orientation
+        // 3. ARCore handles this with transformCoordinates2d(IMAGE_PIXELS -> VIEW)
 
-        val centerX = rawX * scaleX
-        val centerY = rawY * scaleY
+        // Since we can't access the Frame here, we need to replicate the transformation
+        // For most Android devices in portrait mode with back camera:
+        // - Camera image: 1920x1080 (landscape)
+        // - View: portrait orientation
+        // - Standard transformation: 90-degree rotation
 
-        // Use actual bounding box dimensions from ML Kit (also swapped)
-        val boxWidth = box.height.toFloat() * scaleX
-        val boxHeight = box.width.toFloat() * scaleY
+        // Typical camera resolution (this should ideally be dynamic)
+        val cameraWidth = 1920f
+        val cameraHeight = 1080f
+
+        // Convert IMAGE_PIXELS coordinates to VIEW coordinates
+        // This replicates what ARCore's transformCoordinates2d does
+        // For 90-degree rotation (landscape camera -> portrait view):
+        // IMAGE(x,y) -> VIEW(cameraHeight - y, x)
+        val viewX = (cameraHeight - imageY.toFloat()) * (viewWidth / cameraHeight)
+        val viewY = imageX.toFloat() * (viewHeight / cameraWidth)
+
+        // Scale the bounding box dimensions
+        // After 90-degree rotation, width and height are swapped
+        val scaledWidth = box.height.toFloat() * (viewWidth / cameraHeight)
+        val scaledHeight = box.width.toFloat() * (viewHeight / cameraWidth)
+
+        val centerX = viewX
+        val centerY = viewY
+        val boxWidth = scaledWidth
+        val boxHeight = scaledHeight
 
         val left = centerX.toFloat() - boxWidth / 2f
         val top = centerY.toFloat() - boxHeight / 2f

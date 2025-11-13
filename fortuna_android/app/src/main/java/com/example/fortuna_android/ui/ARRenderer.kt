@@ -111,6 +111,12 @@ class ARRenderer(private val fragment: ARFragment) :
      * Start object detection - called when scan button is pressed
      */
     fun startObjectDetection() {
+        // Prevent scanning if VLM detector is set but VLM isn't ready
+        if (currentAnalyzer is VLMObjectDetector && !isVLMLoaded) {
+            Log.w(TAG, "VLM not ready yet, ignoring scan request")
+            return
+        }
+
         scanButtonWasPressed = true
         vlmClassificationComplete = false  // Reset flag for new detection
         // Clear any pending classifications from previous detection
@@ -135,8 +141,8 @@ class ARRenderer(private val fragment: ARFragment) :
 
     /**
      * Set the needed element for AR Game mode
-     * Only spheres matching this element will be displayed
-     * Pass null to show all elements
+     * All detected spheres will be displayed, but only the needed element will count towards collection
+     * Pass null to count all elements
      */
     fun setNeededElement(element: ElementMapper.Element?) {
         neededElement = element
@@ -160,9 +166,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     /**
      * Process a queued tap (called from onDrawFrame on GL thread)
-     * Returns the collected anchor or null
+     * Returns Pair(tappedAnchor, wasNeededElement) or null if no tap
      */
-    private fun processTap(x: Float, y: Float): ARLabeledAnchor? {
+    private fun processTap(x: Float, y: Float): Pair<ARLabeledAnchor, Boolean>? {
         // Screen-space distance threshold (in pixels)
         val tapThreshold = 150f // pixels
 
@@ -179,11 +185,6 @@ class ARRenderer(private val fragment: ARFragment) :
             for (labeledAnchor in arLabeledAnchors) {
                 val anchor = labeledAnchor.anchor
                 if (anchor.trackingState != TrackingState.TRACKING) continue
-
-                // Skip if not the needed element (if filter is set)
-                if (neededElement != null && labeledAnchor.element != neededElement) {
-                    continue
-                }
 
                 // Project anchor position to screen coordinates
                 val anchorPose = anchor.pose
@@ -208,14 +209,24 @@ class ARRenderer(private val fragment: ARFragment) :
             }
         }
 
-        // If we found a close enough anchor, collect it
+        // If we found a close enough anchor, remove it and handle counting
         if (closestAnchor != null) {
             synchronized(arLabeledAnchors) {
                 arLabeledAnchors.remove(closestAnchor)
             }
-            collectedCount++
-            Log.i(TAG, "🎮 Collected ${closestAnchor.element.displayName} sphere! Total: $collectedCount (distance: ${closestDistance.toInt()} px)")
-            return closestAnchor
+
+            // Only count towards collected if it matches the needed element and hasn't reached target
+            val shouldCount = (neededElement == null || closestAnchor.element == neededElement) && collectedCount < 5
+            if (shouldCount) {
+                collectedCount++
+                Log.i(TAG, "🎮 Collected ${closestAnchor.element.displayName} sphere! Total: $collectedCount (distance: ${closestDistance.toInt()} px)")
+            } else if (neededElement != null && closestAnchor.element != neededElement) {
+                Log.i(TAG, "🗑️ Eliminated ${closestAnchor.element.displayName} sphere (not needed, wanted ${neededElement?.displayName})")
+            } else if (collectedCount >= 5) {
+                Log.i(TAG, "🎯 Target reached! Cannot collect more ${closestAnchor.element.displayName} spheres (${collectedCount}/5)")
+            }
+
+            return Pair(closestAnchor, shouldCount)
         }
 
         if (closestDistance == Float.MAX_VALUE) {
@@ -282,45 +293,75 @@ class ARRenderer(private val fragment: ARFragment) :
                     context = fragment.requireActivity(),
                     vlmManager = vlmManager,
                     onVLMClassified = { result ->
-                        // VLM classification complete - now use stored anchors
-                        vlmClassificationComplete = true  // Mark VLM as complete
-                        Log.i(TAG, "VLM classification complete: ${result.label}")
+                        try {
+                            // VLM classification complete - now use stored anchors
+                            vlmClassificationComplete = true  // Mark VLM as complete
+                            Log.i(TAG, "VLM classification complete: ${result.label}")
 
-                        // Process pending classifications using stored anchors
-                        synchronized(pendingVLMClassifications) {
-                            val pending = pendingVLMClassifications.toList()
-                            pendingVLMClassifications.clear()
+                            // Process pending classifications using stored anchors
+                            synchronized(pendingVLMClassifications) {
+                                val pending = pendingVLMClassifications.toList()
+                                pendingVLMClassifications.clear()
 
-                            // Map VLM result to element
-                            val element = elementMapper.mapLabelToElement(result.label)
-                            Log.i(TAG, "VLM object '${result.label}' mapped to element: ${element.displayName}")
+                                if (pending.isNotEmpty()) {
+                                    // Map VLM result to element
+                                    val element = elementMapper.mapLabelToElement(result.label)
+                                    Log.i(TAG, "VLM object '${result.label}' mapped to element: ${element.displayName}")
 
-                            // Create labeled anchors using stored anchor positions
-                            val newAnchors = pending.map { pendingClassification ->
-                                Log.i(TAG, "✅ Using stored anchor for '${element.displayName}' (was '${pendingClassification.originalLabel}') at pose: ${pendingClassification.anchor.pose}")
-                                ARLabeledAnchor(pendingClassification.anchor, element, pendingClassification.distance)
+                                    // Create labeled anchors using stored anchor positions
+                                    val newAnchors = pending.map { pendingClassification ->
+                                        Log.i(TAG, "✅ Using stored anchor for '${element.displayName}' (was '${pendingClassification.originalLabel}') at pose: ${pendingClassification.anchor.pose}")
+                                        ARLabeledAnchor(pendingClassification.anchor, element, pendingClassification.distance)
+                                    }
+
+                                    // Add to main anchors list
+                                    synchronized(arLabeledAnchors) {
+                                        arLabeledAnchors.addAll(newAnchors)
+                                    }
+
+                                    // Notify fragment about detection results on main thread
+                                    fragment.view?.post {
+                                        fragment.onObjectDetectionCompleted(newAnchors.size, pending.size)
+                                        // Only play music if anchors were successfully created
+                                        if (newAnchors.isNotEmpty()) {
+                                            fragment.onElementDetected(element)
+                                        }
+                                    }
+                                } else {
+                                    // No pending classifications - still need to reset scan button
+                                    Log.w(TAG, "VLM classification complete but no pending classifications found")
+                                    fragment.view?.post {
+                                        fragment.onObjectDetectionCompleted(0, 0)
+                                    }
+                                }
                             }
 
-                            // Add to main anchors list
-                            synchronized(arLabeledAnchors) {
-                                arLabeledAnchors.addAll(newAnchors)
-                            }
-
-                            // Notify fragment about detection results on main thread
+                            // Clear bounding box immediately after VLM classification
                             fragment.view?.post {
-                                fragment.onObjectDetectionCompleted(newAnchors.size, pending.size)
-                                fragment.onElementDetected(element)
+                                fragment.clearBoundingBoxes()
+                                Log.i(TAG, "Bounding box cleared after VLM classification")
                             }
-                        }
-
-                        // Clear bounding box immediately after VLM classification
-                        fragment.view?.post {
-                            fragment.clearBoundingBoxes()
-                            Log.i(TAG, "Bounding box cleared after VLM classification")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error in VLM callback processing", e)
+                            // Ensure scan button is reset even if callback processing fails
+                            vlmClassificationComplete = true
+                            fragment.view?.post {
+                                fragment.onObjectDetectionCompleted(0, 0)
+                                fragment.clearBoundingBoxes()
+                            }
+                            // Clear pending classifications on error
+                            synchronized(pendingVLMClassifications) {
+                                pendingVLMClassifications.clear()
+                            }
                         }
                     }
                 )
                 currentAnalyzer = vlmAnalyzer
+
+                // Enable scan button now that VLM is ready
+                fragment.view?.post {
+                    fragment.enableScanButton()
+                }
 
                 Log.i(TAG, "VLM model loaded successfully - switched to VLM detection")
             } catch (e: Exception) {
@@ -397,12 +438,13 @@ class ARRenderer(private val fragment: ARFragment) :
         val tap = pendingTap
         if (tap != null) {
             pendingTap = null
-            val collectedAnchor = processTap(tap.first, tap.second)
+            val tapResult = processTap(tap.first, tap.second)
 
             // Notify fragment on main thread
-            if (collectedAnchor != null) {
+            if (tapResult != null) {
+                val (tappedAnchor, wasNeededElement) = tapResult
                 fragment.view?.post {
-                    fragment.onSphereCollected(collectedCount)
+                    fragment.onSphereCollected(tappedAnchor, wasNeededElement, collectedCount)
                 }
             }
         }
@@ -534,24 +576,16 @@ class ARRenderer(private val fragment: ARFragment) :
             val anchor = arLabeledAnchor.anchor
             if (anchor.trackingState != TrackingState.TRACKING) continue
 
-            // AR Game: Filter to show only needed element (if set)
-            val shouldShow = if (neededElement != null) {
-                arLabeledAnchor.element == neededElement
-            } else {
-                true // Show all elements if no filter is set
-            }
-
-            if (shouldShow) {
-                // Draw 3D sphere object for each element with distance-based scaling
-                objectRenderer.draw(
-                    render,
-                    viewMatrix,
-                    projectionMatrix,
-                    anchor.pose,
-                    arLabeledAnchor.element,
-                    arLabeledAnchor.distance
-                )
-            }
+            // Always show all detected elements - no filtering for display
+            // Draw 3D sphere object for each element with distance-based scaling
+            objectRenderer.draw(
+                render,
+                viewMatrix,
+                projectionMatrix,
+                anchor.pose,
+                arLabeledAnchor.element,
+                arLabeledAnchor.distance
+            )
         }
     }
 
