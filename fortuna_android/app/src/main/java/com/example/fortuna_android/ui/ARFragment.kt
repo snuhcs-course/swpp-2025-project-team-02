@@ -271,6 +271,12 @@ class ARFragment(
             cleanupAndExit()
         }
 
+        // Disable scan button initially - will be enabled when VLM is ready
+        binding.scanButton.apply {
+            isEnabled = false
+            text = "수집 준비 중..."
+        }
+
         binding.scanButton.setOnClickListener {
             if (::renderer.isInitialized) {
                 // Reset all element sound flags for new scan
@@ -308,6 +314,18 @@ class ARFragment(
                 }
             }
         }
+    }
+
+    /**
+     * Enable scan button when VLM is ready
+     */
+    fun enableScanButton() {
+        val binding = _binding ?: return
+        binding.scanButton.apply {
+            isEnabled = true
+            text = "수집"
+        }
+        Log.d(TAG, "Scan button enabled - VLM is ready")
     }
 
     /**

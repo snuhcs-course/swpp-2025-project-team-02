@@ -111,6 +111,12 @@ class ARRenderer(private val fragment: ARFragment) :
      * Start object detection - called when scan button is pressed
      */
     fun startObjectDetection() {
+        // Prevent scanning if VLM detector is set but VLM isn't ready
+        if (currentAnalyzer is VLMObjectDetector && !isVLMLoaded) {
+            Log.w(TAG, "VLM not ready yet, ignoring scan request")
+            return
+        }
+
         scanButtonWasPressed = true
         vlmClassificationComplete = false  // Reset flag for new detection
         // Clear any pending classifications from previous detection
@@ -351,6 +357,11 @@ class ARRenderer(private val fragment: ARFragment) :
                     }
                 )
                 currentAnalyzer = vlmAnalyzer
+
+                // Enable scan button now that VLM is ready
+                fragment.view?.post {
+                    fragment.enableScanButton()
+                }
 
                 Log.i(TAG, "VLM model loaded successfully - switched to VLM detection")
             } catch (e: Exception) {

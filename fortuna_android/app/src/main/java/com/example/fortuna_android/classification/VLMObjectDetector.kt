@@ -84,12 +84,17 @@ class VLMObjectDetector(
         return try {
             val startTime = System.currentTimeMillis()
 
-            // Collect all tokens from VLM streaming response
-            val result = StringBuilder()
-            vlmManager.analyzeImage(bitmap, VLM_ELEMENT_PROMPT)
-                .fold("") { acc, token -> acc + token }
-                .trim()
-                .let { response ->
+            // Collect all tokens from VLM streaming response with proper termination handling
+            val response = try {
+                vlmManager.analyzeImage(bitmap, VLM_ELEMENT_PROMPT)
+                    .fold("") { acc, token -> acc + token }
+                    .trim()
+            } catch (e: Exception) {
+                android.util.Log.w("VLMObjectDetector", "VLM streaming failed, using fallback", e)
+                "Unknown" // Return fallback if streaming fails
+            }
+
+            response.let { responseText ->
                     val elapsedTime = System.currentTimeMillis() - startTime
 
                     // Log VLM raw output and inference time
