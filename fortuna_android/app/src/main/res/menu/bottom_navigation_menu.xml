@@ -3,25 +3,25 @@
     <item
         android:id="@+id/homeFragment"
         android:icon="@drawable/ic_home"
-        android:title="Home" />
+        android:title="홈" />
 
     <item
         android:id="@+id/sajuGuideFragment"
         android:icon="@drawable/ic_help"
-        android:title="Guide" />
+        android:title="가이드" />
 
     <item
         android:id="@+id/arFragment"
         android:icon="@drawable/ic_camera_highlighted"
-        android:title="Camera" />
+        android:title="" />
 
     <item
         android:id="@+id/atomFragment"
         android:icon="@drawable/ic_calendar"
-        android:title="Atom" />
+        android:title="기록" />
 
     <item
         android:id="@+id/profileFragment"
         android:icon="@drawable/ic_profile"
-        android:title="Profile" />
+        android:title="프로필" />
 </menu>

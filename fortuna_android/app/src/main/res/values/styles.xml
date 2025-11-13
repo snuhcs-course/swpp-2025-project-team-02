@@ -76,4 +76,10 @@
         <item name="android:textSize">@dimen/text_sm</item>
         <item name="android:textColor">@color/text_secondary</item>
     </style>
+
+    <!-- Bottom Navigation Label Style (Very small text) -->
+    <style name="TextAppearance.App.BottomNavigationLabel" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_xxs</item>
+        <item name="android:textColor">@android:color/white</item>
+    </style>
 </resources>

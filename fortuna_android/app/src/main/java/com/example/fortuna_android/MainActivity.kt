@@ -388,8 +388,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation(navController: androidx.navigation.NavController) {
-        // Hide text labels - show only icons
-        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.bottomnavigation.LabelVisibilityMode.LABEL_VISIBILITY_UNLABELED
+        // Show text labels below icons
+        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.bottomnavigation.LabelVisibilityMode.LABEL_VISIBILITY_LABELED
 
         // Use NavigationUI to automatically sync bottom navigation with NavController
         // This prevents infinite loops by handling navigation state properly
@@ -408,12 +408,20 @@ class MainActivity : AppCompatActivity() {
 
             // Get the specific tab item view
             if (tabIndex >= menuView.childCount) return
-            val tabView = menuView.getChildAt(tabIndex)
+            val tabView = menuView.getChildAt(tabIndex) as? ViewGroup ?: return
 
             // Apply gradient background
             tabView.setBackgroundResource(R.drawable.nav_tab_gradient_background)
 
-            Log.d(TAG, "Gradient background applied to tab $tabIndex")
+            // Hide the label text for this tab (since title is empty)
+            for (i in 0 until tabView.childCount) {
+                val child = tabView.getChildAt(i)
+                if (child is android.widget.TextView) {
+                    child.visibility = android.view.View.GONE
+                }
+            }
+
+            Log.d(TAG, "Gradient background applied to tab $tabIndex with hidden label")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply gradient background to tab", e)
         }
