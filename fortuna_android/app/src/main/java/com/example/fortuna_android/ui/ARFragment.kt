@@ -85,6 +85,9 @@ class ARFragment(
     private var registeelPlayer: MediaPlayer? = null  // Metal
     private var sudowoodoPlayer: MediaPlayer? = null  // Wood
 
+    // Capture sound effect player for sphere elimination
+    private var capturePlayer: MediaPlayer? = null
+
     // Track which element sounds have been played to prevent multiple plays per scan
     private var waterSoundPlayed = false
     private var earthSoundPlayed = false
@@ -559,6 +562,11 @@ class ARFragment(
             com.example.fortuna_android.R.raw.sudowoodo,
             "Sudowoodo (Wood)"
         )
+        setupElementSound(
+            { capturePlayer = it },
+            com.example.fortuna_android.R.raw.capture,
+            "Capture (Sphere Elimination)"
+        )
     }
 
     /**
@@ -612,6 +620,7 @@ class ARFragment(
         stopElementSound(charmanderPlayer, "Charmander") { charmanderPlayer = null }
         stopElementSound(registeelPlayer, "Registeel") { registeelPlayer = null }
         stopElementSound(sudowoodoPlayer, "Sudowoodo") { sudowoodoPlayer = null }
+        stopElementSound(capturePlayer, "Capture") { capturePlayer = null }
     }
 
     /**
@@ -969,9 +978,31 @@ class ARFragment(
     }
 
     /**
+     * Play capture sound effect when sphere is eliminated
+     */
+    private fun playCaptureSound() {
+        try {
+            capturePlayer?.let { mediaPlayer ->
+                if (!mediaPlayer.isPlaying) {
+                    mediaPlayer.seekTo(0)
+                    mediaPlayer.start()
+                    Log.i(TAG, "🔊 Sphere captured! Playing capture sound effect")
+                } else {
+                    Log.d(TAG, "Capture sound effect already playing, skipping")
+                }
+            } ?: Log.w(TAG, "Capture player is null")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing capture sound effect", e)
+        }
+    }
+
+    /**
      * Show fireworks-style celebration animation at tap location
      */
     private fun showCelebrationAnimation() {
+        // Play capture sound effect
+        playCaptureSound()
+
         view?.post {
             _binding?.let { binding ->
                 // Clear any existing particles

@@ -32,6 +32,9 @@ class ObjectRender {
         // Animation constants
         private const val BOUNCE_HEIGHT = 0.05f // How high objects bounce (in meters)
         private const val BOUNCE_SPEED = 3.0f // Speed of bouncing animation
+
+        // Rotation animation constants
+        private const val ROTATION_SPEED = 90.0f // Degrees per second for rotation animation
     }
 
     // Animation time tracker
@@ -141,6 +144,7 @@ class ObjectRender {
     /**
      * Draw a 3D sphere object at the given pose with animations
      * @param distance Distance from camera when anchor was created (for size compensation)
+     * @param animationType Type of animation to apply (JUMPING or ROTATING)
      */
     fun draw(
         render: SampleRender,
@@ -148,7 +152,8 @@ class ObjectRender {
         projectionMatrix: FloatArray,
         pose: Pose,
         element: ElementMapper.Element,
-        distance: Float = REFERENCE_DISTANCE
+        distance: Float = REFERENCE_DISTANCE,
+        animationType: com.example.fortuna_android.ui.ARRenderer.AnimationType = com.example.fortuna_android.ui.ARRenderer.AnimationType.JUMPING
     ) {
         // Skip rendering for OTHERS category
         if (element == ElementMapper.Element.OTHERS) {
@@ -195,20 +200,43 @@ class ObjectRender {
             // Calculate rotation angle around Y axis to face camera
             val cameraFaceAngle = kotlin.math.atan2(normDirX, normDirZ) * 180.0f / kotlin.math.PI.toFloat()
 
-            // Calculate bouncing animation (using absolute sine for bouncing effect)
-            val bounceTime = animationTime * BOUNCE_SPEED
-            val bounceOffset = kotlin.math.abs(kotlin.math.sin(bounceTime)) * BOUNCE_HEIGHT
+            when (animationType) {
+                com.example.fortuna_android.ui.ARRenderer.AnimationType.JUMPING -> {
+                    // Calculate bouncing animation (using absolute sine for bouncing effect)
+                    val bounceTime = animationTime * BOUNCE_SPEED
+                    val bounceOffset = kotlin.math.abs(kotlin.math.sin(bounceTime)) * BOUNCE_HEIGHT
 
-            // Apply transformations: translate with bouncing, rotate to face camera only
-            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1] + bounceOffset.toFloat(), objectPos[2])
-            Matrix.rotateM(modelMatrix, 0, cameraFaceAngle, 0f, 1f, 0f) // Face camera only
+                    // Apply transformations: translate with bouncing, rotate to face camera only
+                    Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1] + bounceOffset.toFloat(), objectPos[2])
+                    Matrix.rotateM(modelMatrix, 0, cameraFaceAngle, 0f, 1f, 0f) // Face camera only
+                }
+                com.example.fortuna_android.ui.ARRenderer.AnimationType.ROTATING -> {
+                    // Calculate continuous rotation around Y axis
+                    val rotationAngle = (animationTime * ROTATION_SPEED) % 360f
+
+                    // Apply transformations: translate to position, then rotate around Y axis
+                    Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1], objectPos[2])
+                    Matrix.rotateM(modelMatrix, 0, cameraFaceAngle + rotationAngle, 0f, 1f, 0f) // Face camera + rotation
+                }
+            }
         } else {
-            // Fallback: just translate with bouncing animation
-            val bounceTime = animationTime * BOUNCE_SPEED
-            val bounceOffset = kotlin.math.abs(kotlin.math.sin(bounceTime)) * BOUNCE_HEIGHT
+            when (animationType) {
+                com.example.fortuna_android.ui.ARRenderer.AnimationType.JUMPING -> {
+                    // Fallback: just translate with bouncing animation
+                    val bounceTime = animationTime * BOUNCE_SPEED
+                    val bounceOffset = kotlin.math.abs(kotlin.math.sin(bounceTime)) * BOUNCE_HEIGHT
 
-            Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1] + bounceOffset.toFloat(), objectPos[2])
-            // No rotation when camera position calculation fails
+                    Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1] + bounceOffset.toFloat(), objectPos[2])
+                    // No rotation when camera position calculation fails
+                }
+                com.example.fortuna_android.ui.ARRenderer.AnimationType.ROTATING -> {
+                    // Fallback: just translate and rotate
+                    val rotationAngle = (animationTime * ROTATION_SPEED) % 360f
+
+                    Matrix.translateM(modelMatrix, 0, objectPos[0], objectPos[1], objectPos[2])
+                    Matrix.rotateM(modelMatrix, 0, rotationAngle, 0f, 1f, 0f) // Just rotation, no camera facing
+                }
+            }
         }
 
         // Calculate distance-based scale to maintain visual size
@@ -220,14 +248,24 @@ class ObjectRender {
         // Ensure minimum visual scale (prevents tiny Pokemon)
         val effectiveScale = kotlin.math.max(MIN_VISUAL_SCALE, baseScale)
 
-        // Apply scale with squash-and-stretch effect for bouncing
-        val bouncePhase = kotlin.math.sin(animationTime * BOUNCE_SPEED)
-        val scaleY = 1.0f + kotlin.math.abs(bouncePhase) * 0.15f // Stretch when bouncing up
-        val scaleXZ = 1.0f - kotlin.math.abs(bouncePhase) * 0.1f // Squash horizontally when bouncing
+        // Apply scale with squash-and-stretch effect only for jumping animation
+        val (finalScaleX, finalScaleY, finalScaleZ) = when (animationType) {
+            com.example.fortuna_android.ui.ARRenderer.AnimationType.JUMPING -> {
+                val bouncePhase = kotlin.math.sin(animationTime * BOUNCE_SPEED)
+                val scaleY = 1.0f + kotlin.math.abs(bouncePhase) * 0.15f // Stretch when bouncing up
+                val scaleXZ = 1.0f - kotlin.math.abs(bouncePhase) * 0.1f // Squash horizontally when bouncing
 
-        val finalScaleX = effectiveScale * scaleXZ.toFloat()
-        val finalScaleY = effectiveScale * scaleY.toFloat()
-        val finalScaleZ = effectiveScale * scaleXZ.toFloat()
+                Triple(
+                    effectiveScale * scaleXZ.toFloat(),
+                    effectiveScale * scaleY.toFloat(),
+                    effectiveScale * scaleXZ.toFloat()
+                )
+            }
+            com.example.fortuna_android.ui.ARRenderer.AnimationType.ROTATING -> {
+                // No squash-and-stretch for rotating objects, just uniform scaling
+                Triple(effectiveScale, effectiveScale, effectiveScale)
+            }
+        }
 
         Matrix.scaleM(modelMatrix, 0, finalScaleX, finalScaleY, finalScaleZ)
 
