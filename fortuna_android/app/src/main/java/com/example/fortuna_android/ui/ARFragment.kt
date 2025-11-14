@@ -744,7 +744,7 @@ class ARFragment(
 
         binding.apply {
             neededElementBanner.visibility = View.VISIBLE
-            neededElementText.text = "오늘의 기운 ${ElementMapper.getElementHanja(element)}"
+            neededElementText.text = "찾아야하는 기운: ${ElementMapper.getElementHanja(element)}"
             updateCollectionProgress()
 
             // Set color indicator

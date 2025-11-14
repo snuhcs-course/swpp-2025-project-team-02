@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pokemon GO style scan button - white rounded with blue accent gradient -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow layer -->
+    <item android:top="3dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <solid android:color="#40000000" />
+        </shape>
+    </item>
+
+    <!-- Main button gradient layer -->
+    <item android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="24dp" />
+            <gradient
+                android:angle="90"
+                android:startColor="#4FC3F7"
+                android:centerColor="#29B6F6"
+                android:endColor="#03A9F4"
+                android:type="linear" />
+            <stroke
+                android:width="2dp"
+                android:color="#FFFFFF" />
+        </shape>
+    </item>
+</layer-list>
