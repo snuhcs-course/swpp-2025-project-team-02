@@ -50,6 +50,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Hide only the status bar, keep navigation bar visible
+        window.decorView.systemUiVisibility = (
+            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+            android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        )
+
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -389,7 +396,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupBottomNavigation(navController: androidx.navigation.NavController) {
         // Show text labels below icons
-        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.bottomnavigation.LabelVisibilityMode.LABEL_VISIBILITY_LABELED
+        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED
 
         // Use NavigationUI to automatically sync bottom navigation with NavController
         // This prevents infinite loops by handling navigation state properly

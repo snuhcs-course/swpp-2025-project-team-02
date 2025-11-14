@@ -23,6 +23,9 @@ class AndroidTtsAdapter(
     private var isSpeaking = false
     private var onCompleteListener: (() -> Unit)? = null
 
+    // Queue to store speak requests before TTS is initialized
+    private var pendingText: String? = null
+
     companion object {
         private const val TAG = "AndroidTtsAdapter"
         private const val UTTERANCE_ID = "fortune_tts"
@@ -45,6 +48,12 @@ class AndroidTtsAdapter(
                     tts?.setSpeechRate(speechRate)
                     isInitialized = true
                     Log.d(TAG, "TTS initialized successfully (pitch: $pitch, rate: $speechRate)")
+
+                    // Process any pending speak request
+                    pendingText?.let { queuedText ->
+                        Log.d(TAG, "TTS now ready, speaking queued text: ${queuedText.take(50)}...")
+                        speak(queuedText)
+                    }
                 }
             } else {
                 Log.e(TAG, "TTS initialization failed with status: $status")
@@ -81,15 +90,19 @@ class AndroidTtsAdapter(
     }
 
     override fun speak(text: String) {
-        if (!isInitialized) {
-            Log.w(TAG, "TTS not initialized, cannot speak")
-            return
-        }
-
         if (text.isBlank()) {
             Log.w(TAG, "Text is empty, nothing to speak")
             return
         }
+
+        if (!isInitialized) {
+            Log.d(TAG, "TTS not ready yet, queuing text: ${text.take(50)}...")
+            pendingText = text  // Store for later
+            return
+        }
+
+        // Clear any pending text since we're speaking now
+        pendingText = null
 
         Log.d(TAG, "Speaking text: ${text.take(50)}...")
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID)
@@ -102,6 +115,9 @@ class AndroidTtsAdapter(
             isSpeaking = false
             onCompleteListener?.invoke()
         }
+
+        // Clear any pending text when stopping
+        pendingText = null
     }
 
     override fun isPlaying(): Boolean {
@@ -119,5 +135,8 @@ class AndroidTtsAdapter(
         tts = null
         isInitialized = false
         isSpeaking = false
+
+        // Clear pending text on release
+        pendingText = null
     }
 }
