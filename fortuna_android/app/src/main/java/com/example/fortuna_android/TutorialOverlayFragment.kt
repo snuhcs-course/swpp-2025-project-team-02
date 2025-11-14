@@ -116,8 +116,17 @@ class TutorialOverlayFragment : Fragment() {
                         )
 
                         if (elementCharView != null) {
-                            // Set spotlight with 60dp padding around the element
-                            binding.spotlightOverlay.setSpotlight(elementCharView, 60f * resources.displayMetrics.density)
+                            // Scroll to the element view in the background
+                            scrollToView(elementCharView)
+
+                            // Wait for scroll to finish, then set spotlight
+                            // Post with delay to ensure smooth scroll animation completes
+                            binding.root.postDelayed({
+                                if (isAdded && _binding != null) {
+                                    // Set spotlight with 60dp padding around the element
+                                    binding.spotlightOverlay.setSpotlight(elementCharView, 60f * resources.displayMetrics.density)
+                                }
+                            }, 400) // 400ms delay for smooth scroll animation
                         } else {
                             // Fallback: clear spotlight if view not found
                             binding.spotlightOverlay.clearSpotlight()
@@ -159,8 +168,17 @@ class TutorialOverlayFragment : Fragment() {
                         )
 
                         if (scoreView != null) {
-                            // Set spotlight with 60dp padding around the score
-                            binding.spotlightOverlay.setSpotlight(scoreView, 60f * resources.displayMetrics.density)
+                            // Scroll to the score view in the background
+                            scrollToView(scoreView)
+
+                            // Wait for scroll to finish, then set spotlight
+                            // Post with delay to ensure smooth scroll animation completes
+                            binding.root.postDelayed({
+                                if (isAdded && _binding != null) {
+                                    // Set spotlight with 60dp padding around the score
+                                    binding.spotlightOverlay.setSpotlight(scoreView, 60f * resources.displayMetrics.density)
+                                }
+                            }, 400) // 400ms delay for smooth scroll animation
                         } else {
                             // Fallback: clear spotlight if view not found
                             binding.spotlightOverlay.clearSpotlight()
@@ -177,6 +195,48 @@ class TutorialOverlayFragment : Fragment() {
         } else {
             // Fallback: clear spotlight if activity not found
             binding.spotlightOverlay.clearSpotlight()
+        }
+    }
+
+    /**
+     * Scroll the background ScrollView to bring the target view into view
+     */
+    private fun scrollToView(targetView: View) {
+        try {
+            val mainActivity = requireActivity() as? MainActivity ?: return
+
+            // Find the ScrollView in fragment_today_fortune.xml by ID
+            val scrollViewId = resources.getIdentifier("scrollViewTodayFortune", "id", requireContext().packageName)
+            val scrollView = mainActivity.findViewById<android.widget.ScrollView>(scrollViewId)
+
+            if (scrollView != null) {
+                // Get the target view's position on screen
+                val targetLocation = IntArray(2)
+                targetView.getLocationOnScreen(targetLocation)
+
+                // Get the ScrollView's position on screen
+                val scrollViewLocation = IntArray(2)
+                scrollView.getLocationOnScreen(scrollViewLocation)
+
+                // Calculate the target view's Y position relative to ScrollView's top
+                // We need to add the current scroll position to get the absolute position within ScrollView content
+                val currentScrollY = scrollView.scrollY
+                val targetRelativeY = targetLocation[1] - scrollViewLocation[1] + currentScrollY
+
+                // Calculate scroll position to center the target view on screen
+                val screenHeight = resources.displayMetrics.heightPixels
+                val centerOffset = (screenHeight / 2) - (targetView.height / 2)
+                val scrollY = targetRelativeY - centerOffset
+
+                // Smooth scroll to the calculated position
+                val finalScrollY = scrollY.coerceAtLeast(0)
+                scrollView.smoothScrollTo(0, finalScrollY)
+                Log.d(TAG, "Scrolling to view - currentScroll: $currentScrollY, targetRelative: $targetRelativeY, finalScroll: $finalScrollY")
+            } else {
+                Log.w(TAG, "ScrollView not found, cannot scroll to target view")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scrolling to view", e)
         }
     }
 
