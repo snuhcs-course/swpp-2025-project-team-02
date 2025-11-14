@@ -42,24 +42,26 @@
 
             <!-- Instruction Text -->
             <TextView
+                android:id="@+id/tvInstructionText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="1. 대상을 찾고 수집 버튼을 클릭하세요\n2. 대상이 인식되면 오행 캐릭터가 등장합니다\n3. 캐릭터를 클릭하여 기운을 수집하세요!"
+                android:text="1. 카메라를 돌려 대상을 찾고 수집 버튼을 클릭하세요\n2. 대상이 인식되면 오행 캐릭터가 등장합니다\n3. 캐릭터를 클릭하여 기운을 수집하세요!"
                 android:textColor="#666666"
                 android:textSize="14sp"
                 android:lineSpacingMultiplier="1.4"
                 android:layout_marginBottom="24dp" />
 
-            <!-- Got It Button -->
-            <com.google.android.material.button.MaterialButton
+            <!-- Got It Button - Pokemon GO style matching scan button -->
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btnGotIt"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="48dp"
                 android:text="시작하기"
                 android:textSize="16sp"
                 android:textColor="#FFFFFF"
-                app:cornerRadius="8dp"
-                app:backgroundTint="#FF5722" />
+                android:textStyle="bold"
+                android:background="@drawable/ar_scan_button_background"
+                android:elevation="8dp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

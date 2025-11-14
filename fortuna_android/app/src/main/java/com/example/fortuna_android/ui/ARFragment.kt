@@ -782,6 +782,47 @@ class ARFragment(
     }
 
     /**
+     * Helper function to highlight specific text with color and bold
+     */
+    private fun highlightText(
+        spannable: android.text.SpannableString,
+        textToHighlight: String,
+        color: Int,
+        occurrenceIndex: Int = 0
+    ) {
+        val text = spannable.toString()
+        var currentIndex = 0
+        var foundCount = 0
+
+        while (currentIndex < text.length) {
+            val index = text.indexOf(textToHighlight, currentIndex)
+            if (index == -1) break
+
+            if (foundCount == occurrenceIndex) {
+                // Apply color
+                spannable.setSpan(
+                    android.text.style.ForegroundColorSpan(color),
+                    index,
+                    index + textToHighlight.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+
+                // Apply bold
+                spannable.setSpan(
+                    android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    index,
+                    index + textToHighlight.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                break
+            }
+
+            foundCount++
+            currentIndex = index + textToHighlight.length
+        }
+    }
+
+    /**
      * Show AR tutorial overlay with instructions
      */
     private fun showARTutorial() {
@@ -821,6 +862,26 @@ class ARFragment(
         if (neededElement != null) {
             messageView.text = "주변에서 $elementName 와 관련된\n대상을 찾아보세요!"
         }
+
+        // Apply styled text to instruction TextView
+        val instructionView = tutorialView.findViewById<TextView>(com.example.fortuna_android.R.id.tvInstructionText)
+        val instructionText = "1. 카메라를 돌려 대상을 찾고 수집 버튼을 클릭하세요\n2. 대상이 인식되면 오행 캐릭터가 등장합니다\n3. 캐릭터를 클릭하여 기운을 수집하세요!"
+        val spannableString = android.text.SpannableString(instructionText)
+
+        // Highlight words with color and bold
+        val highlightColor = android.graphics.Color.parseColor("#03A9F4") // Blue color matching scan button
+
+        // 1번: '카메라', '수집 버튼'
+        highlightText(spannableString, "카메라", highlightColor)
+        highlightText(spannableString, "수집 버튼", highlightColor)
+
+        // 2번: '오행 캐릭터'
+        highlightText(spannableString, "오행 캐릭터", highlightColor)
+
+        // 3번: '클릭'
+        highlightText(spannableString, "클릭", highlightColor, occurrenceIndex = 1) // Second occurrence of '클릭'
+
+        instructionView.text = spannableString
 
         // Setup Got It button
         tutorialView.findViewById<View>(com.example.fortuna_android.R.id.btnGotIt).setOnClickListener {
