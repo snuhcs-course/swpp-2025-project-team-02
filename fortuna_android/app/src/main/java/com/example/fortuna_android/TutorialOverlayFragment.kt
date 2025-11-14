@@ -24,6 +24,7 @@ class TutorialOverlayFragment : Fragment() {
         "모든 것은 오행이요,\n오행의 조화가 복을 의미합니다.",
         "가장 먼저 보이는 오행은\n오늘 당신에게 부족한 기운을 의미합니다!",
         "오늘의 운세 점수입니다\n부족한 기운을 수집해 점수를 올려보세요!",
+        "오늘 부족한 오행에 대한\n사주 풀이를 확인할 수 있어요!",
         "오늘의 운을 열러 가볼까요?"
     )
 
@@ -86,6 +87,10 @@ class TutorialOverlayFragment : Fragment() {
             2 -> {
                 // 3rd dialogue: Highlight fortune score
                 highlightFortuneScore()
+            }
+            3 -> {
+                // 4th dialogue: Highlight element balance section
+                highlightElementBalance()
             }
             else -> {
                 // Clear spotlight for other dialogues
@@ -189,6 +194,58 @@ class TutorialOverlayFragment : Fragment() {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error highlighting fortune score", e)
+                    binding.spotlightOverlay.clearSpotlight()
+                }
+            }
+        } else {
+            // Fallback: clear spotlight if activity not found
+            binding.spotlightOverlay.clearSpotlight()
+        }
+    }
+
+    /**
+     * Highlight the element balance section with circular spotlight
+     */
+    private fun highlightElementBalance() {
+        // Need to find the FortuneCardView in the parent activity
+        val mainActivity = requireActivity() as? MainActivity
+        if (mainActivity != null) {
+            // Post to ensure the view is laid out before we get its location
+            binding.root.post {
+                try {
+                    // Find the fortune card view by ID from MainActivity's layout
+                    val fortuneCardView = mainActivity.findViewById<FortuneCardView>(
+                        resources.getIdentifier("fortuneCardView", "id", requireContext().packageName)
+                    )
+
+                    if (fortuneCardView != null) {
+                        // Find the element balance layout inside the fortune card
+                        val elementBalanceView = fortuneCardView.findViewById<View>(
+                            resources.getIdentifier("layoutElementBalance", "id", requireContext().packageName)
+                        )
+
+                        if (elementBalanceView != null) {
+                            // Scroll to the element balance view in the background
+                            scrollToView(elementBalanceView)
+
+                            // Wait for scroll to finish, then set spotlight
+                            // Post with delay to ensure smooth scroll animation completes
+                            binding.root.postDelayed({
+                                if (isAdded && _binding != null) {
+                                    // Set spotlight with 40dp padding around the element balance section
+                                    binding.spotlightOverlay.setSpotlight(elementBalanceView, 40f * resources.displayMetrics.density)
+                                }
+                            }, 400) // 400ms delay for smooth scroll animation
+                        } else {
+                            // Fallback: clear spotlight if view not found
+                            binding.spotlightOverlay.clearSpotlight()
+                        }
+                    } else {
+                        // Fallback: clear spotlight if fortune card not found
+                        binding.spotlightOverlay.clearSpotlight()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error highlighting element balance", e)
                     binding.spotlightOverlay.clearSpotlight()
                 }
             }
