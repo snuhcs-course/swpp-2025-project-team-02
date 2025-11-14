@@ -86,6 +86,20 @@
             android:layout_margin="8dp"
             android:visibility="gone" />
 
+        <!-- 튜토리얼 다시보기 버튼 -->
+        <Button
+            android:id="@+id/btnReplayTutorial"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"
+            android:text="🎯 튜토리얼 다시보기"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#555555"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="12dp" />
+
         <!-- 사주 설명 버튼 -->
 <!--        <Button-->
 <!--            android:id="@+id/btnSajuExplanation"-->
