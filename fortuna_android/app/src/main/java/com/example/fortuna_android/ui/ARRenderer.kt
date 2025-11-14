@@ -85,10 +85,15 @@ class ARRenderer(private val fragment: ARFragment) :
     // Animation timing
     private var lastFrameTime = 0L
 
+    enum class AnimationType {
+        JUMPING, ROTATING
+    }
+
     data class ARLabeledAnchor(
         val anchor: Anchor,
         val element: ElementMapper.Element,
-        val distance: Float = 1.5f  // Distance from camera when created (default 1.5m)
+        val distance: Float = 1.5f,  // Distance from camera when created (default 1.5m)
+        val animationType: AnimationType = if (kotlin.random.Random.nextBoolean()) AnimationType.JUMPING else AnimationType.ROTATING
     )
 
     // Data class to store initial detection with anchor for later VLM classification
@@ -577,14 +582,15 @@ class ARRenderer(private val fragment: ARFragment) :
             if (anchor.trackingState != TrackingState.TRACKING) continue
 
             // Always show all detected elements - no filtering for display
-            // Draw 3D sphere object for each element with distance-based scaling
+            // Draw 3D sphere object for each element with distance-based scaling and animation type
             objectRenderer.draw(
                 render,
                 viewMatrix,
                 projectionMatrix,
                 anchor.pose,
                 arLabeledAnchor.element,
-                arLabeledAnchor.distance
+                arLabeledAnchor.distance,
+                arLabeledAnchor.animationType
             )
         }
     }
