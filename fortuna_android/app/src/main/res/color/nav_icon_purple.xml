@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Navigation icon color for purple (AR camera) button - always purple -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="#8B5CF6" android:state_checked="true" />
+    <item android:color="#8B5CF6" android:state_checked="false" />
+    <item android:color="#8B5CF6" />
+</selector>

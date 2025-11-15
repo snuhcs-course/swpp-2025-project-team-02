@@ -22,6 +22,7 @@
     <!-- Bottom Navigation Bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
+        style="@style/Widget.App.BottomNavigationView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:minHeight="72dp"
@@ -32,8 +33,6 @@
         app:itemPaddingTop="0dp"
         app:itemPaddingBottom="0dp"
         app:itemIconSize="20dp"
-        app:itemTextAppearanceActive="@style/TextAppearance.App.BottomNavigationLabel"
-        app:itemTextAppearanceInactive="@style/TextAppearance.App.BottomNavigationLabel"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
