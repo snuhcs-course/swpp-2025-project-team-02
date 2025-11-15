@@ -319,6 +319,7 @@
 
                 <!-- 오행 균형 설명 섹션 -->
                 <LinearLayout
+                    android:id="@+id/layoutElementBalance"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"

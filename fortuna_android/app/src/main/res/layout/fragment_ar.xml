@@ -21,77 +21,54 @@
         android:background="@android:color/transparent"
         android:visibility="visible" />
 
-    <!-- Needed Element Banner (Top) -->
-    <com.google.android.material.card.MaterialCardView
+    <!-- Needed Element Banner (Top) - Pokemon GO style semi-transparent -->
+    <LinearLayout
         android:id="@+id/neededElementBanner"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:layout_margin="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="8dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/ar_element_banner_background"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="16dp"
+        android:elevation="4dp"
         android:visibility="gone">
 
+        <!-- Element Color Circle -->
+        <View
+            android:id="@+id/elementColorIndicator"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:background="@drawable/circle_background" />
+
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:background="@android:color/white">
+            android:layout_marginStart="10dp">
 
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:text="Today's Energy Quest"-->
-<!--                android:textSize="12sp"-->
-<!--                android:textColor="#666666"-->
-<!--                android:textStyle="bold" />-->
-
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/neededElementText"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="8dp">
+                android:text="찾아야하는 기운: 木"
+                android:textSize="15sp"
+                android:textColor="#424242"
+                android:textStyle="bold" />
 
-                <!-- Element Color Circle -->
-                <View
-                    android:id="@+id/elementColorIndicator"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:background="@drawable/circle_background" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="12dp">
-
-                    <TextView
-                        android:id="@+id/neededElementText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Collect: Wood"
-                        android:textSize="18sp"
-                        android:textColor="#000000"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/collectionProgressText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 / 5 collected"
-                        android:textSize="14sp"
-                        android:textColor="#666666"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-            </LinearLayout>
-
+            <TextView
+                android:id="@+id/collectionProgressText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 / 5 수집"
+                android:textSize="12sp"
+                android:textColor="#757575"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <!-- Celebration Overlay -->
     <FrameLayout
@@ -143,15 +120,16 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Back Button (Left) -->
+            <!-- Back Button (Left) - Pokemon GO style -->
             <ImageButton
                 android:id="@+id/btnBack"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:background="@drawable/circular_button_background"
+                android:background="@drawable/ar_back_button_background"
                 android:contentDescription="Back"
                 android:src="@drawable/ic_arrow_back"
-                app:tint="@android:color/white" />
+                android:padding="10dp"
+                app:tint="#424242" />
 
             <!-- Left Spacer -->
             <View
@@ -159,16 +137,19 @@
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
-            <!-- Capture Button (Center) -->
+            <!-- Capture Button (Center) - Pokemon GO style -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/scanButton"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
-                android:background="@drawable/rounded_button_background"
+                android:background="@drawable/ar_scan_button_selector"
                 android:minWidth="120dp"
                 android:text="수집"
-                android:textColor="@android:color/white"
-                android:textSize="16sp" />
+                android:textColor="@color/ar_scan_button_text_color"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:elevation="8dp" />
 
             <!-- Right Spacer -->
             <View
@@ -176,17 +157,19 @@
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
-            <!-- Clear Button (Right) -->
+            <!-- Clear Button (Right) - Pokemon GO style -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/clearButton"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:background="@drawable/rounded_button_background"
-                android:minWidth="60dp"
-                android:paddingHorizontal="8dp"
+                android:layout_height="38dp"
+                android:background="@drawable/ar_reset_button_background"
+                android:minWidth="70dp"
+                android:paddingHorizontal="14dp"
                 android:text="리셋"
-                android:textColor="@android:color/white"
-                android:textSize="12sp" />
+                android:textColor="#424242"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:elevation="6dp" />
 
         </LinearLayout>
 

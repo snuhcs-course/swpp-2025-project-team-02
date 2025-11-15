@@ -52,7 +52,12 @@ class TodayFortuneFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // No click listeners needed - all functionality handled by FortuneCardView
+        // Tutorial replay button click listener
+        binding.btnReplayTutorial.setOnClickListener {
+            Log.d(TAG, "Tutorial replay button clicked")
+            resetTutorials()
+            showTutorialOverlay()
+        }
     }
 
     private fun setupObservers() {
@@ -84,12 +89,6 @@ class TodayFortuneFragment : Fragment() {
                 binding.fortuneCardView.setOnRefreshFortuneClickListener {
                     Log.d(TAG, "Refresh fortune button clicked")
                     checkTutorialStatusAndNavigate()
-                }
-
-                // Hidden feature: long press to reset tutorials
-                binding.fortuneCardView.setOnRefreshFortuneLongClickListener {
-                    Log.d(TAG, "Refresh fortune button LONG pressed - resetting tutorials")
-                    resetTutorials()
                 }
             }
         }
@@ -150,8 +149,8 @@ class TodayFortuneFragment : Fragment() {
     }
 
     /**
-     * Hidden feature: Reset tutorial flags for testing
-     * Triggered by long-pressing the "보충하러가기" button
+     * Reset tutorial flags to replay tutorials
+     * Triggered by clicking the "튜토리얼 다시보기" button
      */
     private fun resetTutorials() {
         if (!isAdded) return
@@ -163,10 +162,7 @@ class TodayFortuneFragment : Fragment() {
             apply()
         }
 
-        Log.i(TAG, "🔄 Tutorial flags reset via long press - both tutorials will show again")
-        if (isAdded) {
-            CustomToast.show(requireContext(), "튜토리얼이 초기화되었습니다 🔄")
-        }
+        Log.i(TAG, "🔄 Tutorial flags reset - both tutorials will show again")
     }
 
     /**

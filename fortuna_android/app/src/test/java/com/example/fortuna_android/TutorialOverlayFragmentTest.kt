@@ -92,7 +92,7 @@ class TutorialOverlayFragmentTest {
 
         // Should advance to second dialogue
         onView(withId(R.id.tvDialogue))
-            .check(matches(withText("오늘 당신의 하루 운세 점수는\n75점 입니다.\n\n당신에게 부족한 기운은\n<화> 입니다!")))
+            .check(matches(withText("가장 먼저 보이는 오행은\n오늘 당신에게 부족한 기운을 의미합니다!")))
     }
 
     @Test
@@ -107,16 +107,17 @@ class TutorialOverlayFragmentTest {
 
         // Should advance to second dialogue
         onView(withId(R.id.tvDialogue))
-            .check(matches(withText("오늘 당신의 하루 운세 점수는\n75점 입니다.\n\n당신에게 부족한 기운은\n<화> 입니다!")))
+            .check(matches(withText("가장 먼저 보이는 오행은\n오늘 당신에게 부족한 기운을 의미합니다!")))
     }
 
     @Test
-    fun `dialogue progresses through all four dialogues`() {
+    fun `dialogue progresses through all five dialogues`() {
         val expectedDialogues = listOf(
             "모든 것은 오행이요,\n오행의 조화가 복을 의미합니다.",
-            "오늘 당신의 하루 운세 점수는\n75점 입니다.\n\n당신에게 부족한 기운은\n<화> 입니다!",
-            "주변에서 화 기운을 보충하여,\n오늘 당신의 운세 점수를\n높일 수 있어요!",
-            "당신의 오행 균형을\n맞추러 가볼까요?"
+            "가장 먼저 보이는 오행은\n오늘 당신에게 부족한 기운을 의미합니다!",
+            "오늘의 운세 점수입니다\n부족한 기운을 수집해 점수를 올려보세요!",
+            "오늘 부족한 오행에 대한\n사주 풀이를 확인할 수 있어요!",
+            "오늘의 운을 열러 가볼까요?"
         )
 
         // Verify each dialogue in sequence
@@ -134,15 +135,15 @@ class TutorialOverlayFragmentTest {
 
     @Test
     fun `clicking after last dialogue navigates to AR screen`() {
-        // Advance through all dialogues
-        repeat(3) {
+        // Advance through all dialogues (now 5 dialogues, so repeat 4 times)
+        repeat(4) {
             onView(withId(R.id.dialogueBox))
                 .perform(click())
         }
 
         // Verify we're on the last dialogue
         onView(withId(R.id.tvDialogue))
-            .check(matches(withText("당신의 오행 균형을\n맞추러 가볼까요?")))
+            .check(matches(withText("오늘의 운을 열러 가볼까요?")))
 
         // Click to finish tutorial
         scenario.onFragment { fragment ->
@@ -199,8 +200,8 @@ class TutorialOverlayFragmentTest {
         onView(withId(R.id.tvArrow))
             .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
-        // Advance through all dialogues and check arrow
-        repeat(3) {
+        // Advance through all dialogues and check arrow (now 5 dialogues, so repeat 4 times)
+        repeat(4) {
             onView(withId(R.id.dialogueBox))
                 .perform(click())
 
@@ -224,6 +225,9 @@ class TutorialOverlayFragmentTest {
 
             fragment.view?.findViewById<View>(R.id.dialogueBox)?.performClick()
             assertEquals(3, fragment.getCurrentDialogueIndex())
+
+            fragment.view?.findViewById<View>(R.id.dialogueBox)?.performClick()
+            assertEquals(4, fragment.getCurrentDialogueIndex())
         }
     }
 
