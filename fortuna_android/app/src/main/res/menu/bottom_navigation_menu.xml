@@ -12,8 +12,9 @@
 
     <item
         android:id="@+id/arFragment"
-        android:icon="@drawable/ic_camera_highlighted"
-        android:title="개운" />
+        android:icon="@drawable/ic_camera_purple"
+        android:title="개운"
+        android:iconTint="#8B5CF6"/>
 
     <item
         android:id="@+id/atomFragment"

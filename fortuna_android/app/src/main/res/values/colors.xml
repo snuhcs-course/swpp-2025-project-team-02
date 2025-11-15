@@ -4,6 +4,7 @@
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="yellow">#FFCC4D</color>
+    <color name="purple">#8B5CF6</color>
 
     <!-- Primary colors (BeReal uses black as primary) -->
     <color name="primary">#000000</color>

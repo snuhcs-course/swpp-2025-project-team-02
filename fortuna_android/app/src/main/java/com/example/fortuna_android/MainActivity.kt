@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -401,29 +400,6 @@ class MainActivity : AppCompatActivity() {
         // Use NavigationUI to automatically sync bottom navigation with NavController
         // This prevents infinite loops by handling navigation state properly
         binding.bottomNavigation.setupWithNavController(navController)
-
-        // Make AR icon (index 2) much bigger and apply gradient
-        binding.bottomNavigation.post {
-            val menuView = binding.bottomNavigation.getChildAt(0) as? ViewGroup ?: return@post
-            if (menuView.childCount > 2) {
-                val arTab = menuView.getChildAt(2) as? ViewGroup ?: return@post
-
-                // Apply gradient background
-                arTab.setBackgroundResource(R.drawable.nav_tab_gradient_background)
-
-                // Find ImageView and make it bigger (20% increase: 48 -> 58dp)
-                for (i in 0 until arTab.childCount) {
-                    val child = arTab.getChildAt(i)
-                    if (child is android.widget.ImageView) {
-                        val params = child.layoutParams
-                        params.width = (58 * resources.displayMetrics.density).toInt()
-                        params.height = (58 * resources.displayMetrics.density).toInt()
-                        child.layoutParams = params
-                        child.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-                    }
-                }
-            }
-        }
     }
 
     override fun onDestroy() {

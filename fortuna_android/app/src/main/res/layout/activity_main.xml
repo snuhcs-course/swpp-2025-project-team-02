@@ -29,8 +29,6 @@
         android:paddingBottom="8dp"
         android:layout_gravity="center_vertical"
         android:background="@drawable/bottom_navigation_background"
-        app:itemIconTint="@null"
-        app:itemTextColor="@android:color/white"
         app:itemPaddingTop="0dp"
         app:itemPaddingBottom="0dp"
         app:itemIconSize="20dp"
