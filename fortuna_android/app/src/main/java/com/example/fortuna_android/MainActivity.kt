@@ -15,7 +15,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.ui.setupWithNavController
 import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.ActivityMainBinding
@@ -103,12 +102,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleNavigationIntent(intent: Intent) {
-        if (intent.getBooleanExtra("navigate_to_ar", false)) {
-            Log.d(TAG, "Navigating to AR screen from tutorial")
-            // Navigate to AR tab (index 2 - camera tab)
-            binding.bottomNavigation.selectedItemId = R.id.arFragment
-        }
-
         // Check permissions on startup
         requestPermissions()
 
@@ -394,12 +387,53 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation(navController: androidx.navigation.NavController) {
-        // Show text labels below icons
-        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED
+        // Set up click listeners for each navigation tab
+        binding.navHome.setOnClickListener {
+            navController.navigate(R.id.homeFragment)
+        }
 
-        // Use NavigationUI to automatically sync bottom navigation with NavController
-        // This prevents infinite loops by handling navigation state properly
-        binding.bottomNavigation.setupWithNavController(navController)
+        binding.navGuide.setOnClickListener {
+            navController.navigate(R.id.sajuGuideFragment)
+        }
+
+        binding.navAr.setOnClickListener {
+            navController.navigate(R.id.arFragment)
+        }
+
+        binding.navAtom.setOnClickListener {
+            navController.navigate(R.id.atomFragment)
+        }
+
+        binding.navProfile.setOnClickListener {
+            navController.navigate(R.id.profileFragment)
+        }
+
+        // Listen to navigation changes to update selected state
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateNavigationSelection(destination.id)
+        }
+    }
+
+    private fun updateNavigationSelection(destinationId: Int) {
+        // Reset all tabs to unselected state (darker gray for better contrast)
+        val grayColor = 0xFF555555.toInt()  // Darker gray for better contrast
+        val whiteColor = ContextCompat.getColor(this, android.R.color.white)
+        val purpleColor = ContextCompat.getColor(this, R.color.purple)
+
+        binding.navHomeIcon.setColorFilter(grayColor)
+        binding.navGuideIcon.setColorFilter(grayColor)
+        binding.navArIcon.setColorFilter(purpleColor) // AR always purple
+        binding.navAtomIcon.setColorFilter(grayColor)
+        binding.navProfileIcon.setColorFilter(grayColor)
+
+        // Highlight the selected tab
+        when (destinationId) {
+            R.id.homeFragment -> binding.navHomeIcon.setColorFilter(whiteColor)
+            R.id.sajuGuideFragment -> binding.navGuideIcon.setColorFilter(whiteColor)
+            R.id.arFragment -> binding.navArIcon.setColorFilter(purpleColor) // Stay purple
+            R.id.atomFragment -> binding.navAtomIcon.setColorFilter(whiteColor)
+            R.id.profileFragment -> binding.navProfileIcon.setColorFilter(whiteColor)
+        }
     }
 
     override fun onDestroy() {
