@@ -47,7 +47,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="총 25개 수집"
+                android:text="총 0개 수집"
                 android:textColor="#AAAAAA"
                 android:textSize="14sp" />
         </LinearLayout>

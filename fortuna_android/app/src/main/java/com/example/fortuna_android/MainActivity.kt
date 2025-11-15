@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -16,7 +15,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.ui.setupWithNavController
 import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.ActivityMainBinding
@@ -104,12 +102,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleNavigationIntent(intent: Intent) {
-        if (intent.getBooleanExtra("navigate_to_ar", false)) {
-            Log.d(TAG, "Navigating to AR screen from tutorial")
-            // Navigate to AR tab (index 2 - camera tab)
-            binding.bottomNavigation.selectedItemId = R.id.arFragment
-        }
-
         // Check permissions on startup
         requestPermissions()
 
@@ -395,34 +387,52 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation(navController: androidx.navigation.NavController) {
-        // Show text labels below icons
-        binding.bottomNavigation.labelVisibilityMode = com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED
+        // Set up click listeners for each navigation tab
+        binding.navHome.setOnClickListener {
+            navController.navigate(R.id.homeFragment)
+        }
 
-        // Use NavigationUI to automatically sync bottom navigation with NavController
-        // This prevents infinite loops by handling navigation state properly
-        binding.bottomNavigation.setupWithNavController(navController)
+        binding.navGuide.setOnClickListener {
+            navController.navigate(R.id.sajuGuideFragment)
+        }
 
-        // Make AR icon (index 2) much bigger and apply gradient
-        binding.bottomNavigation.post {
-            val menuView = binding.bottomNavigation.getChildAt(0) as? ViewGroup ?: return@post
-            if (menuView.childCount > 2) {
-                val arTab = menuView.getChildAt(2) as? ViewGroup ?: return@post
+        binding.navAr.setOnClickListener {
+            navController.navigate(R.id.arFragment)
+        }
 
-                // Apply gradient background
-                arTab.setBackgroundResource(R.drawable.nav_tab_gradient_background)
+        binding.navAtom.setOnClickListener {
+            navController.navigate(R.id.atomFragment)
+        }
 
-                // Find ImageView and make it bigger (20% increase: 48 -> 58dp)
-                for (i in 0 until arTab.childCount) {
-                    val child = arTab.getChildAt(i)
-                    if (child is android.widget.ImageView) {
-                        val params = child.layoutParams
-                        params.width = (58 * resources.displayMetrics.density).toInt()
-                        params.height = (58 * resources.displayMetrics.density).toInt()
-                        child.layoutParams = params
-                        child.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-                    }
-                }
-            }
+        binding.navProfile.setOnClickListener {
+            navController.navigate(R.id.profileFragment)
+        }
+
+        // Listen to navigation changes to update selected state
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateNavigationSelection(destination.id)
+        }
+    }
+
+    private fun updateNavigationSelection(destinationId: Int) {
+        // Reset all tabs to unselected state (darker gray for better contrast)
+        val grayColor = 0xFF555555.toInt()  // Darker gray for better contrast
+        val whiteColor = ContextCompat.getColor(this, android.R.color.white)
+        val purpleColor = ContextCompat.getColor(this, R.color.purple)
+
+        binding.navHomeIcon.setColorFilter(grayColor)
+        binding.navGuideIcon.setColorFilter(grayColor)
+        binding.navArIcon.setColorFilter(purpleColor) // AR always purple
+        binding.navAtomIcon.setColorFilter(grayColor)
+        binding.navProfileIcon.setColorFilter(grayColor)
+
+        // Highlight the selected tab
+        when (destinationId) {
+            R.id.homeFragment -> binding.navHomeIcon.setColorFilter(whiteColor)
+            R.id.sajuGuideFragment -> binding.navGuideIcon.setColorFilter(whiteColor)
+            R.id.arFragment -> binding.navArIcon.setColorFilter(purpleColor) // Stay purple
+            R.id.atomFragment -> binding.navAtomIcon.setColorFilter(whiteColor)
+            R.id.profileFragment -> binding.navProfileIcon.setColorFilter(whiteColor)
         }
     }
 

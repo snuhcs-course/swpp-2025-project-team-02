@@ -354,7 +354,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="당신의 사주를 좋게 만드는 방법"
+                        android:text="당신의 운세를 좋게 만드는 방법"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold"

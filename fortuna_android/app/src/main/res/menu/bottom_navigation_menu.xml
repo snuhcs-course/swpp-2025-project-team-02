@@ -3,25 +3,30 @@
     <item
         android:id="@+id/homeFragment"
         android:icon="@drawable/ic_home"
-        android:title="홈" />
+        android:title="홈"
+        android:iconTint="@color/nav_icon_white" />
 
     <item
         android:id="@+id/sajuGuideFragment"
         android:icon="@drawable/ic_help"
-        android:title="가이드" />
+        android:title="가이드"
+        android:iconTint="@color/nav_icon_white" />
 
     <item
         android:id="@+id/arFragment"
-        android:icon="@drawable/ic_camera_highlighted"
-        android:title="개운" />
+        android:icon="@drawable/ic_camera_purple"
+        android:title="개운"
+        android:iconTint="@color/nav_icon_purple" />
 
     <item
         android:id="@+id/atomFragment"
         android:icon="@drawable/ic_calendar"
-        android:title="기록" />
+        android:title="기록"
+        android:iconTint="@color/nav_icon_white" />
 
     <item
         android:id="@+id/profileFragment"
         android:icon="@drawable/ic_profile"
-        android:title="프로필" />
+        android:title="프로필"
+        android:iconTint="@color/nav_icon_white" />
 </menu>

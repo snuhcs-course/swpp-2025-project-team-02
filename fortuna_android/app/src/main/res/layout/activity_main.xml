@@ -19,26 +19,171 @@
         app:layout_constraintTop_toTopOf="parent"
         app:navGraph="@navigation/nav_graph" />
 
-    <!-- Bottom Navigation Bar -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <!-- Custom Bottom Navigation Bar -->
+    <LinearLayout
         android:id="@+id/bottom_navigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:minHeight="72dp"
+        android:orientation="horizontal"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
-        android:layout_gravity="center_vertical"
         android:background="@drawable/bottom_navigation_background"
-        app:itemIconTint="@null"
-        app:itemTextColor="@android:color/white"
-        app:itemPaddingTop="0dp"
-        app:itemPaddingBottom="0dp"
-        app:itemIconSize="20dp"
-        app:itemTextAppearanceActive="@style/TextAppearance.App.BottomNavigationLabel"
-        app:itemTextAppearanceInactive="@style/TextAppearance.App.BottomNavigationLabel"
+        android:weightSum="5"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/bottom_navigation_menu" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Home Tab -->
+        <LinearLayout
+            android:id="@+id/nav_home"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:id="@+id/nav_home_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_home"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/nav_home_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="홈"
+                android:textSize="@dimen/text_xxs"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Guide Tab -->
+        <LinearLayout
+            android:id="@+id/nav_guide"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:id="@+id/nav_guide_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_help"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/nav_guide_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="가이드"
+                android:textSize="@dimen/text_xxs"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- AR Camera Tab (Purple) -->
+        <LinearLayout
+            android:id="@+id/nav_ar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:id="@+id/nav_ar_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_camera_purple"
+                android:tint="#8B5CF6" />
+
+            <TextView
+                android:id="@+id/nav_ar_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="개운"
+                android:textSize="@dimen/text_xxs"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Atom/Record Tab -->
+        <LinearLayout
+            android:id="@+id/nav_atom"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:id="@+id/nav_atom_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_calendar"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/nav_atom_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="기록"
+                android:textSize="@dimen/text_xxs"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Profile Tab -->
+        <LinearLayout
+            android:id="@+id/nav_profile"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingVertical="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:id="@+id/nav_profile_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_profile"
+                android:tint="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/nav_profile_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="프로필"
+                android:textSize="@dimen/text_xxs"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

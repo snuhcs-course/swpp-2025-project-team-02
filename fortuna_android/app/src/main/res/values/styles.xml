@@ -82,4 +82,13 @@
         <item name="android:textSize">@dimen/text_xxs</item>
         <item name="android:textColor">@android:color/white</item>
     </style>
+
+    <!-- Bottom Navigation View Style - allows individual icon tints per menu item -->
+    <style name="Widget.App.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@null</item>
+        <item name="itemTextColor">@android:color/white</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.App.BottomNavigationLabel</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.App.BottomNavigationLabel</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
 </resources>
