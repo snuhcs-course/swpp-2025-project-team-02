@@ -762,6 +762,17 @@ class FortuneViewSet(viewsets.GenericViewSet):
     def today(self, request):
         """Get today's fortune with balance score (DB cached)."""
         user = request.user
+        logger.info(f"Fortune today request - user: {user}, is_authenticated: {user.is_authenticated}, type: {type(user)}")
+
+        if not user.is_authenticated:
+            return Response({
+                'status': 'error',
+                'error': {
+                    'code': 'authentication_required',
+                    'message': 'User not authenticated. Please provide X-Test-User-Id header in development mode.'
+                }
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
         today_date = timezone.now().date()
 
         # Helper functions to convert GanJi/Saju objects (used in both branches)
@@ -812,6 +823,11 @@ class FortuneViewSet(viewsets.GenericViewSet):
                 saju_user = user.saju()
                 daewoon = DaewoonCalculator.calculate_daewoon(user)
 
+                # Get image URL if available
+                fortune_image_url = None
+                if fortune_result.fortune_image:
+                    fortune_image_url = fortune_result.fortune_image.url
+
                 response_data = {
                     'status': 'success',
                     'data': {
@@ -819,6 +835,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                         'user_id': user.id,
                         'fortune': fortune_result.fortune_data,
                         'fortune_score': fortune_result.fortune_score,
+                        'fortune_image_url': fortune_image_url,
                         'saju_date': saju_to_dict(saju_date),
                         'saju_user': saju_to_dict(saju_user),
                         'daewoon': ganji_to_dict(daewoon)
@@ -839,6 +856,16 @@ class FortuneViewSet(viewsets.GenericViewSet):
 
         # Convert Response[FortuneResponse] to dict
         if result.status == 'success' and result.data:
+            # Get the saved fortune result to retrieve image URL
+            try:
+                fortune_result = FortuneResult.objects.get(
+                    user=user,
+                    for_date=today_date
+                )
+                fortune_image_url = fortune_result.fortune_image.url if fortune_result.fortune_image else None
+            except FortuneResult.DoesNotExist:
+                fortune_image_url = None
+
             response_data = {
                 'status': 'success',
                 'data': {
@@ -846,6 +873,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                     'user_id': result.data.user_id,
                     'fortune': result.data.fortune.model_dump(),
                     'fortune_score': result.data.fortune_score.model_dump(),
+                    'fortune_image_url': fortune_image_url,
                     'saju_date': saju_to_dict(result.data.saju_date),
                     'saju_user': saju_to_dict(result.data.saju_user),
                     'daewoon': ganji_to_dict(result.data.daewoon)
