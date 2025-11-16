@@ -202,15 +202,16 @@
 
                 <!-- 오늘의 기운 보충하러가기 버튼 (회전하는 테두리와 함께) -->
                 <FrameLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
                     <!-- 회전하는 테두리 링 -->
                     <View
                         android:id="@+id/rotatingBorder"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:background="@drawable/button_shimmer_border"
+                        android:layout_gravity="center"
                         android:layout_margin="2dp" />
 
                     <!-- 버튼 본체 -->
@@ -218,6 +219,7 @@
                         android:id="@+id/btnRefreshFortune"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:text="✨ 오늘의 기운 보충하러가기 ✨"
                         android:textColor="#FFFFFF"
                         android:textSize="15sp"
