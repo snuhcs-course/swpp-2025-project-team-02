@@ -5,6 +5,7 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 
 import os
 import json
+import base64
 from datetime import datetime, timedelta
 from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
 from enum import Enum
@@ -12,6 +13,7 @@ from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
 from django.conf import settings
+from django.core.files.base import ContentFile
 from user.models import User
 from ..utils.saju_concepts import (
     Saju,
@@ -502,6 +504,116 @@ class FortuneService:
             today_daily_guidance=content[-200:] if len(content) > 200 else "오늘은 평온한 마음으로 균형을 유지하세요."
         )
 
+    def generate_fortune_image_with_ai(
+        self,
+        fortune_response: FortuneAIResponse,
+        user_saju: Saju,
+        tomorrow_date: datetime,
+        tomorrow_day_ganji: GanJi,
+        fortune_score: FortuneScore
+    ) -> Optional[bytes]:
+        """
+        Generate fortune image using OpenAI API.
+
+        Args:
+            fortune_response: Generated fortune text
+            user_saju: User's Saju object
+            tomorrow_date: Tomorrow's date
+            tomorrow_day_ganji: Tomorrow's day pillar
+            fortune_score: Calculated fortune score
+
+        Returns:
+            Base64 decoded image bytes, or None on error
+        """
+        try:
+            if not self.client:
+                raise ValueError("OpenAI client not initialized")
+
+            # Extract element information
+            user_day_element = user_saju.daily.stem.element
+            tomorrow_day_element = tomorrow_day_ganji.stem.element
+
+            # Prepare image generation prompt
+            image_prompt = f"""
+            Generate a super cute and comedic fortune-telling illustration with the following specifications:
+
+            [Character & Composition]
+            - Main Character (ME): A chibi/kawaii personified character representing the '{user_day_element.chinese}' (user's birth element) at the CENTER of the image
+              * If 목(Wood): A cute tree/plant character with big eyes and tiny limbs
+              * If 화(Fire): An adorable flame character with sparkly eyes
+              * If 토(Earth): A round mountain/rock character with rosy cheeks
+              * If 금(Metal): A shiny metallic character (coin, sword, or robot-like) with a gentle smile
+              * If 수(Water): A water drop or wave character with bubbly personality
+
+            - The main character should look friendly, slightly confused or curious (comedic expression)
+            - Use the color scheme of '{user_day_element.chinese}': {user_day_element.color}
+
+            [Surrounding Elements - Based on Fortune]
+            - Fortune summary: {fortune_response.today_fortune_summary}
+            - Required element to collect: '{fortune_score.needed_element}' ({self._get_element_color(fortune_score.needed_element)})
+            - Today's energy element: '{tomorrow_day_element.chinese}' ({tomorrow_day_element.color})
+
+            Around the main character, draw small chibi versions of other five elements (목화토금수) interacting in a comedic way:
+            - Emphasize the '{fortune_score.needed_element}' element as a glowing, sparkling character that the main character is reaching for or looking at with heart eyes
+            - Show the element relationships humorously (e.g., if water empowers wood, show a water character watering a tree character with a watering can)
+            - Other elements should be smaller and in the background, creating a supportive or playful atmosphere
+
+            [Art Style Requirements]
+            - EXTREMELY CUTE and COMEDIC chibi/kawaii art style
+            - Round, oversized heads with tiny bodies
+            - Big sparkling eyes, simple facial expressions (^_^, >_<, O_O, etc.)
+            - Soft pastel colors with vibrant accents
+            - Add small decorative elements: stars, sparkles, sweat drops, heart bubbles
+            - Korean traditional patterns as subtle background decoration (optional, not dominant)
+            - NO TEXT OR WORDS in the image
+            - Style should appeal to Gen-Z: Instagram-worthy, shareable, meme-like quality
+            - Think: Kakao Friends, LINE Friends, Molang, Pusheen style
+
+            [Mood]
+            - Lighthearted, optimistic, and FUN
+            - Make it look like a wholesome comic panel or sticker illustration
+            - The main character should be relatable and endearing
+            """
+
+            # Call OpenAI responses API with image generation tool
+            response = self.client.responses.create(
+                model="gpt-5",
+                input=image_prompt.strip(),
+                tools=[{"type": "image_generation"}],
+            )
+
+            # Extract image data from response
+            image_data = [
+                output.result
+                for output in response.output
+                if output.type == "image_generation_call"
+            ]
+
+            if image_data:
+                # Decode base64 image
+                image_base64 = image_data[0]
+                image_bytes = base64.b64decode(image_base64)
+                logger.info(f"Successfully generated fortune image for {tomorrow_date}")
+                return image_bytes
+            else:
+                logger.warning("No image data returned from OpenAI API")
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to generate fortune image: {e}")
+            return None
+
+    def _get_element_color(self, element: str) -> str:
+        """Get color representation for an element."""
+        element_colors = {
+            "목": "초록색, 청색",
+            "화": "빨간색, 주황색",
+            "토": "노란색, 갈색",
+            "금": "흰색, 회색",
+            "수": "검은색, 파란색"
+        }
+        return element_colors.get(element, "무지개색")
+
     ### public methods ###
 
     # Main method for fetching fortune.
@@ -542,7 +654,14 @@ class FortuneService:
             cached_ganji_list = GanJi._get_cached()
             tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
-           
+            # Generate fortune image with AI
+            image_bytes = self.generate_fortune_image_with_ai(
+                fortune,
+                user_saju,
+                tomorrow_date,
+                tomorrow_day_ganji,
+                fortune_score
+            )
 
             # Save to database
             fortune_result, created = FortuneResult.objects.update_or_create(
@@ -556,6 +675,18 @@ class FortuneService:
                     'fortune_score': fortune_score.model_dump()
                 }
             )
+
+            # Save image if generated successfully
+            if image_bytes:
+                image_filename = f"fortune_{user.id}_{tomorrow_date.strftime('%Y%m%d')}.png"
+                fortune_result.fortune_image.save(
+                    image_filename,
+                    ContentFile(image_bytes),
+                    save=True
+                )
+                logger.info(f"Fortune image saved for user {user.id} on {tomorrow_date}")
+            else:
+                logger.warning(f"No image generated for user {user.id} on {tomorrow_date}")
 
             # Prepare final response
             response_data = FortuneResponse(
