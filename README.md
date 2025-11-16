@@ -157,4 +157,4 @@ git submodule update --init --recursive
 
 ## Demo Video
 
-[Demo Video] (iteration-4-demo.mp4)
+[Demo Video](iteration-4-demo.mp4)
