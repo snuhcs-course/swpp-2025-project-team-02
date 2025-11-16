@@ -307,15 +307,15 @@ class TutorialOverlayFragment : Fragment() {
         prefs.edit().putBoolean("has_seen_home_tutorial", true).apply()
         Log.d(TAG, "Home tutorial marked as seen")
 
-        // Navigate to AR screen (camera tab)
-        val intent = Intent(requireContext(), MainActivity::class.java).apply {
+        // Dismiss overlay first
+        dismissOverlay()
+
+        // Navigate to AR screen using Intent (since fragment nav doesn't work reliably from overlay)
+        val intent = android.content.Intent(requireContext(), MainActivity::class.java).apply {
             putExtra("navigate_to_ar", true)
-            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         startActivity(intent)
-
-        // Dismiss overlay
-        dismissOverlay()
     }
 
     override fun onDestroyView() {

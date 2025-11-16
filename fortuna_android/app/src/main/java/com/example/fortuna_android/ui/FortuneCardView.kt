@@ -120,22 +120,9 @@ class FortuneCardView @JvmOverloads constructor(
     }
 
     /**
-     * 버튼에 회전과 반짝임 애니메이션 시작
+     * 버튼에 반짝임 애니메이션 시작
      */
     private fun startButtonAnimations() {
-        // 회전하는 테두리 애니메이션 (ObjectAnimator 사용)
-        val rotateAnimator = ObjectAnimator.ofFloat(
-            binding.rotatingBorder,
-            "rotation",
-            0f,
-            360f
-        ).apply {
-            duration = 3000 // 3초에 한 바퀴
-            repeatCount = ObjectAnimator.INFINITE
-            interpolator = LinearInterpolator()
-        }
-        rotateAnimator.start()
-
         // 버튼에 반짝이는 효과 (알파와 스케일)
         val shimmerAnimation = AnimationUtils.loadAnimation(context, R.anim.shimmer_pulse)
         binding.btnRefreshFortune.startAnimation(shimmerAnimation)
