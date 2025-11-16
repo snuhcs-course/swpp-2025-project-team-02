@@ -91,6 +91,9 @@ class MainActivity : AppCompatActivity() {
         // Set up bottom navigation
         setupBottomNavigation(navController)
 
+        // Initialize app on first launch
+        initializeApp()
+
         // Handle tutorial navigation to AR screen
         handleNavigationIntent(intent)
     }
@@ -101,7 +104,7 @@ class MainActivity : AppCompatActivity() {
         handleNavigationIntent(intent)
     }
 
-    private fun handleNavigationIntent(intent: Intent) {
+    private fun initializeApp() {
         // Check permissions on startup
         requestPermissions()
 
@@ -111,25 +114,22 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "FCM Token: $token")
         }
 
-//         Schedule daily notification by Android(not firebase)
-//        NotificationManager.fortuneGeneratedNotification(
-//            this,
-//            "Daily Fortune",
-//            "Your daily fortune is ready! ✨",
-//            1
-//        )
-
         // Initialize RetrofitClient with context for auth interceptor
         RetrofitClient.initialize(this)
 
         // Login associated tasks
         setupGoogleSignIn()
         checkLoginStatus()
+    }
 
-        // VLM Test button (Debug) - Disabled: VLM is now integrated into AR view
-//        binding.fabVlmTest.setOnClickListener {
-//            startActivity(Intent(this, com.example.fortuna_android.vlm.VLMTestActivity::class.java))
-//        }
+    private fun handleNavigationIntent(intent: Intent) {
+        if (intent.getBooleanExtra("navigate_to_ar", false)) {
+            Log.d(TAG, "Navigating to AR screen from tutorial")
+            // Navigate to AR tab
+            val navHostFragment = supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+            navHostFragment?.navController?.navigate(R.id.arFragment)
+        }
     }
 
     override fun onResume() {
