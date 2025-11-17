@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import android.util.Log
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.api.UserProfile
 
 class FortuneViewModel : ViewModel() {
 
@@ -37,13 +38,23 @@ class FortuneViewModel : ViewModel() {
     private val _errorMessage = MutableLiveData<String?>()
     val errorMessage: LiveData<String?> = _errorMessage
 
+    // LiveData for user profile (사주팔자 data)
+    private val _userProfile = MutableLiveData<UserProfile?>()
+    val userProfile: LiveData<UserProfile?> = _userProfile
+
     // Coroutine job for fortune generation
     private var fortuneJob: Job? = null
 
-    fun getTodayFortune(context: Context) {
+    fun getTodayFortune(context: Context, forceRefresh: Boolean = false) {
         // Don't start new request if one is already running
         if (_isLoading.value == true) {
             Log.d(TAG, "Fortune generation already in progress")
+            return
+        }
+
+        // If data already exists and not forcing refresh, skip API call
+        if (!forceRefresh && _fortuneData.value != null) {
+            Log.d(TAG, "Fortune data already loaded, skipping API call")
             return
         }
 
@@ -160,6 +171,31 @@ class FortuneViewModel : ViewModel() {
 
     fun clearFortuneData() {
         _fortuneData.value = null
+    }
+
+    fun loadUserProfile() {
+        // If user profile already loaded, skip API call
+        if (_userProfile.value != null) {
+            Log.d(TAG, "User profile already loaded, skipping API call")
+            return
+        }
+
+        Log.d(TAG, "Loading user profile...")
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.instance.getUserProfile()
+
+                if (response.isSuccessful && response.body() != null) {
+                    _userProfile.postValue(response.body())
+                    Log.d(TAG, "User profile loaded successfully")
+                } else {
+                    Log.e(TAG, "Failed to load user profile: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading user profile", e)
+            }
+        }
     }
 
     override fun onCleared() {
