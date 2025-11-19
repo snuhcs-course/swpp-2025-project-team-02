@@ -9,14 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
-import com.example.fortuna_android.R
 import com.example.fortuna_android.TutorialOverlayFragment
-import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
-import com.example.fortuna_android.util.CustomToast
-import kotlinx.coroutines.launch
 
 class TodayFortuneFragment : Fragment() {
     private var _binding: FragmentTodayFortuneBinding? = null
@@ -105,6 +99,15 @@ class TodayFortuneFragment : Fragment() {
                 binding.tvError.visibility = View.GONE
             } else {
                 binding.loadingContainer.visibility = View.GONE
+
+                // Restore views if data already exists
+                val currentFortuneData = fortuneViewModel.fortuneData.value
+                if (currentFortuneData != null) {
+                    binding.fortuneCardView.visibility = View.VISIBLE
+                    binding.todaySajuPaljaView.visibility = View.VISIBLE
+                }
+
+                // sajuPaljaView visibility is managed by userProfile observer
             }
         }
 
@@ -123,6 +126,25 @@ class TodayFortuneFragment : Fragment() {
 
                 // Clear the error after showing it
                 fortuneViewModel.clearError()
+            }
+        }
+
+        // Observe user profile for 사주팔자 data
+        fortuneViewModel.userProfile.observe(viewLifecycleOwner) { profile ->
+            val binding = _binding ?: return@observe
+
+            if (profile != null) {
+                Log.d(TAG, "User profile received, displaying saju data")
+                // Show the SajuPaljaView
+                binding.sajuPaljaView.visibility = View.VISIBLE
+
+                // Set user's 사주팔자 data
+                binding.sajuPaljaView.setSajuData(
+                    yearly = profile.yearlyGanji,
+                    monthly = profile.monthlyGanji,
+                    daily = profile.dailyGanji,
+                    hourly = profile.hourlyGanji
+                )
             }
         }
     }
@@ -188,39 +210,8 @@ class TodayFortuneFragment : Fragment() {
     }
 
     private fun loadUserProfile() {
-        if (!isAdded) return
-
-        Log.d(TAG, "Loading user profile for saju data...")
-
-        lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.instance.getUserProfile()
-
-                if (response.isSuccessful) {
-                    val profile = response.body()
-                    if (profile != null && isAdded) {
-                        val binding = _binding ?: return@launch
-
-                        // Show the SajuPaljaView
-                        binding.sajuPaljaView.visibility = View.VISIBLE
-
-                        // Set user's 사주팔자 data
-                        binding.sajuPaljaView.setSajuData(
-                            yearly = profile.yearlyGanji,
-                            monthly = profile.monthlyGanji,
-                            daily = profile.dailyGanji,
-                            hourly = profile.hourlyGanji
-                        )
-
-                        Log.d(TAG, "User saju data loaded successfully")
-                    }
-                } else {
-                    Log.e(TAG, "Failed to load user profile: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error loading user profile", e)
-            }
-        }
+        // Use ViewModel to load user profile (with caching)
+        fortuneViewModel.loadUserProfile()
     }
 
     override fun onDestroyView() {
