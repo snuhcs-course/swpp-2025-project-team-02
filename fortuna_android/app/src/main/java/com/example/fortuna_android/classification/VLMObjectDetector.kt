@@ -11,11 +11,12 @@ import kotlinx.coroutines.flow.fold
 import kotlinx.coroutines.launch
 
 /**
- * Hybrid object detector that uses ML Kit for bounding boxes and VLM for classification
+ * VLM-only object detector that crops a fixed center circle area
  *
- * Progressive detection flow:
- * 1. ML Kit detects objects instantly → returns bounding box with "Analyzing..." label
- * 2. VLM classifies in background → updates label via callback
+ * Direct VLM detection flow:
+ * 1. Crops center circle from camera preview
+ * 2. Sends directly to VLM for classification
+ * 3. Returns fixed center bounding box with VLM result
  */
 class VLMObjectDetector(
     context: Activity,
@@ -23,57 +24,84 @@ class VLMObjectDetector(
     private val onVLMClassified: ((DetectedObjectResult) -> Unit)? = null
 ) : ObjectDetector(context) {
 
-    // Use ML Kit for fast and accurate bounding box detection
-    private val mlKitDetector = MLKitObjectDetector(
-        context = context,
-        maxDetectedObjects = 1  // Only detect 1 object at a time
-    )
+    companion object {
+        // Fixed center circle dimensions (as fraction of image size)
+        private const val CENTER_CIRCLE_SIZE_RATIO = 0.5f // 50% of image width/height
+    }
 
     // VLM prompt matching training data format
     private val VLM_ELEMENT_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nElement:"
 
     override suspend fun analyze(image: Image, imageRotation: Int): List<DetectedObjectResult> {
-        // Step 1: Get bounding box from ML Kit (fast)
-        val mlKitResults = mlKitDetector.analyze(image, imageRotation)
+        // Convert camera image to bitmap - keep original for coordinate calculation
+        val originalBitmap = convertYuv(image)
 
-        if (mlKitResults.isEmpty()) {
-            return emptyList()
-        }
+        // Use ORIGINAL camera image dimensions for anchor coordinates (like MLKit did)
+        val originalWidth = originalBitmap.width
+        val originalHeight = originalBitmap.height
 
-        // Get the first (and only) detection from ML Kit
-        val detection = mlKitResults[0]
+        // Center coordinates in ORIGINAL camera image space (before rotation)
+        // This is what ARCore expects for accurate coordinate transformation
+        val centerX = originalWidth / 2
+        val centerY = originalHeight / 2
 
-        // Step 2: Return ML Kit result immediately with ML Kit label + "Analyzing..." indicator
-        val preliminaryResult = DetectedObjectResult(
-            confidence = detection.confidence,
-            label = "Analyzing ${detection.label} ...",  // Show ML Kit prediction while VLM processes
-            centerCoordinate = detection.centerCoordinate,
-            width = detection.width,
-            height = detection.height
+        android.util.Log.d("VLMObjectDetector", "Original camera image: ${originalWidth}x${originalHeight}, center: ($centerX, $centerY), rotation: ${imageRotation}°")
+        // Create square bounding box in original image coordinates
+        val squareSize = (Math.min(originalWidth, originalHeight) * CENTER_CIRCLE_SIZE_RATIO).toInt()
+
+        // Create fixed center bounding box result using ORIGINAL image coordinates
+        val fixedCenterResult = DetectedObjectResult(
+            confidence = 1.0f, // Fixed confidence since we're always analyzing center
+            label = "Analyzing...",
+            centerCoordinate = Pair(centerX, centerY), // Original image coordinates
+            width = squareSize,
+            height = squareSize
         )
 
-        // Step 3: Run VLM classification in background
-        val bitmap = convertYuv(image)
-        val rotatedBitmap = ImageUtils.rotateBitmap(bitmap, imageRotation)
+        // For VLM processing, rotate the image and crop from rotated version
+        val rotatedBitmap = ImageUtils.rotateBitmap(originalBitmap, imageRotation)
+        val rotatedWidth = rotatedBitmap.width
+        val rotatedHeight = rotatedBitmap.height
+        val rotatedCenterX = rotatedWidth / 2
+        val rotatedCenterY = rotatedHeight / 2
+        val rotatedSquareSize = (Math.min(rotatedWidth, rotatedHeight) * CENTER_CIRCLE_SIZE_RATIO).toInt()
+
+        // Calculate crop bounds in rotated image
+        val cropLeft = Math.max(0, rotatedCenterX - rotatedSquareSize / 2)
+        val cropTop = Math.max(0, rotatedCenterY - rotatedSquareSize / 2)
+        val cropRight = Math.min(rotatedWidth, rotatedCenterX + rotatedSquareSize / 2)
+        val cropBottom = Math.min(rotatedHeight, rotatedCenterY + rotatedSquareSize / 2)
+
+        val cropWidth = cropRight - cropLeft
+        val cropHeight = cropBottom - cropTop
+
+        // Crop the center area from rotated image for VLM analysis
+        val croppedBitmap = Bitmap.createBitmap(
+            rotatedBitmap,
+            cropLeft,
+            cropTop,
+            cropWidth,
+            cropHeight
+        )
 
         // Start VLM classification asynchronously
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val vlmClassification = classifyWithVLM(rotatedBitmap)
+                val vlmClassification = classifyWithVLM(croppedBitmap)
 
                 // Update result with VLM classification
-                val finalResult = preliminaryResult.copy(label = vlmClassification)
+                val finalResult = fixedCenterResult.copy(label = vlmClassification)
                 onVLMClassified?.invoke(finalResult)
             } catch (e: Exception) {
-                // If VLM completely fails, update with error state
-                android.util.Log.e("VLMObjectDetector", "VLM classification failed in coroutine", e)
-                val errorResult = preliminaryResult.copy(label = "Detection Failed")
+                // If VLM fails, update with error state
+                android.util.Log.e("VLMObjectDetector", "VLM classification failed", e)
+                val errorResult = fixedCenterResult.copy(label = "Detection Failed")
                 onVLMClassified?.invoke(errorResult)
             }
         }
 
-        // Return preliminary result immediately (box appears right away)
-        return listOf(preliminaryResult)
+        // Return bounding box result immediately (box appears right away)
+        return listOf(fixedCenterResult)
     }
 
     /**

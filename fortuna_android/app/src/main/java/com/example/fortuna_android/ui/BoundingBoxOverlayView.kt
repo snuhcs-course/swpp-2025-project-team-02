@@ -127,76 +127,48 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         viewHeight: Float,
         index: Int
     ) {
-        // DetectedObjectResult coordinates are in IMAGE_PIXELS coordinate space
-        // We need to convert them to VIEW coordinates like ARCore does
-        val (imageX, imageY) = box.centerCoordinate
+        // For center detection, always draw at screen center
+        val centerX = viewWidth / 2f
+        val centerY = viewHeight / 2f
 
-        // The key insight: ARCore's camera view is typically displayed with these transformations:
-        // 1. Camera captures in landscape orientation
-        // 2. View displays in portrait orientation
-        // 3. ARCore handles this with transformCoordinates2d(IMAGE_PIXELS -> VIEW)
+        // Create a fixed square bounding box in the center (like traditional object detection)
+        val squareSize = Math.min(viewWidth, viewHeight) * 0.5f // 50% of screen size
 
-        // Since we can't access the Frame here, we need to replicate the transformation
-        // For most Android devices in portrait mode with back camera:
-        // - Camera image: 1920x1080 (landscape)
-        // - View: portrait orientation
-        // - Standard transformation: 90-degree rotation
+        // Calculate bounding box coordinates
+        val left = centerX - squareSize / 2f
+        val top = centerY - squareSize / 2f
+        val right = centerX + squareSize / 2f
+        val bottom = centerY + squareSize / 2f
 
-        // Typical camera resolution (this should ideally be dynamic)
-        val cameraWidth = 1920f
-        val cameraHeight = 1080f
-
-        // Convert IMAGE_PIXELS coordinates to VIEW coordinates
-        // This replicates what ARCore's transformCoordinates2d does
-        // For 90-degree rotation (landscape camera -> portrait view):
-        // IMAGE(x,y) -> VIEW(cameraHeight - y, x)
-        val viewX = (cameraHeight - imageY.toFloat()) * (viewWidth / cameraHeight)
-        val viewY = imageX.toFloat() * (viewHeight / cameraWidth)
-
-        // Scale the bounding box dimensions
-        // After 90-degree rotation, width and height are swapped
-        val scaledWidth = box.height.toFloat() * (viewWidth / cameraHeight)
-        val scaledHeight = box.width.toFloat() * (viewHeight / cameraWidth)
-
-        val centerX = viewX
-        val centerY = viewY
-        val boxWidth = scaledWidth
-        val boxHeight = scaledHeight
-
-        val left = centerX.toFloat() - boxWidth / 2f
-        val top = centerY.toFloat() - boxHeight / 2f
-        val right = left + boxWidth
-        val bottom = top + boxHeight
-
+        // Draw rectangular bounding box (like MLKit)
         canvas.drawRect(left, top, right, bottom, boxPaint)
 
-        // Draw center point for debugging
-        canvas.drawCircle(centerX.toFloat(), centerY.toFloat(), 15f, centerPointPaint)
+        // Draw center point
+        canvas.drawCircle(centerX, centerY, 15f, centerPointPaint)
 
         // Draw spinner if analyzing
-        if (box.label == "Analyzing...") {
-            drawSpinner(canvas, centerX.toFloat(), centerY.toFloat(), 40f)
+        if (box.label.contains("Analyzing")) {
+            drawSpinner(canvas, centerX, centerY, squareSize / 2f - 20f)
         }
 
         val label = "${box.label} (${(box.confidence * 100).toInt()}%)"
         val textWidth = textPaint.measureText(label)
         val textHeight = textPaint.textSize
 
-        val textX = left
+        // Position text above the bounding box
+        val textX = centerX - textWidth / 2f
         val textY = top - 10f
 
         canvas.drawRect(
-            textX,
+            textX - 8f,
             textY - textHeight,
-            textX + textWidth + 16f,
+            textX + textWidth + 8f,
             textY + 8f,
             textBackgroundPaint
         )
-        canvas.drawText(label, textX + 8f, textY, textPaint)
+        canvas.drawText(label, textX, textY, textPaint)
 
-        Log.d(TAG, "Drew box $index: ${box.label} at center($centerX, $centerY) " +
-                "size(${box.width}x${box.height}) " +
-                "bounds[L:${left.toInt()}, T:${top.toInt()}, R:${right.toInt()}, B:${bottom.toInt()}]")
+        Log.d(TAG, "Drew fixed center square: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
     }
 
     /**

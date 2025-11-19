@@ -10,7 +10,6 @@ import com.google.ar.core.Frame
 import com.google.ar.core.TrackingState
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.classification.DetectedObjectResult
-import com.example.fortuna_android.classification.MLKitObjectDetector
 import com.example.fortuna_android.classification.VLMObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ElementMapper
@@ -60,9 +59,8 @@ class ARRenderer(private val fragment: ARFragment) :
     private var scanButtonWasPressed = false
     private var vlmClassificationComplete = false  // Track VLM completion to hide bounding box
 
-    private val mlKitAnalyzer = MLKitObjectDetector(fragment.requireActivity())
     private lateinit var vlmAnalyzer: VLMObjectDetector
-    private var currentAnalyzer: ObjectDetector = mlKitAnalyzer
+    private var currentAnalyzer: ObjectDetector? = null  // Will be set to VLM analyzer when loaded
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
     private val elementMapper = ElementMapper(fragment.requireContext())
@@ -116,8 +114,8 @@ class ARRenderer(private val fragment: ARFragment) :
      * Start object detection - called when scan button is pressed
      */
     fun startObjectDetection() {
-        // Prevent scanning if VLM detector is set but VLM isn't ready
-        if (currentAnalyzer is VLMObjectDetector && !isVLMLoaded) {
+        // Prevent scanning if VLM isn't ready
+        if (!isVLMLoaded) {
             Log.w(TAG, "VLM not ready yet, ignoring scan request")
             return
         }
@@ -464,7 +462,7 @@ class ARRenderer(private val fragment: ARFragment) :
                     try {
                         val cameraId = session.cameraConfig.cameraId
                         val imageRotation = displayRotationHelper.getCameraSensorToDisplayRotation(cameraId)
-                        objectResults = currentAnalyzer.analyze(cameraImage, imageRotation)
+                        objectResults = currentAnalyzer?.analyze(cameraImage, imageRotation)
                         cameraImage.close()
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during object analysis", e)
@@ -486,7 +484,7 @@ class ARRenderer(private val fragment: ARFragment) :
         if (objects != null) {
             objectResults = null
             Log.i(TAG, "=== OBJECT DETECTION RESULTS ===")
-            Log.i(TAG, "Detected ${objects.size} objects using ${currentAnalyzer.javaClass.simpleName}")
+            Log.i(TAG, "Detected ${objects.size} objects using ${currentAnalyzer?.javaClass?.simpleName ?: "Unknown"}")
 
             // Update bounding box overlay (skip if VLM classification already complete)
             if (!vlmClassificationComplete) {
@@ -495,81 +493,30 @@ class ARRenderer(private val fragment: ARFragment) :
                 Log.d(TAG, "Skipping bounding box update - VLM classification complete")
             }
 
-            // Different handling based on analyzer type
-            if (currentAnalyzer is VLMObjectDetector) {
-                // VLM mode: Store anchors for later use when VLM callback completes
-                Log.i(TAG, "VLM mode: Creating anchors and storing for later classification")
+            // VLM mode: Store anchors for later use when VLM callback completes
+            Log.i(TAG, "VLM mode: Creating anchors and storing for later classification")
 
-                val pendingClassifications = objects.mapNotNull { obj ->
-                    val (atX, atY) = obj.centerCoordinate
-                    Log.d(TAG, "Creating anchor for VLM object '${obj.label}' at coordinates ($atX, $atY)")
+            val pendingClassifications = objects.mapNotNull { obj ->
+                val (atX, atY) = obj.centerCoordinate
+                Log.d(TAG, "Creating anchor for VLM object '${obj.label}' at coordinates ($atX, $atY)")
 
-                    val anchorResult = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                    if (anchorResult != null) {
-                        val (anchor, distance) = anchorResult
-                        Log.i(TAG, "✅ Created anchor for VLM processing: '${obj.label}' at pose: ${anchor.pose}, distance: ${distance}m")
-                        PendingVLMClassification(anchor, distance, obj.label, atX.toFloat() to atY.toFloat())
-                    } else {
-                        Log.w(TAG, "❌ Failed to create anchor for VLM object '${obj.label}' at ($atX, $atY)")
-                        null
-                    }
-                }
-
-                // Store pending classifications
-                synchronized(pendingVLMClassifications) {
-                    pendingVLMClassifications.addAll(pendingClassifications)
-                }
-
-                Log.i(TAG, "Stored ${pendingClassifications.size} anchors for VLM classification")
-            } else {
-                // MLKit-only mode: Create anchors immediately (legacy behavior)
-                Log.i(TAG, "MLKit-only mode: Creating anchors immediately")
-
-                // Map detected objects to element categories
-                val elementResults = objects.map { obj ->
-                    val element = elementMapper.mapLabelToElement(obj.label)
-                    Log.i(TAG, "Object '${obj.label}' mapped to element: ${element.displayName}")
-                    obj to element
-                }
-
-                elementResults.forEachIndexed { index, (obj, element) ->
-                    val (atX, atY) = obj.centerCoordinate
-                    Log.i(TAG, "Object $index: '${obj.label}' -> '${element.displayName}' at coordinates ($atX, $atY) with confidence ${obj.confidence}")
-                }
-
-                // Check for detected elements and notify fragment with sound effects
-                val detectedElements = elementResults.map { (_, element) -> element }.toSet()
-                detectedElements.forEach { element ->
-                    fragment.view?.post {
-                        fragment.onElementDetected(element)
-                    }
-                }
-
-                val anchors = elementResults.mapNotNull { (obj, element) ->
-                    val (atX, atY) = obj.centerCoordinate
-                    Log.d(TAG, "Attempting to create anchor for '${element.displayName}' (from '${obj.label}') at image coordinates ($atX, $atY)")
-
-                    val anchorResult = createAnchor(atX.toFloat(), atY.toFloat(), frame)
-                    if (anchorResult != null) {
-                        val (anchor, distance) = anchorResult
-                        Log.i(TAG, "✅ Successfully created anchor for '${element.displayName}' at pose: ${anchor.pose}, distance: ${distance}m")
-                        ARLabeledAnchor(anchor, element, distance)
-                    } else {
-                        Log.w(TAG, "❌ Failed to create anchor for '${element.displayName}' at ($atX, $atY)")
-                        null
-                    }
-                }
-
-                // Thread-safe way to add anchors
-                synchronized(arLabeledAnchors) {
-                    arLabeledAnchors.addAll(anchors)
-                }
-
-                // Notify fragment about detection results on main thread
-                fragment.view?.post {
-                    fragment.onObjectDetectionCompleted(anchors.size, objects.size)
+                val anchorResult = createAnchor(atX.toFloat(), atY.toFloat(), frame)
+                if (anchorResult != null) {
+                    val (anchor, distance) = anchorResult
+                    Log.i(TAG, "✅ Created anchor for VLM processing: '${obj.label}' at pose: ${anchor.pose}, distance: ${distance}m")
+                    PendingVLMClassification(anchor, distance, obj.label, atX.toFloat() to atY.toFloat())
+                } else {
+                    Log.w(TAG, "❌ Failed to create anchor for VLM object '${obj.label}' at ($atX, $atY)")
+                    null
                 }
             }
+
+            // Store pending classifications
+            synchronized(pendingVLMClassifications) {
+                pendingVLMClassifications.addAll(pendingClassifications)
+            }
+
+            Log.i(TAG, "Stored ${pendingClassifications.size} anchors for VLM classification")
         }
 
         // Draw 3D sphere objects at their anchor positions - create a safe copy to avoid concurrent modification
