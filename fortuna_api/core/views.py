@@ -3,6 +3,7 @@ DRF ViewSets for Fortuna Core API.
 """
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -44,6 +45,25 @@ fortune_service = FortuneService(image_service)
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
+
+def get_absolute_image_url(request, image_field):
+    """
+    이미지 필드의 절대 URL을 반환합니다.
+    S3 사용 시: 이미 full URL이므로 그대로 반환
+    로컬 파일 시: build_absolute_uri()로 full URL 생성
+    """
+    if not image_field:
+        return None
+
+    image_url = image_field.url
+
+    # S3 사용 시 이미 full URL (http:// or https://로 시작)
+    if image_url.startswith('http://') or image_url.startswith('https://'):
+        return image_url
+
+    # 로컬 파일인 경우 절대 URL로 변환
+    return request.build_absolute_uri(image_url)
 
 
 @extend_schema_view(
@@ -824,9 +844,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                 daewoon = DaewoonCalculator.calculate_daewoon(user)
 
                 # Get image URL if available
-                fortune_image_url = None
-                if fortune_result.fortune_image:
-                    fortune_image_url = fortune_result.fortune_image.url
+                fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
 
                 response_data = {
                     'status': 'success',
@@ -862,7 +880,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                     user=user,
                     for_date=today_date
                 )
-                fortune_image_url = fortune_result.fortune_image.url if fortune_result.fortune_image else None
+                fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
             except FortuneResult.DoesNotExist:
                 fortune_image_url = None
 
