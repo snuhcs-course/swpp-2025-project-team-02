@@ -977,8 +977,9 @@ class TestFortuneAPIEndpoints(APITestCase):
             password='testpass123'
         )
         # Set saju data separately
-        self.user.birth_date_solar = '1990-01-01'
-        self.user.birth_time_units = '자시'
+        from datetime import date
+        self.user.birth_date_solar = date(1990, 1, 1)
+        self.user.birth_time_units = '23'
         self.user.yearly_ganji = '갑자'
         self.user.monthly_ganji = '을축'
         self.user.daily_ganji = '병인'  # 병(fire)
@@ -989,6 +990,184 @@ class TestFortuneAPIEndpoints(APITestCase):
         self.client.credentials(
             HTTP_AUTHORIZATION=f'Bearer {self.refresh.access_token}'
         )
+
+    @patch('core.views.fortune_service.generate_fortune')
+    def test_fortune_today_with_image(self, mock_generate):
+        """Test /fortune/today returns fortune_image_url when image exists."""
+        from core.models import FortuneResult
+        from core.services.fortune import FortuneResponse, FortuneAIResponse, FortuneScore, ElementDistribution, Response
+        from core.utils.saju_concepts import Saju
+        from core.services.daewoon import DaewoonCalculator
+        from django.core.files.base import ContentFile
+        import base64
+
+        today = timezone.now().date()
+
+        # Create a mock image (1x1 pixel PNG)
+        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        image_bytes = base64.b64decode(mock_image_base64)
+
+        # Create FortuneResult with image
+        fortune_result = FortuneResult.objects.create(
+            user=self.user,
+            for_date=today,
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='목',
+            fortune_data={
+                'today_fortune_summary': '좋은 날입니다!',
+                'today_element_balance_description': '균형 설명',
+                'today_daily_guidance': '일상 가이드'
+            },
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '수'
+            }
+        )
+
+        # Save image to fortune result
+        image_filename = f"fortune_{self.user.id}_{today.strftime('%Y%m%d')}.png"
+        fortune_result.fortune_image.save(
+            image_filename,
+            ContentFile(image_bytes),
+            save=True
+        )
+
+        url = reverse('core:fortune-today')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertIn('fortune_image_url', response.data['data'])
+        self.assertIsNotNone(response.data['data']['fortune_image_url'])
+        # Verify it's a valid URL (either HTTP/HTTPS or local path)
+        image_url = response.data['data']['fortune_image_url']
+        self.assertTrue(
+            image_url.startswith('http://') or
+            image_url.startswith('https://') or
+            image_url.startswith('/media/')
+        )
+
+    @patch('core.views.fortune_service.generate_fortune')
+    def test_fortune_today_without_image(self, mock_generate):
+        """Test /fortune/today returns None for fortune_image_url when no image."""
+        from core.models import FortuneResult
+
+        today = timezone.now().date()
+
+        # Create FortuneResult without image
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=today,
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='목',
+            fortune_data={
+                'today_fortune_summary': '좋은 날입니다!',
+                'today_element_balance_description': '균형 설명',
+                'today_daily_guidance': '일상 가이드'
+            },
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '수'
+            }
+        )
+
+        url = reverse('core:fortune-today')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertIn('fortune_image_url', response.data['data'])
+        self.assertIsNone(response.data['data']['fortune_image_url'])
+
+    @patch('openai.OpenAI')
+    @patch('core.views.fortune_service')
+    def test_fortune_today_generates_new_with_image(self, mock_service, mock_openai):
+        """Test /fortune/today generates new fortune with image when not in DB."""
+        from core.services.fortune import FortuneResponse, FortuneAIResponse, FortuneScore, ElementDistribution, Response
+        from core.utils.saju_concepts import Saju
+        from core.services.daewoon import DaewoonCalculator
+        from django.core.files.base import ContentFile
+        import base64
+
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+
+        # Mock image generation
+        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+        # Create mock fortune response
+        mock_fortune_ai = FortuneAIResponse(
+            today_fortune_summary="좋은 날!",
+            today_element_balance_description="균형 설명",
+            today_daily_guidance="일상 가이드"
+        )
+
+        mock_fortune_score = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": {"two_letters": "갑자"},
+                "월주": {"two_letters": "을축"},
+                "일주": {"two_letters": "병인"},
+                "시주": {"two_letters": "정묘"},
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=4, percentage=26.7),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=2, percentage=13.3)
+            },
+            interpretation="Test",
+            needed_element="수"
+        )
+
+        birth_time = self.user._convert_time_units_to_time(self.user.birth_time_units)
+        mock_saju_date = Saju.from_date(today, birth_time)
+        mock_saju_user = self.user.saju()
+        mock_daewoon = DaewoonCalculator.calculate_daewoon(self.user)
+
+        mock_fortune_response = FortuneResponse(
+            date=today.isoformat(),
+            user_id=self.user.id,
+            fortune=mock_fortune_ai,
+            fortune_score=mock_fortune_score,
+            saju_date=mock_saju_date,
+            saju_user=mock_saju_user,
+            daewoon=mock_daewoon
+        )
+
+        mock_service.generate_fortune.return_value = Response(
+            status='success',
+            data=mock_fortune_response
+        )
+
+        url = reverse('core:fortune-today')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertIn('fortune_image_url', response.data['data'])
+
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_fortune_today_unauthenticated(self):
+        """Test /fortune/today without authentication."""
+        self.client.credentials()  # Remove credentials
+        url = reverse('core:fortune-today')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class TestAPIIntegration(APITestCase):
