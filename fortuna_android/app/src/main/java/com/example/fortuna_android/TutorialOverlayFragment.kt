@@ -307,18 +307,30 @@ class TutorialOverlayFragment : Fragment() {
         prefs.edit().putBoolean("has_seen_home_tutorial", true).apply()
         Log.d(TAG, "Home tutorial marked as seen")
 
-        // Navigate to AR screen first
+        // Get MainActivity and Intent before dismissing
         val mainActivity = requireActivity() as? MainActivity
-        mainActivity?.let {
-            val intent = Intent(requireContext(), MainActivity::class.java).apply {
-                putExtra("navigate_to_ar", true)
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            }
-            startActivity(intent)
+        val intent = Intent(requireContext(), MainActivity::class.java).apply {
+            putExtra("navigate_to_ar", true)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
-        // Dismiss overlay after navigation is triggered
-        dismissOverlay()
+        // Dismiss overlay first
+        try {
+            if (isAdded && !requireActivity().isFinishing) {
+                requireActivity().supportFragmentManager.popBackStackImmediate()
+                Log.d(TAG, "Tutorial overlay dismissed")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error dismissing overlay: ${e.message}")
+        }
+
+        // Navigate to AR screen after dismissal
+        try {
+            mainActivity?.startActivity(intent)
+            Log.d(TAG, "Navigating to AR screen")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to AR screen: ${e.message}")
+        }
     }
 
     override fun onDestroyView() {
