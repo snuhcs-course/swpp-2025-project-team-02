@@ -25,14 +25,20 @@ class VLMObjectDetector(
 ) : ObjectDetector(context) {
 
     companion object {
-        // Fixed center circle dimensions (as fraction of image size)
-        private const val CENTER_CIRCLE_SIZE_RATIO = 0.5f // 50% of image width/height
+        // Default center circle dimensions (as fraction of image size)
+        private const val DEFAULT_CENTER_CIRCLE_SIZE_RATIO = 0.3f // 30% of image width/height
+        const val MIN_SIZE_RATIO = 0.3f // 30% minimum
+        const val MAX_SIZE_RATIO = 1.0f // 100% maximum
     }
 
     // VLM prompt matching training data format
     private val VLM_ELEMENT_PROMPT = "Classify this image into one of these elements: water, land, fire, wood, metal.\n\nElement:"
 
     override suspend fun analyze(image: Image, imageRotation: Int): List<DetectedObjectResult> {
+        return analyze(image, imageRotation, DEFAULT_CENTER_CIRCLE_SIZE_RATIO)
+    }
+
+    suspend fun analyze(image: Image, imageRotation: Int, cropSizeRatio: Float): List<DetectedObjectResult> {
         // Convert camera image to bitmap - keep original for coordinate calculation
         val originalBitmap = convertYuv(image)
 
@@ -45,9 +51,9 @@ class VLMObjectDetector(
         val centerX = originalWidth / 2
         val centerY = originalHeight / 2
 
-        android.util.Log.d("VLMObjectDetector", "Original camera image: ${originalWidth}x${originalHeight}, center: ($centerX, $centerY), rotation: ${imageRotation}°")
+        android.util.Log.d("VLMObjectDetector", "Original camera image: ${originalWidth}x${originalHeight}, center: ($centerX, $centerY), rotation: ${imageRotation}°, cropRatio: $cropSizeRatio")
         // Create square bounding box in original image coordinates
-        val squareSize = (Math.min(originalWidth, originalHeight) * CENTER_CIRCLE_SIZE_RATIO).toInt()
+        val squareSize = (kotlin.math.min(originalWidth, originalHeight) * cropSizeRatio).toInt()
 
         // Create fixed center bounding box result using ORIGINAL image coordinates
         val fixedCenterResult = DetectedObjectResult(
@@ -64,7 +70,7 @@ class VLMObjectDetector(
         val rotatedHeight = rotatedBitmap.height
         val rotatedCenterX = rotatedWidth / 2
         val rotatedCenterY = rotatedHeight / 2
-        val rotatedSquareSize = (Math.min(rotatedWidth, rotatedHeight) * CENTER_CIRCLE_SIZE_RATIO).toInt()
+        val rotatedSquareSize = (kotlin.math.min(rotatedWidth, rotatedHeight) * cropSizeRatio).toInt()
 
         // Calculate crop bounds in rotated image
         val cropLeft = Math.max(0, rotatedCenterX - rotatedSquareSize / 2)

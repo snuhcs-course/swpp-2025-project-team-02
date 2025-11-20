@@ -58,6 +58,7 @@ class ARRenderer(private val fragment: ARFragment) :
     private val pendingVLMClassifications = Collections.synchronizedList(mutableListOf<PendingVLMClassification>())
     private var scanButtonWasPressed = false
     private var vlmClassificationComplete = false  // Track VLM completion to hide bounding box
+    private var cropSizeRatio = 0.3f  // Current crop size ratio for VLM
 
     private lateinit var vlmAnalyzer: VLMObjectDetector
     private var currentAnalyzer: ObjectDetector? = null  // Will be set to VLM analyzer when loaded
@@ -111,14 +112,17 @@ class ARRenderer(private val fragment: ARFragment) :
     }
 
     /**
-     * Start object detection - called when scan button is pressed
+     * Start object detection with custom crop ratio - called when scan button is released
      */
-    fun startObjectDetection() {
+    fun startObjectDetection(customCropRatio: Float = 0.3f) {
         // Prevent scanning if VLM isn't ready
         if (!isVLMLoaded) {
             Log.w(TAG, "VLM not ready yet, ignoring scan request")
             return
         }
+
+        // Clamp crop ratio to valid range
+        cropSizeRatio = customCropRatio.coerceIn(VLMObjectDetector.MIN_SIZE_RATIO, VLMObjectDetector.MAX_SIZE_RATIO)
 
         scanButtonWasPressed = true
         vlmClassificationComplete = false  // Reset flag for new detection
@@ -126,7 +130,7 @@ class ARRenderer(private val fragment: ARFragment) :
         synchronized(pendingVLMClassifications) {
             pendingVLMClassifications.clear()
         }
-        Log.d(TAG, "Object detection started, cleared pending classifications")
+        Log.d(TAG, "Object detection started with crop ratio: $cropSizeRatio, cleared pending classifications")
     }
 
     /**
@@ -157,6 +161,11 @@ class ARRenderer(private val fragment: ARFragment) :
      * Get the current collection count for game progress
      */
     fun getCollectedCount(): Int = collectedCount
+
+    /**
+     * Get the current crop size ratio for bounding box display
+     */
+    fun getCurrentCropSizeRatio(): Float = cropSizeRatio
 
     /**
      * Queue a tap to be processed on the next render frame
@@ -462,7 +471,13 @@ class ARRenderer(private val fragment: ARFragment) :
                     try {
                         val cameraId = session.cameraConfig.cameraId
                         val imageRotation = displayRotationHelper.getCameraSensorToDisplayRotation(cameraId)
-                        objectResults = currentAnalyzer?.analyze(cameraImage, imageRotation)
+
+                        // Use VLM analyzer with custom crop ratio if available
+                        objectResults = if (vlmAnalyzer != null) {
+                            vlmAnalyzer.analyze(cameraImage, imageRotation, cropSizeRatio)
+                        } else {
+                            currentAnalyzer?.analyze(cameraImage, imageRotation)
+                        }
                         cameraImage.close()
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during object analysis", e)

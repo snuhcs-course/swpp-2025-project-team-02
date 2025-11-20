@@ -283,14 +283,8 @@ class ARFragment(
             text = "수집 준비 중..."
         }
 
-        binding.scanButton.setOnClickListener {
-            if (::renderer.isInitialized) {
-                // Reset all element sound flags for new scan
-                resetElementSoundFlags()
-                renderer.startObjectDetection()
-                setScanningActive(true)
-            }
-        }
+        // Press-and-hold for dynamic bounding box sizing
+        setupScanButtonPressAndHold()
 
         binding.clearButton.setOnClickListener {
             if (::renderer.isInitialized) {
@@ -340,6 +334,13 @@ class ARFragment(
     fun updateBoundingBoxes(objects: List<DetectedObjectResult>) {
         view?.post {
             val binding = _binding ?: return@post
+
+            // Update the detected object size based on current renderer crop ratio
+            if (::renderer.isInitialized) {
+                val currentCropRatio = renderer.getCurrentCropSizeRatio()
+                binding.boundingBoxOverlay.setDetectedObjectSize(currentCropRatio)
+            }
+
             binding.boundingBoxOverlay.setBoundingBoxes(objects)
         }
     }
@@ -1338,5 +1339,91 @@ class ARFragment(
         }
 
         _binding = null
+    }
+
+    /**
+     * Setup press-and-hold functionality for scan button with dynamic bounding box sizing
+     */
+    private fun setupScanButtonPressAndHold() {
+        val binding = _binding ?: return
+        var holdStartTime = 0L
+        var maxHoldTime = 3000L // 3 seconds to reach 100%
+        var holdUpdateRunnable: Runnable? = null
+
+        binding.scanButton.setOnTouchListener { view, event ->
+            if (!view.isEnabled) {
+                return@setOnTouchListener false
+            }
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    // User starts pressing button
+                    Log.d(TAG, "Scan button press started")
+                    holdStartTime = System.currentTimeMillis()
+
+                    // Enter size selection mode with preview box
+                    binding.boundingBoxOverlay.enterSizeSelectionMode()
+
+                    // Start updating preview size based on hold time
+                    val updateInterval = 50L // Update every 50ms for smooth animation
+                    holdUpdateRunnable = object : Runnable {
+                        override fun run() {
+                            val holdTime = System.currentTimeMillis() - holdStartTime
+                            val progress = (holdTime.toFloat() / maxHoldTime).coerceIn(0f, 1f)
+
+                            // Convert progress to size ratio (30% to 100%)
+                            val sizeRatio = 0.3f + (progress * 0.7f) // 0.3 to 1.0
+
+                            // Update preview box size
+                            binding.boundingBoxOverlay.updatePreviewSize(sizeRatio)
+
+                            // Update button text to show current percentage
+                            (view as? android.widget.Button)?.text = "수집 범위: ${(sizeRatio * 100).toInt()}%"
+
+                            // Continue updating if not at maximum
+                            if (progress < 1f) {
+                                view.postDelayed(this, updateInterval)
+                            }
+                        }
+                    }
+                    view.post(holdUpdateRunnable)
+                    true
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    // User releases button or cancels touch
+                    Log.d(TAG, "Scan button press released")
+
+                    // Stop updating preview size
+                    holdUpdateRunnable?.let { runnable ->
+                        view.removeCallbacks(runnable)
+                    }
+
+                    // Calculate final size based on hold time
+                    val holdTime = System.currentTimeMillis() - holdStartTime
+                    val progress = (holdTime.toFloat() / maxHoldTime).coerceIn(0f, 1f)
+                    val finalSizeRatio = 0.3f + (progress * 0.7f) // 30% to 100%
+
+                    // Exit size selection mode
+                    binding.boundingBoxOverlay.exitSizeSelectionMode(finalSizeRatio)
+
+                    // Restore button text
+                    (view as? android.widget.Button)?.text = "수집 중..."
+
+                    // Start actual object detection with selected size
+                    if (::renderer.isInitialized) {
+                        // Reset all element sound flags for new scan
+                        resetElementSoundFlags()
+                        renderer.startObjectDetection(finalSizeRatio)
+                        setScanningActive(true)
+                    }
+
+                    Log.d(TAG, "Starting object detection with size ratio: ${(finalSizeRatio * 100).toInt()}%")
+                    true
+                }
+
+                else -> false
+            }
+        }
     }
 }

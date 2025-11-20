@@ -31,6 +31,11 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
 
     private var boundingBoxes = listOf<DetectedObjectResult>()
 
+    // Dynamic sizing state
+    private var isInSizeSelectionMode = false
+    private var previewSizeRatio = 0.3f // Current preview size (30%-100%)
+    private var detectedSizeRatio = 0.3f // Size used for detected objects
+
     private val boxPaint = Paint().apply {
         color = Color.GREEN
         style = Paint.Style.STROKE
@@ -61,6 +66,21 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = 6f
         isAntiAlias = true
+    }
+
+    // Preview mode paint (different color for size selection)
+    private val previewBoxPaint = Paint().apply {
+        color = Color.BLUE
+        style = Paint.Style.STROKE
+        strokeWidth = 6f
+        isAntiAlias = true
+    }
+
+    private val previewTextPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 36f
+        isAntiAlias = true
+        style = Paint.Style.FILL
     }
 
     // Spinner animation state
@@ -131,8 +151,9 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         val centerX = viewWidth / 2f
         val centerY = viewHeight / 2f
 
-        // Create a fixed square bounding box in the center (like traditional object detection)
-        val squareSize = Math.min(viewWidth, viewHeight) * 0.5f // 50% of screen size
+        // Use dynamic size ratio - either from detected objects or preview mode
+        val sizeRatio = if (isInSizeSelectionMode) previewSizeRatio else detectedSizeRatio
+        val squareSize = kotlin.math.min(viewWidth, viewHeight) * sizeRatio
 
         // Calculate bounding box coordinates
         val left = centerX - squareSize / 2f
@@ -140,8 +161,9 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         val right = centerX + squareSize / 2f
         val bottom = centerY + squareSize / 2f
 
-        // Draw rectangular bounding box (like MLKit)
-        canvas.drawRect(left, top, right, bottom, boxPaint)
+        // Use different colors for preview vs normal mode
+        val paintToUse = if (isInSizeSelectionMode) previewBoxPaint else boxPaint
+        canvas.drawRect(left, top, right, bottom, paintToUse)
 
         // Draw center point
         canvas.drawCircle(centerX, centerY, 15f, centerPointPaint)
@@ -151,9 +173,16 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
             drawSpinner(canvas, centerX, centerY, squareSize / 2f - 20f)
         }
 
-        val label = "${box.label} (${(box.confidence * 100).toInt()}%)"
-        val textWidth = textPaint.measureText(label)
-        val textHeight = textPaint.textSize
+        // Different labels for preview vs normal mode
+        val label = if (isInSizeSelectionMode) {
+            "Size: ${(previewSizeRatio * 100).toInt()}%"
+        } else {
+            "${box.label} (${(box.confidence * 100).toInt()}%)"
+        }
+
+        val paintForText = if (isInSizeSelectionMode) previewTextPaint else textPaint
+        val textWidth = paintForText.measureText(label)
+        val textHeight = paintForText.textSize
 
         // Position text above the bounding box
         val textX = centerX - textWidth / 2f
@@ -166,7 +195,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
             textY + 8f,
             textBackgroundPaint
         )
-        canvas.drawText(label, textX, textY, textPaint)
+        canvas.drawText(label, textX, textY, paintForText)
 
         Log.d(TAG, "Drew fixed center square: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
     }
@@ -187,6 +216,65 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
             false, spinnerPaint
         )
         canvas.restore()
+    }
+
+    /**
+     * Enter size selection mode - shows blue preview box that can grow
+     */
+    fun enterSizeSelectionMode() {
+        isInSizeSelectionMode = true
+        previewSizeRatio = 0.3f // Start at minimum size
+
+        // Create a fake "Preview" result to show the box
+        if (boundingBoxes.isEmpty()) {
+            val previewResult = DetectedObjectResult(
+                confidence = 1.0f,
+                label = "Preview",
+                centerCoordinate = Pair(0, 0), // Will be ignored since we draw at center
+                width = 0,
+                height = 0
+            )
+            boundingBoxes = listOf(previewResult)
+        }
+
+        invalidate()
+        Log.d(TAG, "Entered size selection mode")
+    }
+
+    /**
+     * Update the preview size during size selection
+     */
+    fun updatePreviewSize(sizeRatio: Float) {
+        if (isInSizeSelectionMode) {
+            previewSizeRatio = sizeRatio.coerceIn(0.3f, 1.0f)
+            invalidate()
+        }
+    }
+
+    /**
+     * Exit size selection mode and set the final detected size
+     */
+    fun exitSizeSelectionMode(finalSizeRatio: Float) {
+        isInSizeSelectionMode = false
+        detectedSizeRatio = finalSizeRatio.coerceIn(0.3f, 1.0f)
+
+        // Clear preview box - normal detection flow will add real boxes
+        if (boundingBoxes.any { it.label == "Preview" }) {
+            boundingBoxes = emptyList()
+        }
+
+        invalidate()
+        Log.d(TAG, "Exited size selection mode with final size: ${(finalSizeRatio * 100).toInt()}%")
+    }
+
+    /**
+     * Set the size ratio for detected objects during VLM analysis
+     */
+    fun setDetectedObjectSize(sizeRatio: Float) {
+        detectedSizeRatio = sizeRatio.coerceIn(0.3f, 1.0f)
+        if (!isInSizeSelectionMode) {
+            invalidate()
+        }
     }
 
     override fun onDetachedFromWindow() {
