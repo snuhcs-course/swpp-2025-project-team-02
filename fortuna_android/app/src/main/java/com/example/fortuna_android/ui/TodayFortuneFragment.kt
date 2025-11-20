@@ -107,7 +107,11 @@ class TodayFortuneFragment : Fragment() {
                     binding.todaySajuPaljaView.visibility = View.VISIBLE
                 }
 
-                // sajuPaljaView visibility is managed by userProfile observer
+                // Restore sajuPaljaView if userProfile data already exists
+                val currentUserProfile = fortuneViewModel.userProfile.value
+                if (currentUserProfile != null) {
+                    binding.sajuPaljaView.visibility = View.VISIBLE
+                }
             }
         }
 
