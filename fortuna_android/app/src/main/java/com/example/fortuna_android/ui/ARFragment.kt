@@ -26,7 +26,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import androidx.activity.addCallback
 import androidx.activity.OnBackPressedCallback
 import androidx.navigation.NavController
 import com.example.fortuna_android.MainActivity
@@ -39,7 +38,6 @@ import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
 import com.google.ar.core.exceptions.CameraNotAvailableException
-import com.google.ar.core.exceptions.SessionPausedException
 import com.google.ar.core.exceptions.UnavailableApkTooOldException
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
@@ -51,7 +49,7 @@ import kotlinx.coroutines.launch
 
 class ARFragment(
     private val sessionManagerFactory: ((Activity) -> ARSessionManager)? = null
-) : Fragment(), DefaultLifecycleObserver {
+) : Fragment(), DefaultLifecycleObserver, BoundingBoxOverlayView.AnalyzeStateListener {
 
     companion object {
         private const val TAG = "ARFragment"
@@ -87,6 +85,10 @@ class ARFragment(
 
     // Capture sound effect player for sphere elimination
     private var capturePlayer: MediaPlayer? = null
+    // Scan button sound effect player for size selection
+    private var scanButtonPlayer: MediaPlayer? = null
+    // Analyze sound effect player for VLM analysis
+    private var analyzePlayer: MediaPlayer? = null
 
     // Track which element sounds have been played to prevent multiple plays per scan
     private var waterSoundPlayed = false
@@ -285,6 +287,9 @@ class ARFragment(
 
         // Press-and-hold for dynamic bounding box sizing
         setupScanButtonPressAndHold()
+
+        // Set analyze state listener for audio feedback
+        binding.boundingBoxOverlay.setAnalyzeStateListener(this)
 
         binding.clearButton.setOnClickListener {
             if (::renderer.isInitialized) {
@@ -568,6 +573,16 @@ class ARFragment(
             com.example.fortuna_android.R.raw.capture,
             "Capture (Sphere Elimination)"
         )
+        setupElementSound(
+            { scanButtonPlayer = it },
+            com.example.fortuna_android.R.raw.scansound,
+            "Scan Button (Size Selection)"
+        )
+        setupElementSound(
+            { analyzePlayer = it },
+            com.example.fortuna_android.R.raw.analyze,
+            "Analyze (VLM Analysis)"
+        )
     }
 
     /**
@@ -622,6 +637,8 @@ class ARFragment(
         stopElementSound(registeelPlayer, "Registeel") { registeelPlayer = null }
         stopElementSound(sudowoodoPlayer, "Sudowoodo") { sudowoodoPlayer = null }
         stopElementSound(capturePlayer, "Capture") { capturePlayer = null }
+        stopElementSound(scanButtonPlayer, "Scan Button") { scanButtonPlayer = null }
+        stopElementSound(analyzePlayer, "Analyze") { analyzePlayer = null }
     }
 
     /**
@@ -642,6 +659,98 @@ class ARFragment(
             Log.e(TAG, "Error stopping $soundName sound effect", e)
             nullifier()
         }
+    }
+
+    /**
+     * Start playing scan button sound effect during press-and-hold
+     */
+    private fun startScanButtonMusic() {
+        try {
+            scanButtonPlayer?.let { player ->
+                if (!player.isPlaying) {
+                    // Lower background music volume during scan button press
+                    bgmPlayer?.setVolume(0f, 0f)
+
+                    player.isLooping = true // Loop the sound while holding
+                    player.start()
+                    Log.d(TAG, "Scan button music started, background music volume lowered")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting scan button music", e)
+        }
+    }
+
+    /**
+     * Stop scan button sound effect when released
+     */
+    private fun stopScanButtonMusic() {
+        try {
+            scanButtonPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.pause()
+                    player.seekTo(0) // Reset to beginning for next play
+
+                    // Don't restore background music volume here - VLM analysis starts next
+                    // Volume will be restored when VLM analysis completes in stopAnalyzeMusic()
+
+                    Log.d(TAG, "Scan button music stopped, keeping background music muted for VLM analysis")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping scan button music", e)
+        }
+    }
+
+    /**
+     * Start playing analyze sound effect during VLM analysis
+     */
+    fun startAnalyzeMusic() {
+        try {
+            analyzePlayer?.let { player ->
+                if (!player.isPlaying) {
+                    // Ensure background music volume stays at zero during analysis
+                    // (Should already be zero from scan button, but ensure it stays that way)
+                    bgmPlayer?.setVolume(0f, 0f)
+
+                    player.isLooping = true // Loop during analysis
+                    player.start()
+                    Log.d(TAG, "Analyze music started, background music kept muted")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting analyze music", e)
+        }
+    }
+
+    /**
+     * Stop analyze sound effect when VLM analysis completes
+     */
+    fun stopAnalyzeMusic() {
+        try {
+            analyzePlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.pause()
+                    player.seekTo(0) // Reset to beginning for next play
+
+                    // Restore background music volume after analysis
+                    bgmPlayer?.setVolume(0.3f, 0.3f)
+
+                    Log.d(TAG, "Analyze music stopped, background music volume restored")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping analyze music", e)
+        }
+    }
+
+    // AnalyzeStateListener interface implementation
+    override fun onAnalyzeStarted() {
+        startAnalyzeMusic()
+    }
+
+    override fun onAnalyzeStopped() {
+        stopAnalyzeMusic()
     }
 
     override fun onResume(owner: LifecycleOwner) {
@@ -1449,6 +1558,9 @@ class ARFragment(
                     Log.d(TAG, "Scan button press started")
                     holdStartTime = System.currentTimeMillis()
 
+                    // Start scan button music
+                    startScanButtonMusic()
+
                     // Enter size selection mode with preview box
                     binding.boundingBoxOverlay.enterSizeSelectionMode()
 
@@ -1481,6 +1593,9 @@ class ARFragment(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     // User releases button or cancels touch
                     Log.d(TAG, "Scan button press released")
+
+                    // Stop scan button music
+                    stopScanButtonMusic()
 
                     // Stop updating preview size
                     holdUpdateRunnable?.let { runnable ->
