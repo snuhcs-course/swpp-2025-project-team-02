@@ -4,12 +4,9 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
-import androidx.core.content.ContextCompat
-import com.example.fortuna_android.R
 import com.example.fortuna_android.classification.DetectedObjectResult
 
 /**
@@ -97,17 +94,6 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
-    // Custom image at top-right corner of bounding box
-    private val customImage: Drawable? by lazy {
-        try {
-            // Replace R.drawable.your_image_name with your actual drawable resource
-            // For example: R.drawable.ic_corner_icon, R.drawable.scan_indicator, etc.
-            ContextCompat.getDrawable(context, R.drawable.porygon)
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not load custom image drawable", e)
-            null
-        }
-    }
 
     // Spinner animation state
     private var spinnerRotation = 0f
@@ -232,37 +218,10 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         )
         canvas.drawText(label, textX, textY, paintForText)
 
-        // Draw custom image at top-left corner of bounding box
-        drawCustomImage(canvas, left, top)
 
         Log.d(TAG, "Drew fixed center square: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
     }
 
-    /**
-     * Draw custom image at the specified position (top-left corner of bounding box)
-     */
-    private fun drawCustomImage(canvas: Canvas, x: Float, y: Float) {
-        customImage?.let { drawable ->
-            // Define image size (you can adjust these values)
-            val imageSize = 60 // 60dp size, you can make this configurable
-            val imageSizePx = (imageSize * resources.displayMetrics.density).toInt()
-
-            // Calculate bounds for top-left positioning
-            // x, y represents the top-left corner of the bounding box
-            val left = x.toInt()
-            val top = y.toInt()
-            val right = (x + imageSizePx).toInt()
-            val bottom = (y + imageSizePx).toInt()
-
-            // Set bounds and draw the image
-            drawable.setBounds(left, top, right, bottom)
-            drawable.draw(canvas)
-
-            Log.d(TAG, "Drew custom image at top-left corner: ($left, $top, $right, $bottom)")
-        } ?: run {
-            Log.w(TAG, "Custom image drawable is null, skipping draw")
-        }
-    }
 
     /**
      * Draw animated spinner (circular loading indicator)
