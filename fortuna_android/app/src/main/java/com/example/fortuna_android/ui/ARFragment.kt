@@ -969,8 +969,8 @@ class ARFragment(
     fun onSphereCollected(tappedAnchor: ARRenderer.ARLabeledAnchor, wasNeededElement: Boolean, currentCount: Int) {
         Log.i(TAG, "Sphere tapped! Element: ${tappedAnchor.element.displayName}, wasNeeded: $wasNeededElement, count: $currentCount")
 
-        // Always show celebration animation for any tap
-        showCelebrationAnimation()
+        // Always show celebration animation for any tap with element-specific colors
+        showCelebrationAnimation(tappedAnchor.element)
 
         // Trigger haptic feedback for sphere interaction
         triggerHapticFeedback(wasNeededElement)
@@ -1056,9 +1056,9 @@ class ARFragment(
     }
 
     /**
-     * Show fireworks-style celebration animation at tap location
+     * Show fireworks-style celebration animation at tap location with element-specific colors
      */
-    private fun showCelebrationAnimation() {
+    private fun showCelebrationAnimation(element: ElementMapper.Element) {
         // Play capture sound effect
         playCaptureSound()
 
@@ -1068,19 +1068,49 @@ class ARFragment(
                 binding.celebrationOverlay.removeAllViews()
                 binding.celebrationOverlay.visibility = View.VISIBLE
 
-                // Create firework particles
+                // Create firework particles with element-specific colors and emojis
                 val particleCount = 12
-                val colors = listOf(
-                    "#FFD700", // Gold
-                    "#FF6B6B", // Red
-                    "#4ECDC4", // Cyan
-                    "#45B7D1", // Blue
-                    "#FFA07A", // Light Salmon
-                    "#98D8C8", // Mint
-                    "#F7DC6F", // Yellow
-                    "#BB8FCE"  // Purple
-                )
-                val emojis = listOf("✨", "⭐", "💫", "🌟", "✨", "⭐")
+
+                // Element-specific colors and emojis
+                val (colors, emojis) = when (element) {
+                    ElementMapper.Element.FIRE -> {
+                        Pair(
+                            listOf("#FF4444", "#FF6B6B", "#FF8888", "#FFAA44", "#FF0000", "#DC143C", "#FF6347", "#FF4500"), // Red/orange shades
+                            listOf("🔥", "🌋", "💥", "⚡", "🔥", "🌋", "💥", "⚡")
+                        )
+                    }
+                    ElementMapper.Element.WATER -> {
+                        Pair(
+                            listOf("#4ECDC4", "#45B7D1", "#00CED1", "#20B2AA", "#5F9EA0", "#4682B4", "#6495ED", "#87CEEB"), // Blue/cyan shades
+                            listOf("💧", "🌊", "💎", "❄️", "💧", "🌊", "💎", "❄️")
+                        )
+                    }
+                    ElementMapper.Element.EARTH -> {
+                        Pair(
+                            listOf("#F7DC6F", "#F4D03F", "#F1C40F", "#D4AF37", "#DAA520", "#FFD700", "#FFA500", "#FF8C00"), // Yellow/gold shades
+                            listOf("🌍", "🏔️", "💎", "✨", "🌍", "🏔️", "💎", "✨")
+                        )
+                    }
+                    ElementMapper.Element.WOOD -> {
+                        Pair(
+                            listOf("#98D8C8", "#90EE90", "#32CD32", "#228B22", "#006400", "#7CFC00", "#ADFF2F", "#9AFF9A"), // Green shades
+                            listOf("🌳", "🌿", "🍃", "🌱", "🌳", "🌿", "🍃", "🌱")
+                        )
+                    }
+                    ElementMapper.Element.METAL -> {
+                        Pair(
+                            listOf("#BB8FCE", "#C0C0C0", "#D3D3D3", "#DCDCDC", "#E6E6FA", "#F0F8FF", "#F5F5F5", "#FFFFFF"), // Silver/purple shades
+                            listOf("⚙️", "🔩", "⚡", "💎", "⚙️", "🔩", "⚡", "💎")
+                        )
+                    }
+                    else -> {
+                        // Default colors for OTHERS or unknown elements
+                        Pair(
+                            listOf("#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE"),
+                            listOf("✨", "⭐", "💫", "🌟", "✨", "⭐", "💫", "🌟")
+                        )
+                    }
+                }
 
                 for (i in 0 until particleCount) {
                     val particle = TextView(requireContext()).apply {
