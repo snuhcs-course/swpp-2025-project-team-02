@@ -1045,13 +1045,10 @@ class ARFragment(
     private fun playCaptureSound() {
         try {
             capturePlayer?.let { mediaPlayer ->
-                if (!mediaPlayer.isPlaying) {
-                    mediaPlayer.seekTo(0)
-                    mediaPlayer.start()
-                    Log.i(TAG, "🔊 Sphere captured! Playing capture sound effect")
-                } else {
-                    Log.d(TAG, "Capture sound effect already playing, skipping")
-                }
+                // Always restart the sound for immediate feedback on rapid eliminations
+                mediaPlayer.seekTo(0)
+                mediaPlayer.start()
+                Log.i(TAG, "🔊 Sphere captured! Playing capture sound effect")
             } ?: Log.w(TAG, "Capture player is null")
         } catch (e: Exception) {
             Log.e(TAG, "Error playing capture sound effect", e)
