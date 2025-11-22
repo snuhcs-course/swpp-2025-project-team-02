@@ -414,9 +414,10 @@ class TestFortuneService(TestCase):
 
         # Verify prompt contains key elements
         prompt = call_args[1]['input']
-        self.assertIn("토", prompt)  # User element
-        self.assertIn("수", prompt)  # Needed element
-        self.assertIn("목", prompt)  # Tomorrow element
+        # New prompt structure uses today_element_balance_description
+        self.assertIn("수", prompt)  # Needed element (should be in needed_element_desc)
+        self.assertIn("오행 균형 설명", prompt)  # today_element_balance_description content
+        self.assertIn("물 (Water)", prompt)  # needed_element_desc in Korean and English
 
     def test_generate_fortune_image_with_ai_no_client(self):
         """Test fortune image generation when OpenAI client is not initialized."""

@@ -4,11 +4,9 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 """
 
 import os
-import json
 import base64
 from datetime import datetime, timedelta
 from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
-from enum import Enum
 from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
@@ -19,7 +17,6 @@ from ..utils.saju_concepts import (
     Saju,
     GanJi,
     FiveElements,
-    TenStems,
     TwelveBranches
 )
 from .image import ImageService
@@ -104,6 +101,18 @@ class FortuneResponseDeprecated(BaseModel):
 class FortuneService:
     """Service for generating Saju-based fortune tellings."""
 
+    # Element to character file mapping
+    ELEMENT_TO_CHARACTER_FILE = {
+        FiveElements.WOOD: "wood.png",
+        FiveElements.FIRE: "fire.png",
+        FiveElements.EARTH: "earth.png",
+        FiveElements.METAL: "metal.png",
+        FiveElements.WATER: "water.png"
+    }
+
+    # Cache for uploaded character file IDs (class variable)
+    _character_file_cache: Dict[str, str] = {}
+
     def __init__(self, image_service: ImageService | None = None):
         """Initialize FortuneService with OpenAI client."""
         api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
@@ -115,6 +124,72 @@ class FortuneService:
         self.image_service = image_service if image_service else ImageService()
 
     ### private methods ###
+
+    def _get_character_file_path(self, element: FiveElements) -> str:
+        """
+        Get the absolute file path for a character image based on element.
+
+        Args:
+            element: FiveElements enum value
+
+        Returns:
+            Absolute path to the character image file
+        """
+        filename = self.ELEMENT_TO_CHARACTER_FILE[element]
+        # core/static/characters/ directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        character_path = os.path.join(base_dir, 'static', 'characters', filename)
+
+        return character_path
+
+    def _upload_character_file(self, element: FiveElements) -> str:
+        """
+        Upload character image to OpenAI Files API with caching.
+
+        Args:
+            element: FiveElements enum value
+
+        Returns:
+            OpenAI file ID for the uploaded character image
+
+        Raises:
+            ValueError: If client not initialized or file not found
+        """
+        if not self.client:
+            raise ValueError("OpenAI client not initialized")
+
+        # Check cache first
+        element_key = element.chinese
+        if element_key in self._character_file_cache:
+            logger.info(f"Using cached character file ID for {element_key}")
+            return self._character_file_cache[element_key]
+
+        # Get file path
+        character_path = self._get_character_file_path(element)
+
+        # Check if file exists
+        if not os.path.exists(character_path):
+            logger.warning(f"Character file not found: {character_path}")
+            raise ValueError(f"Character image file not found for element {element.chinese}")
+
+        # Upload to OpenAI Files API
+        try:
+            with open(character_path, "rb") as file_content:
+                result = self.client.files.create(
+                    file=file_content,
+                    purpose="vision"
+                )
+                file_id = result.id
+
+                # Cache the file ID
+                self._character_file_cache[element_key] = file_id
+                logger.info(f"Uploaded character file for {element.chinese}: {file_id}")
+
+                return file_id
+
+        except Exception as e:
+            logger.error(f"Failed to upload character file for {element.chinese}: {e}")
+            raise
 
     def calculate_day_ganji(self, date_value: datetime) -> GanJi:
         """
@@ -494,7 +569,7 @@ class FortuneService:
                 today_daily_guidance=f"오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 부족한 {needed_element}의 기운을 보충하기 위해 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
-    def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
+    def _parse_fortune_response(self, content: str, _tomorrow_date: datetime, _compatibility: Dict[str, Any]) -> FortuneAIResponse:
         """Parse AI response into FortuneAIResponse structure."""
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
@@ -513,7 +588,7 @@ class FortuneService:
         fortune_score: FortuneScore
     ) -> Optional[bytes]:
         """
-        Generate fortune image using OpenAI API.
+        Generate fortune image using OpenAI API with character image.
 
         Args:
             fortune_response: Generated fortune text
@@ -531,56 +606,90 @@ class FortuneService:
 
             # Extract element information
             user_day_element = user_saju.daily.stem.element
-            tomorrow_day_element = tomorrow_day_ganji.stem.element
+            needed_element = fortune_score.needed_element
+
+            # Element name mapping for prompt (Korean -> description)
+            element_descriptions = {
+                "목": "나무 (Wood)",
+                "화": "불 (Fire)",
+                "토": "흙 (Earth)",
+                "금": "금속 (Metal)",
+                "수": "물 (Water)"
+            }
+            needed_element_desc = element_descriptions.get(needed_element, needed_element)
+
+            # Upload character image based on user's day element
+            try:
+                character_file_id = self._upload_character_file(user_day_element)
+            except ValueError as ve:
+                logger.warning(f"Failed to upload character file: {ve}. Proceeding without character image.")
+                character_file_id = None
 
             # Prepare image generation prompt
             image_prompt = f"""
-            Generate a super cute and comedic fortune-telling illustration with the following specifications:
+            역할: 당신은 입력받은 텍스트(오늘의 운세)의 핵심 내용과 분위기를 파악하여, 대사 없이도 상황이 이해되는 재치 있는 네컷 만화로 각색하는 전문 웹툰 작가입니다.
 
-            [Character & Composition]
-            - Main Character (ME): A chibi/kawaii personified character representing the '{user_day_element.chinese}' (user's birth element) at the CENTER of the image
-              * If 목(Wood): A cute tree/plant character with big eyes and tiny limbs
-              * If 화(Fire): An adorable flame character with sparkly eyes
-              * If 토(Earth): A round mountain/rock character with rosy cheeks
-              * If 금(Metal): A shiny metallic character (coin, sword, or robot-like) with a gentle smile
-              * If 수(Water): A water drop or wave character with bubbly personality
+            핵심 지시 사항: 제공된 <오늘의 운세 요약> 텍스트 전체를 읽고, 그 안에 담긴 **오늘 하루의 흐름(시작, 과정, 문제 발생, 해결)**을 당신의 창의력을 발휘하여 자유롭게 네컷 만화로 구성하세요.
 
-            - The main character should look friendly, slightly confused or curious (comedic expression)
-            - Use the color scheme of '{user_day_element.chinese}': {user_day_element.color}
+            1. 이미지 구성 지시 (가장 중요):
+            - 포맷: 정확히 4개의 개별 패널(컷)로 구성된 만화 스트립을 생성하세요.
+            - 레이아웃: 2x2 그리드 형식으로, 왼쪽 상단이 1번 컷, 오른쪽 상단이 2번 컷, 왼쪽 하단이 3번 컷, 오른쪽 하단이 4번 컷이 되도록 배치하세요. 각 패널 사이에는 명확한 흰색 테두리가 있어야 합니다.
+            - 텍스트 위치: 각 패널의 바로 위 중앙에 **영어 캡션(제목)**을 배치하세요. 이 캡션은 간결하고 해당 컷의 내용을 명확히 요약해야 합니다. 캡션 외의 다른 대사나 말풍선은 절대 금지합니다.
+            - 스타일: 매우 유머러스하고 과장된 코믹 카툰 스타일로, 굵은 외곽선을 사용하세요.
 
-            [Surrounding Elements - Based on Fortune]
-            - Fortune summary: {fortune_response.today_fortune_summary}
-            - Required element to collect: '{fortune_score.needed_element}' ({self._get_element_color(fortune_score.needed_element)})
-            - Today's energy element: '{tomorrow_day_element.chinese}' ({tomorrow_day_element.color})
+            2. 주인공 및 기본 설정:
+            - 주인공: 반드시 [제공된 이미지의 캐릭터(각 유저가 직접 커스텀한 이미지)]를 주인공으로 그리세요.
+            스타일: 대사가 전혀 없는, 재미있고 과장된 코믹 카툰 스타일.
+            시간의 흐름: 네 컷은 반드시 [오전] -> [점심] -> [오후] -> [밤] 순서로 시간의 경과가 느껴져야 합니다. 배경의 해/달 위치나 분위기로 표현하세요.
 
-            Around the main character, draw small chibi versions of other five elements (목화토금수) interacting in a comedic way:
-            - Emphasize the '{fortune_score.needed_element}' element as a glowing, sparkling character that the main character is reaching for or looking at with heart eyes
-            - Show the element relationships humorously (e.g., if water empowers wood, show a water character watering a tree character with a watering can)
-            - Other elements should be smaller and in the background, creating a supportive or playful atmosphere
+            3. 만화의 내용
+            - 만화의 전체 내용은 **<오늘의 운세 요약>**의 운세 흐름을 반영해야 합니다.
+            - 특히 3컷(오후) 쯤에는 운세에서 말하는 **'문제 상황'이나 '부족한 점'**을 표현해야 합니다.
+            - 마지막 4컷(밤)에는 {needed_element_desc} (부족한 오행 원소)를 채움으로써 문제가 해결되고 평온/만족을 되찾는 결말로 마무리하세요.
+            - 오늘의 운세 요약
+            {fortune_response.today_element_balance_description}
 
-            [Art Style Requirements]
-            - EXTREMELY CUTE and COMEDIC chibi/kawaii art style
-            - Round, oversized heads with tiny bodies
-            - Big sparkling eyes, simple facial expressions (^_^, >_<, O_O, etc.)
-            - Soft pastel colors with vibrant accents
-            - Add small decorative elements: stars, sparkles, sweat drops, heart bubbles
-            - Korean traditional patterns as subtle background decoration (optional, not dominant)
-            - NO TEXT OR WORDS in the image
-            - Style should appeal to Gen-Z: Instagram-worthy, shareable, meme-like quality
-            - Think: Kakao Friends, LINE Friends, Molang, Pusheen style
+            - 각 컷 상단에는 짧은 영어의 택스트 캡션이 있어야합니다. 캡션의 텍스트 예시는다음과 같습니다:
+            1컷: Energetic start based on Earth.
+            2컷: Busy Flow, Water & Fire Energy
+            3컷: Metal Lacking, Deadline Trouble
+            4컷: Metal Added, Perfect Balance
 
-            [Mood]
-            - Lighthearted, optimistic, and FUN
-            - Make it look like a wholesome comic panel or sticker illustration
-            - The main character should be relatable and endearing
+
+            오행 원소 설명
+            - 화: 불
+            - 수: 물
+            - 목: 나무
+            - 금: 금속
+            - 토: 흙
+
+
+            바로 이미지를 생성하세요. (이미지 외, 다른 응답 금지)
             """
 
             # Call OpenAI responses API with image generation tool
-            response = self.client.responses.create(
-                model="gpt-5",
-                input=image_prompt.strip(),
-                tools=[{"type": "image_generation"}],
-            )
+            if character_file_id:
+                # With character image reference
+                response = self.client.responses.create(
+                    model="gpt-5",
+                    input=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_text", "text": image_prompt.strip()},
+                                {"type": "input_image", "file_id": character_file_id}
+                            ]
+                        }
+                    ],
+                    tools=[{"type": "image_generation",  "quality": "high", "moderation": "low"}],
+                )
+            else:
+                # Fallback without character image
+                response = self.client.responses.create(
+                    model="gpt-5",
+                    input=image_prompt.strip(),
+                    tools=[{"type": "image_generation"}],
+                )
 
             # Extract image data from response
             image_data = [
