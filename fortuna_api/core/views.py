@@ -780,7 +780,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=['get'])
     def today(self, request):
-        """Get today's fortune with balance score (DB cached)."""
+        """Get today's fortune with balance score (DB cached, with race condition protection)."""
         user = request.user
         logger.info(f"Fortune today request - user: {user}, is_authenticated: {user.is_authenticated}, type: {type(user)}")
 
@@ -795,7 +795,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
 
         today_date = timezone.now().date()
 
-        # Helper functions to convert GanJi/Saju objects (used in both branches)
+        # Helper functions to convert GanJi/Saju objects
         def ganji_to_dict(ganji):
             if ganji is None:
                 return None
@@ -826,46 +826,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                 'hourly': ganji_to_dict(saju.hourly)
             }
 
-        # Try to get from database first (DB cache)
-        try:
-            fortune_result = FortuneResult.objects.get(
-                user=user,
-                for_date=today_date
-            )
-
-            # If fortune exists in DB, return it directly (fast! 두 번째 요청부터 빠름)
-            if fortune_result.fortune_data and fortune_result.fortune_score:
-                from core.services.daewoon import DaewoonCalculator
-                from core.utils.saju_concepts import Saju
-
-                birth_time = user._convert_time_units_to_time(user.birth_time_units)
-                saju_date = Saju.from_date(today_date, birth_time)
-                saju_user = user.saju()
-                daewoon = DaewoonCalculator.calculate_daewoon(user)
-
-                # Get image URL if available
-                fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
-
-                response_data = {
-                    'status': 'success',
-                    'data': {
-                        'date': today_date.isoformat(),
-                        'user_id': user.id,
-                        'fortune': fortune_result.fortune_data,
-                        'fortune_score': fortune_result.fortune_score,
-                        'fortune_image_url': fortune_image_url,
-                        'saju_date': saju_to_dict(saju_date),
-                        'saju_user': saju_to_dict(saju_user),
-                        'daewoon': ganji_to_dict(daewoon)
-                    }
-                }
-
-                return Response(response_data, status=status.HTTP_200_OK)
-
-        except FortuneResult.DoesNotExist:
-            pass  # Generate new fortune below
-
-        # If not in DB, generate new fortune
+        # Generate fortune (handles DB caching and race conditions internally)
         yesterday = today_date - timedelta(days=1)
         result = fortune_service.generate_fortune(
             user=user,
