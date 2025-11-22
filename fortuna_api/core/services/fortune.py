@@ -622,26 +622,95 @@ class FortuneService:
         user: User,
         date: datetime
     ) -> Response[FortuneResponse]:
+        """
+        Generate fortune with race condition protection using database-level locking.
+
+        Status flow: pending → processing → completed
+        """
+        from django.db import transaction
+
         try:
             # Get tomorrow's date
             tomorrow_date = date + timedelta(days=1)
 
-            # Get user's Saju information (returns Saju object)
+            # Check if fortune already exists
+            with transaction.atomic():
+                try:
+                    # Use select_for_update() to lock the row
+                    fortune_result = FortuneResult.objects.select_for_update().get(
+                        user_id=user.id,
+                        for_date=tomorrow_date.date()
+                    )
+
+                    # If completed, return existing fortune
+                    if fortune_result.status == 'completed':
+                        # Build response from cached data
+                        birth_time = user._convert_time_units_to_time(user.birth_time_units)
+                        response_data = FortuneResponse(
+                            date=tomorrow_date.strftime('%Y-%m-%d'),
+                            user_id=user.id,
+                            fortune=FortuneAIResponse(**fortune_result.fortune_data),
+                            fortune_score=FortuneScore(**fortune_result.fortune_score),
+                            saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
+                            saju_user=user.saju(),
+                            daewoon=DaewoonCalculator.calculate_daewoon(user)
+                        )
+                        return Response(status="success", data=response_data)
+
+                    # If pending or processing, return placeholder
+                    if fortune_result.status in ['pending', 'processing']:
+                        logger.info(f"Fortune generation in progress for user {user.id}, date {tomorrow_date.date()}")
+                        birth_time = user._convert_time_units_to_time(user.birth_time_units)
+                        response_data = FortuneResponse(
+                            date=tomorrow_date.strftime('%Y-%m-%d'),
+                            user_id=user.id,
+                            fortune=FortuneAIResponse(**fortune_result.fortune_data),
+                            fortune_score=FortuneScore(**fortune_result.fortune_score),
+                            saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
+                            saju_user=user.saju(),
+                            daewoon=DaewoonCalculator.calculate_daewoon(user)
+                        )
+                        return Response(status="success", data=response_data)
+
+                except FortuneResult.DoesNotExist:
+                    # Create placeholder record with 'processing' status (atomic)
+                    user_saju = self.get_user_saju_info(user.id)
+                    tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
+                    fortune_score = self.calculate_fortune_balance(user, tomorrow_date)
+
+                    # Get index of tomorrow's ganji in 60-ganji cycle
+                    cached_ganji_list = GanJi._get_cached()
+                    tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
+
+                    # Create placeholder fortune message
+                    placeholder_fortune = FortuneAIResponse(
+                        today_fortune_summary="운세를 생성하고 있습니다... 잠시만 기다려주세요!",
+                        today_element_balance_description="AI가 당신의 사주와 오늘의 기운을 분석하고 있습니다.",
+                        today_daily_guidance="곧 맞춤형 조언을 제공해드리겠습니다."
+                    )
+
+                    # Create with 'processing' status immediately to prevent duplicate work
+                    fortune_result = FortuneResult.objects.create(
+                        user_id=user.id,
+                        for_date=tomorrow_date.date(),
+                        status='processing',
+                        gapja_code=tomorrow_ganji_index,
+                        gapja_name=tomorrow_day_ganji.two_letters,
+                        gapja_element=tomorrow_day_ganji.stem.element.chinese,
+                        fortune_score=fortune_score.model_dump(),
+                        fortune_data=placeholder_fortune.model_dump()
+                    )
+
+            # Generate fortune with AI (outside transaction to avoid long locks)
             user_saju = self.get_user_saju_info(user.id)
-
-            # Calculate tomorrow's day pillar (일주)
             tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
-
-            # Analyze compatibility between user's day pillar and tomorrow's day pillar
-            compatibility = self.analyze_saju_compatibility(
-                user_saju.daily,  # User's day pillar
-                tomorrow_day_ganji  # Tomorrow's day pillar
-            )
-
-            # Calculate fortune score (use tomorrow_date for consistency)
             fortune_score = self.calculate_fortune_balance(user, tomorrow_date)
 
-            # Generate fortune with AI
+            compatibility = self.analyze_saju_compatibility(
+                user_saju.daily,
+                tomorrow_day_ganji
+            )
+
             fortune = self.generate_fortune_with_ai(
                 user_saju,
                 tomorrow_date,
@@ -649,10 +718,6 @@ class FortuneService:
                 compatibility,
                 fortune_score
             )
-
-            # Get index of tomorrow's ganji in 60-ganji cycle for storage
-            cached_ganji_list = GanJi._get_cached()
-            tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
             # Generate fortune image with AI
             image_bytes = self.generate_fortune_image_with_ai(
@@ -663,18 +728,10 @@ class FortuneService:
                 fortune_score
             )
 
-            # Save to database
-            fortune_result, created = FortuneResult.objects.update_or_create(
-                user_id=user.id,
-                for_date=tomorrow_date.date(),
-                defaults={
-                    'gapja_code': tomorrow_ganji_index,
-                    'gapja_name': tomorrow_day_ganji.two_letters,
-                    'gapja_element': tomorrow_day_ganji.stem.element.chinese,
-                    'fortune_data': fortune.model_dump() if fortune else {},
-                    'fortune_score': fortune_score.model_dump()
-                }
-            )
+            # Update with completed fortune
+            fortune_result.fortune_data = fortune.model_dump()
+            fortune_result.status = 'completed'
+            fortune_result.save(update_fields=['fortune_data', 'status'])
 
             # Save image if generated successfully
             if image_bytes:
@@ -689,12 +746,13 @@ class FortuneService:
                 logger.warning(f"No image generated for user {user.id} on {tomorrow_date}")
 
             # Prepare final response
+            birth_time = user._convert_time_units_to_time(user.birth_time_units)
             response_data = FortuneResponse(
                 date=tomorrow_date.strftime('%Y-%m-%d'),
                 user_id=user.id,
                 fortune=fortune,
                 fortune_score=fortune_score,
-                saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, user._convert_time_units_to_time(user.birth_time_units)),
+                saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
                 saju_user=user.saju(),
                 daewoon=DaewoonCalculator.calculate_daewoon(user)
             )
