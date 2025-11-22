@@ -12,6 +12,8 @@ import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.VLMObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
+import com.example.fortuna_android.classification.ObjectDetectorFactory
+import com.example.fortuna_android.classification.ConfigurableDetectorFactory
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
@@ -62,6 +64,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     private lateinit var vlmAnalyzer: VLMObjectDetector
     private var currentAnalyzer: ObjectDetector? = null  // Will be set to VLM analyzer when loaded
+
+    // Factory Method Pattern: Detector factory instance
+    private lateinit var detectorFactory: ObjectDetectorFactory
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
     private val elementMapper = ElementMapper(fragment.requireContext())
@@ -300,9 +305,9 @@ class ARRenderer(private val fragment: ARFragment) :
                 vlmManager.initialize()
                 isVLMLoaded = true
 
-                // Create VLM-based detector with callback for async classification
-                vlmAnalyzer = VLMObjectDetector(
-                    context = fragment.requireActivity(),
+                // Factory Method Pattern: Create detector factory
+                // Similar to: val shapeFactory: ShapeFactory = TypedShapeFactory()
+                detectorFactory = ConfigurableDetectorFactory(
                     vlmManager = vlmManager,
                     onVLMClassified = { result ->
                         try {
@@ -368,6 +373,14 @@ class ARRenderer(private val fragment: ARFragment) :
                         }
                     }
                 )
+
+                // Factory Method Pattern: Use factory to create detector
+                // Similar to: val shape1 = shapeFactory.createShape("Circle")
+                vlmAnalyzer = (detectorFactory as ConfigurableDetectorFactory).createDetectorByType(
+                    context = fragment.requireActivity(),
+                    type = "VLM"
+                ) as VLMObjectDetector
+
                 currentAnalyzer = vlmAnalyzer
 
                 // Enable scan button now that VLM is ready
