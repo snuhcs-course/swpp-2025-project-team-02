@@ -12,6 +12,8 @@ import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
@@ -183,6 +185,30 @@ class FortuneCardView @JvmOverloads constructor(
 
         // 새로운 섹션: 일일 가이던스
         binding.tvDailyGuidance.text = fortuneData.fortune.todayDailyGuidance
+
+        // Load fortune image if available
+        loadFortuneImage(fortuneData.fortuneImageUrl)
+    }
+
+    /**
+     * Load fortune image from URL using Glide
+     * Backend provides presigned URL with temporary access
+     */
+    private fun loadFortuneImage(imageUrl: String?) {
+        if (imageUrl.isNullOrBlank()) {
+            // Hide image view if no URL provided
+            binding.ivFortuneImage.visibility = View.GONE
+            return
+        }
+
+        // Show image view
+        binding.ivFortuneImage.visibility = View.VISIBLE
+
+        // Load image with Glide (presigned URL from backend)
+        Glide.with(context)
+            .load(imageUrl)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .into(binding.ivFortuneImage)
     }
 
     /**

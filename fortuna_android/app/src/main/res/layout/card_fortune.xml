@@ -336,6 +336,18 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="12dp" />
 
+                    <!-- 운세 이미지 (2:3 비율 - 1024x1536) -->
+                    <ImageView
+                        android:id="@+id/ivFortuneImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:adjustViewBounds="true"
+                        android:scaleType="fitCenter"
+                        android:maxHeight="500dp"
+                        android:background="#2A2A2A"
+                        android:contentDescription="오늘의 운세 이미지" />
+
                     <TextView
                         android:id="@+id/tvElementBalanceDescription"
                         android:layout_width="match_parent"
