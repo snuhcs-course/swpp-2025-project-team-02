@@ -2,7 +2,7 @@
 Unit tests for database persistence (ChakraImage and FortuneResult models).
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -220,8 +220,8 @@ class TestFortuneServicePersistence(TestCase):
         self.assertIsNotNone(fortune.fortune_data)
 
     @patch.object(FortuneService, 'generate_fortune_with_ai')
-    def test_fortune_regeneration_updates_existing(self, mock_ai):
-        """Test that regenerating fortune updates existing record."""
+    def test_fortune_regeneration_returns_cached(self, mock_ai):
+        """Test that regenerating fortune returns cached record (race condition protection)."""
         from core.services.fortune import FortuneAIResponse
         mock_ai.return_value = FortuneAIResponse(
             today_fortune_summary="오늘은 좋은 날! 첫 번째 운세로 하루를 시작해보세요.",
@@ -230,27 +230,121 @@ class TestFortuneServicePersistence(TestCase):
         )
 
         # Generate first fortune
-        result1 = self.service.generate_fortune(
+        self.service.generate_fortune(
             user=self.user,
             date=datetime(2024, 1, 1)
         )
         tomorrow = datetime(2024, 1, 2).date()
         fortune1 = FortuneResult.objects.get(user=self.user, for_date=tomorrow)
         fortune_id1 = fortune1.id
+        first_summary = fortune1.fortune_data['today_fortune_summary']
 
-        # Generate again for same date
+        # Generate again for same date - should return cached version (race condition protection)
         mock_ai.return_value = FortuneAIResponse(
             today_fortune_summary="오늘은 새로운 날! 업데이트된 운세로 다시 시작해보세요.",
             today_element_balance_description="당신의 오행과 오늘의 기운이 조화를 이룹니다. 업데이트된 운세입니다.",
             today_daily_guidance="남쪽으로의 활동이 좋으며, 긍정적인 마음을 유지하세요."
         )
-        result2 = self.service.generate_fortune(
+        self.service.generate_fortune(
             user=self.user,
             date=datetime(2024, 1, 1)
         )
         fortune2 = FortuneResult.objects.get(user=self.user, for_date=tomorrow)
         fortune_id2 = fortune2.id
 
-        # Should update same record
+        # Should return same record WITHOUT regenerating (cached)
         self.assertEqual(fortune_id1, fortune_id2)
         self.assertEqual(FortuneResult.objects.filter(user=self.user).count(), 1)
+        # Fortune data should NOT be updated (cached version returned)
+        self.assertEqual(fortune2.fortune_data['today_fortune_summary'], first_summary)
+        self.assertNotIn('업데이트된 운세', fortune2.fortune_data['today_fortune_summary'])
+
+    @patch.object(FortuneService, 'generate_fortune_with_ai')
+    def test_race_condition_protection_with_processing_status(self, mock_ai):
+        """Test that concurrent requests return placeholder when fortune is being generated."""
+        from core.models import FortuneResult
+
+        tomorrow = datetime(2024, 1, 2).date()
+
+        # Simulate first request creating record with 'processing' status
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=tomorrow,
+            status='processing',
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='목',
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '수'
+            },
+            fortune_data={
+                'today_fortune_summary': '운세를 생성하고 있습니다... 잠시만 기다려주세요!',
+                'today_element_balance_description': 'AI가 당신의 사주와 오늘의 기운을 분석하고 있습니다.',
+                'today_daily_guidance': '곧 맞춤형 조언을 제공해드리겠습니다.'
+            }
+        )
+
+        # Second request should return placeholder without calling AI
+        result = self.service.generate_fortune(
+            user=self.user,
+            date=datetime(2024, 1, 1)
+        )
+
+        # Verify placeholder is returned
+        self.assertEqual(result.status, 'success')
+        self.assertIn('운세를 생성하고 있습니다', result.data.fortune.today_fortune_summary)
+
+        # Verify AI was NOT called (because status is 'processing')
+        mock_ai.assert_not_called()
+
+        # Verify only one record exists
+        self.assertEqual(FortuneResult.objects.filter(user=self.user, for_date=tomorrow).count(), 1)
+
+    @patch.object(FortuneService, 'generate_fortune_with_ai')
+    def test_race_condition_protection_with_completed_status(self, mock_ai):
+        """Test that completed fortune is returned from cache without regenerating."""
+        from core.models import FortuneResult
+
+        tomorrow = datetime(2024, 1, 2).date()
+
+        # Create completed fortune result
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=tomorrow,
+            status='completed',
+            gapja_code=1,
+            gapja_name='갑자',
+            gapja_element='목',
+            fortune_score={
+                'entropy_score': 85.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '화'
+            },
+            fortune_data={
+                'today_fortune_summary': '완성된 운세입니다!',
+                'today_element_balance_description': '완성된 오행 분석입니다.',
+                'today_daily_guidance': '완성된 일상 가이드입니다.'
+            }
+        )
+
+        # Request fortune - should return cached version
+        result = self.service.generate_fortune(
+            user=self.user,
+            date=datetime(2024, 1, 1)
+        )
+
+        # Verify cached data is returned
+        self.assertEqual(result.status, 'success')
+        self.assertEqual(result.data.fortune.today_fortune_summary, '완성된 운세입니다!')
+
+        # Verify AI was NOT called (cached)
+        mock_ai.assert_not_called()
+
+        # Verify only one record exists
+        self.assertEqual(FortuneResult.objects.filter(user=self.user, for_date=tomorrow).count(), 1)

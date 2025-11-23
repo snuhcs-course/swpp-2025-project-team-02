@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
 from django.test import TestCase
 import json
+import base64
 from ..services.fortune import (
     FortuneService,
     FortuneAIResponse
@@ -314,6 +315,322 @@ class TestFortuneService(TestCase):
         self.assertIn(compatibility['user_element'], result.today_element_balance_description)
         self.assertIn(compatibility['tomorrow_element'], result.today_element_balance_description)
 
+    def test_get_element_color(self):
+        """Test _get_element_color helper method."""
+        self.assertEqual(self.service._get_element_color("목"), "초록색, 청색")
+        self.assertEqual(self.service._get_element_color("화"), "빨간색, 주황색")
+        self.assertEqual(self.service._get_element_color("토"), "노란색, 갈색")
+        self.assertEqual(self.service._get_element_color("금"), "흰색, 회색")
+        self.assertEqual(self.service._get_element_color("수"), "검은색, 파란색")
+        # Invalid element should return default
+        self.assertEqual(self.service._get_element_color("invalid"), "무지개색")
+
+    @patch('openai.OpenAI')
+    def test_generate_fortune_image_with_ai_success(self, mock_openai):
+        """Test successful fortune image generation with AI."""
+        from django.contrib.auth import get_user_model
+        from core.utils.saju_concepts import GanJi
+        from core.services.fortune import FortuneScore, ElementDistribution
+
+        User = get_user_model()
+
+        # Create a user with complete saju data
+        user = User.objects.create_user(
+            email='imagetest@example.com',
+            password='testpass123',
+            yearly_ganji='갑자',
+            monthly_ganji='병인',
+            daily_ganji='무신',
+            hourly_ganji='임오'
+        )
+
+        # Create a mock image (1x1 pixel PNG)
+        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+        # Mock OpenAI Images API (new gpt-image-1 structure)
+        mock_image_data = Mock()
+        mock_image_data.b64_json = mock_image_base64
+
+        mock_response = Mock()
+        mock_response.data = [mock_image_data]
+
+        mock_client = Mock()
+        mock_client.images.generate.return_value = mock_response
+        mock_client.images.edit.return_value = mock_response
+        self.service.client = mock_client
+
+        # Create test data
+        user_saju = self.service.get_user_saju_info(user.id)
+        tomorrow_date = self.test_date + timedelta(days=1)
+        tomorrow_day_ganji = GanJi.find_by_name("갑자")
+
+        fortune_response = FortuneAIResponse(
+            today_fortune_summary="오늘은 재물운이 좋은 날! 수의 기운을 모아보세요.",
+            today_element_balance_description="오행 균형 설명",
+            today_daily_guidance="일상 가이드"
+        )
+
+        fortune_score = FortuneScore(
+            entropy_score=75.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=4, percentage=26.7),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=2, percentage=13.3)
+            },
+            interpretation="Test interpretation",
+            needed_element="수"
+        )
+
+        # Call the method
+        result = self.service.generate_fortune_image_with_ai(
+            fortune_response,
+            user_saju,
+            tomorrow_date,
+            tomorrow_day_ganji,
+            fortune_score
+        )
+
+        # Verify result
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, bytes)
+        self.assertGreater(len(result), 0)
+
+        # Verify API was called with correct parameters (either generate or edit)
+        # Character file doesn't exist in test, so it should call generate
+        self.assertTrue(
+            mock_client.images.generate.called or mock_client.images.edit.called
+        )
+
+        # Get the call args from whichever was called
+        if mock_client.images.generate.called:
+            call_args = mock_client.images.generate.call_args
+        else:
+            call_args = mock_client.images.edit.call_args
+
+        self.assertEqual(call_args[1]['model'], 'gpt-image-1')
+        self.assertIn('prompt', call_args[1])
+        self.assertEqual(call_args[1]['size'], '1024x1536')  # Verify vertical size for mobile (2:3 ratio)
+
+        # Verify prompt contains key elements
+        prompt_text = call_args[1]['prompt']
+
+        # New prompt structure uses today_element_balance_description
+        self.assertIn("물 (Water)", prompt_text)  # needed_element_desc in Korean and English
+        self.assertIn("오행 균형 설명", prompt_text)  # today_element_balance_description content
+
+    def test_generate_fortune_image_with_ai_no_client(self):
+        """Test fortune image generation when OpenAI client is not initialized."""
+        from django.contrib.auth import get_user_model
+        from core.utils.saju_concepts import GanJi
+        from core.services.fortune import FortuneScore, ElementDistribution
+
+        User = get_user_model()
+
+        user = User.objects.create_user(
+            email='imagenoclient@example.com',
+            password='testpass123',
+            yearly_ganji='갑자',
+            monthly_ganji='병인',
+            daily_ganji='무신',
+            hourly_ganji='임오'
+        )
+
+        # Set client to None
+        self.service.client = None
+
+        user_saju = self.service.get_user_saju_info(user.id)
+        tomorrow_date = self.test_date + timedelta(days=1)
+        tomorrow_day_ganji = GanJi.find_by_name("갑자")
+
+        fortune_response = FortuneAIResponse(
+            today_fortune_summary="테스트 요약",
+            today_element_balance_description="균형 설명",
+            today_daily_guidance="일상 가이드"
+        )
+
+        fortune_score = FortuneScore(
+            entropy_score=50.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=3, percentage=20.0),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=3, percentage=20.0)
+            },
+            interpretation="Test",
+            needed_element="목"
+        )
+
+        result = self.service.generate_fortune_image_with_ai(
+            fortune_response,
+            user_saju,
+            tomorrow_date,
+            tomorrow_day_ganji,
+            fortune_score
+        )
+
+        # Should return None on error
+        self.assertIsNone(result)
+
+    @patch('openai.OpenAI')
+    def test_generate_fortune_image_with_ai_no_image_data(self, mock_openai):
+        """Test fortune image generation when API returns no image data."""
+        from django.contrib.auth import get_user_model
+        from core.utils.saju_concepts import GanJi
+        from core.services.fortune import FortuneScore, ElementDistribution
+
+        User = get_user_model()
+
+        user = User.objects.create_user(
+            email='imagenodata@example.com',
+            password='testpass123',
+            yearly_ganji='갑자',
+            monthly_ganji='병인',
+            daily_ganji='무신',
+            hourly_ganji='임오'
+        )
+
+        # Mock OpenAI responses API with no image data
+        mock_response = Mock()
+        mock_response.output = []  # Empty output
+
+        mock_client = Mock()
+        mock_client.responses.create.return_value = mock_response
+        self.service.client = mock_client
+
+        user_saju = self.service.get_user_saju_info(user.id)
+        tomorrow_date = self.test_date + timedelta(days=1)
+        tomorrow_day_ganji = GanJi.find_by_name("갑자")
+
+        fortune_response = FortuneAIResponse(
+            today_fortune_summary="테스트 요약",
+            today_element_balance_description="균형 설명",
+            today_daily_guidance="일상 가이드"
+        )
+
+        fortune_score = FortuneScore(
+            entropy_score=50.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=3, percentage=20.0),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=3, percentage=20.0)
+            },
+            interpretation="Test",
+            needed_element="목"
+        )
+
+        result = self.service.generate_fortune_image_with_ai(
+            fortune_response,
+            user_saju,
+            tomorrow_date,
+            tomorrow_day_ganji,
+            fortune_score
+        )
+
+        # Should return None when no image data
+        self.assertIsNone(result)
+
+    @patch('openai.OpenAI')
+    def test_generate_fortune_image_with_ai_api_exception(self, mock_openai):
+        """Test fortune image generation when API raises exception."""
+        from django.contrib.auth import get_user_model
+        from core.utils.saju_concepts import GanJi
+        from core.services.fortune import FortuneScore, ElementDistribution
+
+        User = get_user_model()
+
+        user = User.objects.create_user(
+            email='imageexception@example.com',
+            password='testpass123',
+            yearly_ganji='갑자',
+            monthly_ganji='병인',
+            daily_ganji='무신',
+            hourly_ganji='임오'
+        )
+
+        # Mock OpenAI responses API to raise exception
+        mock_client = Mock()
+        mock_client.responses.create.side_effect = Exception("API Error")
+        self.service.client = mock_client
+
+        user_saju = self.service.get_user_saju_info(user.id)
+        tomorrow_date = self.test_date + timedelta(days=1)
+        tomorrow_day_ganji = GanJi.find_by_name("갑자")
+
+        fortune_response = FortuneAIResponse(
+            today_fortune_summary="테스트 요약",
+            today_element_balance_description="균형 설명",
+            today_daily_guidance="일상 가이드"
+        )
+
+        fortune_score = FortuneScore(
+            entropy_score=50.0,
+            elements={
+                "대운": None,
+                "세운": {"two_letters": "갑자"},
+                "월운": {"two_letters": "병인"},
+                "일운": {"two_letters": "무신"},
+                "년주": None,
+                "월주": None,
+                "일주": None,
+                "시주": None,
+            },
+            element_distribution={
+                "목": ElementDistribution(count=3, percentage=20.0),
+                "화": ElementDistribution(count=3, percentage=20.0),
+                "토": ElementDistribution(count=3, percentage=20.0),
+                "금": ElementDistribution(count=3, percentage=20.0),
+                "수": ElementDistribution(count=3, percentage=20.0)
+            },
+            interpretation="Test",
+            needed_element="목"
+        )
+
+        result = self.service.generate_fortune_image_with_ai(
+            fortune_response,
+            user_saju,
+            tomorrow_date,
+            tomorrow_day_ganji,
+            fortune_score
+        )
+
+        # Should return None on exception
+        self.assertIsNone(result)
+
 class TestFortuneServiceIntegration(TestCase):
     """Integration tests for FortuneService."""
 
@@ -322,6 +639,141 @@ class TestFortuneServiceIntegration(TestCase):
         """Set up test fixtures."""
         self.service = FortuneService()
         self.user_id = 1
+
+    @patch('openai.OpenAI')
+    def test_generate_fortune_with_image(self, mock_openai):
+        """Test generate_fortune includes image generation and saves it to DB."""
+        from django.contrib.auth import get_user_model
+        from core.models import FortuneResult
+        from core.services.fortune import FortuneAIResponse
+
+        User = get_user_model()
+
+        # Create a user with complete saju data
+        from datetime import date
+        user = User.objects.create_user(
+            email='fortuneimage@example.com',
+            password='testpass123'
+        )
+        user.birth_date_solar = date(1990, 1, 1)
+        user.birth_time_units = '23'
+        user.yearly_ganji = '갑자'
+        user.monthly_ganji = '병인'
+        user.daily_ganji = '무신'
+        user.hourly_ganji = '임오'
+        user.save()
+
+        # Mock AI text response
+        mock_parsed = FortuneAIResponse(
+            today_fortune_summary="오늘은 좋은 날! 수의 기운을 모아보세요.",
+            today_element_balance_description="균형 설명입니다.",
+            today_daily_guidance="일상 가이드입니다."
+        )
+        mock_text_response = Mock()
+        mock_text_response.choices = [Mock()]
+        mock_text_response.choices[0].message.parsed = mock_parsed
+
+        # Mock AI image response (new Images API structure)
+        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        mock_image_data = Mock()
+        mock_image_data.b64_json = mock_image_base64
+        mock_image_response = Mock()
+        mock_image_response.data = [mock_image_data]
+
+        # Set up mock client
+        mock_client = Mock()
+        mock_client.chat.completions.parse.return_value = mock_text_response
+        mock_client.images.generate.return_value = mock_image_response
+        mock_client.images.edit.return_value = mock_image_response
+        self.service.client = mock_client
+
+        # Generate fortune
+        test_date = datetime(2024, 1, 1, 12, 0, 0)
+        result = self.service.generate_fortune(user, test_date)
+
+        # Verify result status
+        self.assertEqual(result.status, 'success')
+        self.assertIsNotNone(result.data)
+
+        # Verify FortuneResult was saved to DB
+        tomorrow_date = (test_date + timedelta(days=1)).date()
+        fortune_result = FortuneResult.objects.get(
+            user=user,
+            for_date=tomorrow_date
+        )
+
+        # Verify fortune data
+        self.assertIsNotNone(fortune_result.fortune_data)
+        self.assertIsNotNone(fortune_result.fortune_score)
+        self.assertIn('today_fortune_summary', fortune_result.fortune_data)
+
+        # Verify image was saved
+        self.assertTrue(fortune_result.fortune_image)
+        # Check that image file has been saved (name is not empty)
+        self.assertIsNotNone(fortune_result.fortune_image.name)
+        self.assertGreater(len(fortune_result.fortune_image.name), 0)
+
+    @patch('openai.OpenAI')
+    def test_generate_fortune_without_image_on_failure(self, mock_openai):
+        """Test generate_fortune saves fortune even if image generation fails."""
+        from django.contrib.auth import get_user_model
+        from core.models import FortuneResult
+        from core.services.fortune import FortuneAIResponse
+
+        User = get_user_model()
+
+        # Create a user with complete saju data
+        from datetime import date
+        user = User.objects.create_user(
+            email='fortunenoimageonfail@example.com',
+            password='testpass123'
+        )
+        user.birth_date_solar = date(1990, 1, 1)
+        user.birth_time_units = '23'
+        user.yearly_ganji = '갑자'
+        user.monthly_ganji = '병인'
+        user.daily_ganji = '무신'
+        user.hourly_ganji = '임오'
+        user.save()
+
+        # Mock AI text response (success)
+        mock_parsed = FortuneAIResponse(
+            today_fortune_summary="오늘은 좋은 날! 수의 기운을 모아보세요.",
+            today_element_balance_description="균형 설명입니다.",
+            today_daily_guidance="일상 가이드입니다."
+        )
+        mock_text_response = Mock()
+        mock_text_response.choices = [Mock()]
+        mock_text_response.choices[0].message.parsed = mock_parsed
+
+        # Set up mock client with image generation failure
+        mock_client = Mock()
+        mock_client.chat.completions.parse.return_value = mock_text_response
+        mock_client.images.generate.side_effect = Exception("Image API Error")
+        mock_client.images.edit.side_effect = Exception("Image API Error")
+        self.service.client = mock_client
+
+        # Generate fortune
+        test_date = datetime(2024, 1, 1, 12, 0, 0)
+        result = self.service.generate_fortune(user, test_date)
+
+        # Verify result status is still success
+        self.assertEqual(result.status, 'success')
+        self.assertIsNotNone(result.data)
+
+        # Verify FortuneResult was saved to DB
+        tomorrow_date = (test_date + timedelta(days=1)).date()
+        fortune_result = FortuneResult.objects.get(
+            user=user,
+            for_date=tomorrow_date
+        )
+
+        # Verify fortune data exists
+        self.assertIsNotNone(fortune_result.fortune_data)
+        self.assertIsNotNone(fortune_result.fortune_score)
+
+        # Verify image is NOT saved (but fortune is still created)
+        self.assertFalse(fortune_result.fortune_image)
 
     def test_ganji_cycle_consistency(self):
         """Test that day pillar (GanJi) cycles correctly."""
