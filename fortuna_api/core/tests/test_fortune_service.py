@@ -347,15 +347,16 @@ class TestFortuneService(TestCase):
         # Create a mock image (1x1 pixel PNG)
         mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 
-        # Mock OpenAI responses API
+        # Mock OpenAI Images API (new gpt-image-1 structure)
+        mock_image_data = Mock()
+        mock_image_data.b64_json = mock_image_base64
+
         mock_response = Mock()
-        mock_output = Mock()
-        mock_output.type = "image_generation_call"
-        mock_output.result = mock_image_base64
-        mock_response.output = [mock_output]
+        mock_response.data = [mock_image_data]
 
         mock_client = Mock()
-        mock_client.responses.create.return_value = mock_response
+        mock_client.images.generate.return_value = mock_response
+        mock_client.images.edit.return_value = mock_response
         self.service.client = mock_client
 
         # Create test data
@@ -406,19 +407,23 @@ class TestFortuneService(TestCase):
         self.assertIsInstance(result, bytes)
         self.assertGreater(len(result), 0)
 
-        # Verify API was called with correct parameters
-        mock_client.responses.create.assert_called_once()
-        call_args = mock_client.responses.create.call_args
-        self.assertEqual(call_args[1]['model'], 'gpt-5')
-        self.assertIn('input', call_args[1])
+        # Verify API was called with correct parameters (either generate or edit)
+        # Character file doesn't exist in test, so it should call generate
+        self.assertTrue(
+            mock_client.images.generate.called or mock_client.images.edit.called
+        )
+
+        # Get the call args from whichever was called
+        if mock_client.images.generate.called:
+            call_args = mock_client.images.generate.call_args
+        else:
+            call_args = mock_client.images.edit.call_args
+
+        self.assertEqual(call_args[1]['model'], 'gpt-image-1')
+        self.assertIn('prompt', call_args[1])
 
         # Verify prompt contains key elements
-        prompt_input = call_args[1]['input']
-        # Extract text from prompt structure (list with dict containing content)
-        if isinstance(prompt_input, list):
-            prompt_text = prompt_input[0]['content'][0]['text']
-        else:
-            prompt_text = prompt_input
+        prompt_text = call_args[1]['prompt']
 
         # New prompt structure uses today_element_balance_description
         self.assertIn("물 (Water)", prompt_text)  # needed_element_desc in Korean and English
@@ -667,18 +672,18 @@ class TestFortuneServiceIntegration(TestCase):
         mock_text_response.choices = [Mock()]
         mock_text_response.choices[0].message.parsed = mock_parsed
 
-        # Mock AI image response
+        # Mock AI image response (new Images API structure)
         mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        mock_image_data = Mock()
+        mock_image_data.b64_json = mock_image_base64
         mock_image_response = Mock()
-        mock_output = Mock()
-        mock_output.type = "image_generation_call"
-        mock_output.result = mock_image_base64
-        mock_image_response.output = [mock_output]
+        mock_image_response.data = [mock_image_data]
 
         # Set up mock client
         mock_client = Mock()
         mock_client.chat.completions.parse.return_value = mock_text_response
-        mock_client.responses.create.return_value = mock_image_response
+        mock_client.images.generate.return_value = mock_image_response
+        mock_client.images.edit.return_value = mock_image_response
         self.service.client = mock_client
 
         # Generate fortune
@@ -743,7 +748,8 @@ class TestFortuneServiceIntegration(TestCase):
         # Set up mock client with image generation failure
         mock_client = Mock()
         mock_client.chat.completions.parse.return_value = mock_text_response
-        mock_client.responses.create.side_effect = Exception("Image API Error")
+        mock_client.images.generate.side_effect = Exception("Image API Error")
+        mock_client.images.edit.side_effect = Exception("Image API Error")
         self.service.client = mock_client
 
         # Generate fortune

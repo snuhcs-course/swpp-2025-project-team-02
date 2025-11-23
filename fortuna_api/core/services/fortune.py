@@ -618,90 +618,84 @@ class FortuneService:
             }
             needed_element_desc = element_descriptions.get(needed_element, needed_element)
 
-            # Upload character image based on user's day element
+            # Get character image path based on user's day element
+            character_path = None
             try:
-                character_file_id = self._upload_character_file(user_day_element)
-            except ValueError as ve:
-                logger.warning(f"Failed to upload character file: {ve}. Proceeding without character image.")
-                character_file_id = None
+                character_path = self._get_character_file_path(user_day_element)
+                if not os.path.exists(character_path):
+                    logger.warning(f"Character file not found: {character_path}. Proceeding without character image.")
+                    character_path = None
+            except Exception as e:
+                logger.warning(f"Failed to get character file path: {e}. Proceeding without character image.")
+                character_path = None
 
             # Prepare image generation prompt
             image_prompt = f"""
-            역할: 당신은 입력받은 텍스트(오늘의 운세)의 핵심 내용과 분위기를 파악하여, 대사 없이도 상황이 이해되는 재치 있는 네컷 만화로 각색하는 전문 웹툰 작가입니다.
+역할: 당신은 입력받은 텍스트(오늘의 운세)의 핵심 내용과 분위기를 파악하여, 대사 없이도 상황이 이해되는 재치 있는 네컷 만화로 각색하는 전문 웹툰 작가입니다.
 
-            핵심 지시 사항: 제공된 <오늘의 운세 요약> 텍스트 전체를 읽고, 그 안에 담긴 **오늘 하루의 흐름(시작, 과정, 문제 발생, 해결)**을 당신의 창의력을 발휘하여 자유롭게 네컷 만화로 구성하세요.
+핵심 지시 사항: 제공된 <오늘의 운세 요약> 텍스트 전체를 읽고, 그 안에 담긴 **오늘 하루의 흐름(시작, 과정, 문제 발생, 해결)**을 당신의 창의력을 발휘하여 자유롭게 네컷 만화로 구성하세요.
 
-            1. 이미지 구성 지시 (가장 중요):
-            - 포맷: 정확히 4개의 개별 패널(컷)로 구성된 만화 스트립을 생성하세요.
-            - 레이아웃: 2x2 그리드 형식으로, 왼쪽 상단이 1번 컷, 오른쪽 상단이 2번 컷, 왼쪽 하단이 3번 컷, 오른쪽 하단이 4번 컷이 되도록 배치하세요. 각 패널 사이에는 명확한 흰색 테두리가 있어야 합니다.
-            - 텍스트 위치: 각 패널의 바로 위 중앙에 **영어 캡션(제목)**을 배치하세요. 이 캡션은 간결하고 해당 컷의 내용을 명확히 요약해야 합니다. 캡션 외의 다른 대사나 말풍선은 절대 금지합니다.
-            - 스타일: 매우 유머러스하고 과장된 코믹 카툰 스타일로, 굵은 외곽선을 사용하세요.
+1. 이미지 구성 지시 (가장 중요):
+- 포맷: 정확히 4개의 개별 패널(컷)로 구성된 만화 스트립을 생성하세요.
+- 레이아웃: 2x2 그리드 형식으로, 왼쪽 상단이 1번 컷, 오른쪽 상단이 2번 컷, 왼쪽 하단이 3번 컷, 오른쪽 하단이 4번 컷이 되도록 배치하세요. 각 패널 사이에는 명확한 흰색 테두리가 있어야 합니다.
+- 텍스트 위치: 각 패널의 바로 위 중앙에 **영어 캡션(제목)**을 배치하세요. 이 캡션은 간결하고 해당 컷의 내용을 명확히 요약해야 합니다. 캡션 외의 다른 대사나 말풍선은 절대 금지합니다.
+- 스타일: 매우 유머러스하고 과장된 코믹 카툰 스타일로, 굵은 외곽선을 사용하세요.
 
-            2. 주인공 및 기본 설정:
-            - 주인공: 반드시 [제공된 이미지의 캐릭터(각 유저가 직접 커스텀한 이미지)]를 주인공으로 그리세요.
-            스타일: 대사가 전혀 없는, 재미있고 과장된 코믹 카툰 스타일.
-            시간의 흐름: 네 컷은 반드시 [오전] -> [점심] -> [오후] -> [밤] 순서로 시간의 경과가 느껴져야 합니다. 배경의 해/달 위치나 분위기로 표현하세요.
+2. 주인공 및 기본 설정:
+- 주인공: 반드시 제공된 캐릭터 이미지의 스타일과 특징을 유지하여 그리세요.
+- 스타일: 대사가 전혀 없는, 재미있고 과장된 코믹 카툰 스타일.
+- 시간의 흐름: 네 컷은 반드시 [오전] -> [점심] -> [오후] -> [밤] 순서로 시간의 경과가 느껴져야 합니다. 배경의 해/달 위치나 분위기로 표현하세요.
 
-            3. 만화의 내용
-            - 만화의 전체 내용은 **<오늘의 운세 요약>**의 운세 흐름을 반영해야 합니다.
-            - 특히 3컷(오후) 쯤에는 운세에서 말하는 **'문제 상황'이나 '부족한 점'**을 표현해야 합니다.
-            - 마지막 4컷(밤)에는 {needed_element_desc} (부족한 오행 원소)를 채움으로써 문제가 해결되고 평온/만족을 되찾는 결말로 마무리하세요.
-            - 오늘의 운세 요약
-            {fortune_response.today_element_balance_description}
+3. 만화의 내용
+- 만화의 전체 내용은 **<오늘의 운세 요약>**의 운세 흐름을 반영해야 합니다.
+- 특히 3컷(오후) 쯤에는 운세에서 말하는 **'문제 상황'이나 '부족한 점'**을 표현해야 합니다.
+- 마지막 4컷(밤)에는 {needed_element_desc} (부족한 오행 원소)를 채움으로써 문제가 해결되고 평온/만족을 되찾는 결말로 마무리하세요.
 
-            - 각 컷 상단에는 짧은 영어의 택스트 캡션이 있어야합니다. 캡션의 텍스트 예시는다음과 같습니다:
-            1컷: Energetic start based on Earth.
-            2컷: Busy Flow, Water & Fire Energy
-            3컷: Metal Lacking, Deadline Trouble
-            4컷: Metal Added, Perfect Balance
+<오늘의 운세 요약>
+{fortune_response.today_element_balance_description}
 
+각 컷 상단 캡션 예시:
+1컷: Energetic start based on Earth.
+2컷: Busy Flow, Water & Fire Energy
+3컷: Metal Lacking, Deadline Trouble
+4컷: Metal Added, Perfect Balance
 
-            오행 원소 설명
-            - 화: 불
-            - 수: 물
-            - 목: 나무
-            - 금: 금속
-            - 토: 흙
+오행 원소 설명:
+- 화: 불 (Fire)
+- 수: 물 (Water)
+- 목: 나무 (Wood)
+- 금: 금속 (Metal)
+- 토: 흙 (Earth)
+"""
 
-
-            바로 이미지를 생성하세요. (이미지 외, 다른 응답 금지)
-            """
-
-            # Call OpenAI responses API with image generation tool
-            if character_file_id:
+            # Call OpenAI Images API edit endpoint with gpt-image-1
+            if character_path:
                 # With character image reference
-                response = self.client.responses.create(
-                    model="gpt-5",
-                    input=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "input_text", "text": image_prompt.strip()},
-                                {"type": "input_image", "file_id": character_file_id}
-                            ]
-                        }
-                    ],
-                    tools=[{"type": "image_generation",  "quality": "high", "moderation": "low"}],
-                )
+                with open(character_path, "rb") as image_file:
+                    response = self.client.images.edit(
+                        model="gpt-image-1",
+                        image=image_file,
+                        prompt=image_prompt.strip(),
+                        size="1024x1024",
+                        response_format="b64_json"
+                    )
             else:
-                # Fallback without character image
-                response = self.client.responses.create(
-                    model="gpt-5",
-                    input=image_prompt.strip(),
-                    tools=[{"type": "image_generation"}],
+                # Fallback: generate without character image
+                response = self.client.images.generate(
+                    model="gpt-image-1",
+                    prompt=image_prompt.strip(),
+                    size="1024x1024",
+                    quality="standard",
+                    response_format="b64_json",
+                    n=1
                 )
 
             # Extract image data from response
-            image_data = [
-                output.result
-                for output in response.output
-                if output.type == "image_generation_call"
-            ]
+            image_data = response.data[0].b64_json if response.data else None
 
             if image_data:
                 # Decode base64 image
-                image_base64 = image_data[0]
-                image_bytes = base64.b64decode(image_base64)
+                image_bytes = base64.b64decode(image_data)
                 logger.info(f"Successfully generated fortune image for {tomorrow_date}")
                 return image_bytes
             else:
