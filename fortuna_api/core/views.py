@@ -50,19 +50,25 @@ logger = logging.getLogger(__name__)
 def get_absolute_image_url(request, image_field):
     """
     이미지 필드의 절대 URL을 반환합니다.
-    S3 사용 시: 이미 full URL이므로 그대로 반환
+    S3 사용 시: presigned URL 생성
     로컬 파일 시: build_absolute_uri()로 full URL 생성
     """
     if not image_field:
         return None
 
-    image_url = image_field.url
-
-    # S3 사용 시 이미 full URL (http:// or https://로 시작)
-    if image_url.startswith('http://') or image_url.startswith('https://'):
-        return image_url
+    # S3 사용 시 presigned URL 생성
+    if getattr(settings, 'USE_S3', False):
+        image_key = image_field.name
+        presigned_url = image_service.generate_view_presigned_url(image_key)
+        if presigned_url:
+            return presigned_url
+        # Fallback to regular URL if presigned URL generation fails
+        return image_field.url
 
     # 로컬 파일인 경우 절대 URL로 변환
+    image_url = image_field.url
+    if image_url.startswith('http://') or image_url.startswith('https://'):
+        return image_url
     return request.build_absolute_uri(image_url)
 
 
