@@ -12,6 +12,8 @@ import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.classification.DetectedObjectResult
 import com.example.fortuna_android.classification.VLMObjectDetector
 import com.example.fortuna_android.classification.ObjectDetector
+import com.example.fortuna_android.classification.ObjectDetectorFactory
+import com.example.fortuna_android.classification.ConfigurableDetectorFactory
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
@@ -20,6 +22,12 @@ import com.example.fortuna_android.common.samplerender.SampleRender
 import com.example.fortuna_android.common.samplerender.arcore.BackgroundRenderer
 import com.example.fortuna_android.render.ObjectRender
 import com.example.fortuna_android.render.PointCloudRender
+import com.example.fortuna_android.render.RenderComponent
+import com.example.fortuna_android.render.CompositeRenderer
+import com.example.fortuna_android.render.BackgroundRendererComponent
+import com.example.fortuna_android.render.PointCloudRendererComponent
+import com.example.fortuna_android.render.ObjectRendererComponent
+import com.example.fortuna_android.render.RenderContext
 import com.google.ar.core.exceptions.CameraNotAvailableException
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.core.exceptions.SessionPausedException
@@ -46,6 +54,12 @@ class ARRenderer(private val fragment: ARFragment) :
         get() = fragment.activity as MainActivity
 
     private val displayRotationHelper = DisplayRotationHelper(fragment.requireActivity())
+
+    // Composite Pattern: Root renderer managing all rendering components
+    // Similar to: AllMenus composite managing PancakeHouseMenu and DinerMenu
+    private lateinit var rootRenderer: CompositeRenderer
+
+    // Keep old renderers for backward compatibility during transition
     private lateinit var backgroundRenderer: BackgroundRenderer
     private val pointCloudRender = PointCloudRender()
     private val objectRenderer = ObjectRender()
@@ -62,6 +76,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     private lateinit var vlmAnalyzer: VLMObjectDetector
     private var currentAnalyzer: ObjectDetector? = null  // Will be set to VLM analyzer when loaded
+
+    // Factory Method Pattern: Detector factory instance
+    private lateinit var detectorFactory: ObjectDetectorFactory
 
     // Element mapper for converting ML labels to Chinese Five Elements categories
     private val elementMapper = ElementMapper(fragment.requireContext())
@@ -308,6 +325,27 @@ class ARRenderer(private val fragment: ARFragment) :
     }
 
     override fun onSurfaceCreated(render: SampleRender) {
+        // Composite Pattern: Build rendering tree structure
+
+        rootRenderer = CompositeRenderer("AR Root", "Main AR rendering pipeline").apply {
+            // Background layer (rendered first)
+            add(BackgroundRendererComponent())
+
+            // 3D Scene layer (composite of point cloud and objects)
+            val sceneRenderer = CompositeRenderer("3D Scene", "AR 3D content layer")
+            sceneRenderer.add(PointCloudRendererComponent())
+            sceneRenderer.add(ObjectRendererComponent())
+            add(sceneRenderer)
+        }
+
+        // Initialize the composite tree
+        // This will call onSurfaceCreated on all child components recursively
+        rootRenderer.onSurfaceCreated(render)
+
+        // Log the tree structure for debugging
+        rootRenderer.printTree()
+
+        // Keep old initialization for backward compatibility
         backgroundRenderer = BackgroundRenderer(render).apply {
             setUseDepthVisualization(render, false)
         }
@@ -321,9 +359,9 @@ class ARRenderer(private val fragment: ARFragment) :
                 vlmManager.initialize()
                 isVLMLoaded = true
 
-                // Create VLM-based detector with callback for async classification
-                vlmAnalyzer = VLMObjectDetector(
-                    context = fragment.requireActivity(),
+                // Factory Method Pattern: Create detector factory
+                // Similar to: val shapeFactory: ShapeFactory = TypedShapeFactory()
+                detectorFactory = ConfigurableDetectorFactory(
                     vlmManager = vlmManager,
                     onVLMClassified = { result ->
                         try {
@@ -389,6 +427,14 @@ class ARRenderer(private val fragment: ARFragment) :
                         }
                     }
                 )
+
+                // Factory Method Pattern: Use factory to create detector
+                // Similar to: val shape1 = shapeFactory.createShape("Circle")
+                vlmAnalyzer = (detectorFactory as ConfigurableDetectorFactory).createDetectorByType(
+                    context = fragment.requireActivity(),
+                    type = "VLM"
+                ) as VLMObjectDetector
+
                 currentAnalyzer = vlmAnalyzer
 
                 // Enable scan button now that VLM is ready
@@ -462,10 +508,29 @@ class ARRenderer(private val fragment: ARFragment) :
             return
         }
 
-        // Draw point cloud
-        frame.acquirePointCloud().use { pointCloud ->
-            pointCloudRender.drawPointCloud(render, pointCloud, viewProjectionMatrix)
+        // Composite Pattern: Render using composite tree
+        // Similar to: allMenus.print() which recursively prints all menu items
+        // This single call will render background, point cloud, and objects
+        val anchorsCopy = synchronized(arLabeledAnchors) {
+            arLabeledAnchors.toList()
         }
+
+        val renderContext = RenderContext(
+            viewMatrix = viewMatrix,
+            projectionMatrix = projectionMatrix,
+            viewProjectionMatrix = viewProjectionMatrix,
+            frame = frame,
+            arLabeledAnchors = anchorsCopy
+        )
+
+        // Single unified call - treats all components uniformly
+        rootRenderer.draw(render, renderContext)
+
+        // OLD CODE BELOW - kept for reference/debugging
+        // Draw point cloud
+        // frame.acquirePointCloud().use { pointCloud ->
+        //     pointCloudRender.drawPointCloud(render, pointCloud, viewProjectionMatrix)
+        // }
 
         // Process pending tap (if any)
         val tap = pendingTap
@@ -555,27 +620,28 @@ class ARRenderer(private val fragment: ARFragment) :
             Log.i(TAG, "Stored ${pendingClassifications.size} anchors for VLM classification")
         }
 
+        // OLD CODE - now handled by Composite Pattern above
         // Draw 3D sphere objects at their anchor positions - create a safe copy to avoid concurrent modification
-        val anchorsCopy = synchronized(arLabeledAnchors) {
-            arLabeledAnchors.toList()
-        }
-
-        for (arLabeledAnchor in anchorsCopy) {
-            val anchor = arLabeledAnchor.anchor
-            if (anchor.trackingState != TrackingState.TRACKING) continue
-
-            // Always show all detected elements - no filtering for display
-            // Draw 3D sphere object for each element with distance-based scaling and animation type
-            objectRenderer.draw(
-                render,
-                viewMatrix,
-                projectionMatrix,
-                anchor.pose,
-                arLabeledAnchor.element,
-                arLabeledAnchor.distance,
-                arLabeledAnchor.animationType
-            )
-        }
+        // val anchorsCopy = synchronized(arLabeledAnchors) {
+        //     arLabeledAnchors.toList()
+        // }
+        //
+        // for (arLabeledAnchor in anchorsCopy) {
+        //     val anchor = arLabeledAnchor.anchor
+        //     if (anchor.trackingState != TrackingState.TRACKING) continue
+        //
+        //     // Always show all detected elements - no filtering for display
+        //     // Draw 3D sphere object for each element with distance-based scaling and animation type
+        //     objectRenderer.draw(
+        //         render,
+        //         viewMatrix,
+        //         projectionMatrix,
+        //         anchor.pose,
+        //         arLabeledAnchor.element,
+        //         arLabeledAnchor.distance,
+        //         arLabeledAnchor.animationType
+        //     )
+        // }
     }
 
     // Temporary arrays to prevent allocations in createAnchor
