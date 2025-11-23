@@ -676,7 +676,7 @@ class FortuneService:
                         model="gpt-image-1",
                         image=image_file,
                         prompt=image_prompt.strip(),
-                        size="1024x1024",
+                        size="1024x1536",
                         response_format="b64_json"
                     )
             else:
@@ -684,7 +684,7 @@ class FortuneService:
                 response = self.client.images.generate(
                     model="gpt-image-1",
                     prompt=image_prompt.strip(),
-                    size="1024x1024",
+                    size="1024x1536",
                     quality="standard",
                     response_format="b64_json",
                     n=1

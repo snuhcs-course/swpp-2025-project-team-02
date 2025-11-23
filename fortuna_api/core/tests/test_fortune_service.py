@@ -421,6 +421,7 @@ class TestFortuneService(TestCase):
 
         self.assertEqual(call_args[1]['model'], 'gpt-image-1')
         self.assertIn('prompt', call_args[1])
+        self.assertEqual(call_args[1]['size'], '1024x1536')  # Verify vertical size for mobile (2:3 ratio)
 
         # Verify prompt contains key elements
         prompt_text = call_args[1]['prompt']
