@@ -3,6 +3,7 @@ DRF ViewSets for Fortuna Core API.
 """
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.db.models import Count
 from django.utils import timezone
 from rest_framework import viewsets, status
@@ -44,6 +45,25 @@ fortune_service = FortuneService(image_service)
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
+
+def get_absolute_image_url(request, image_field):
+    """
+    이미지 필드의 절대 URL을 반환합니다.
+    S3 사용 시: 이미 full URL이므로 그대로 반환
+    로컬 파일 시: build_absolute_uri()로 full URL 생성
+    """
+    if not image_field:
+        return None
+
+    image_url = image_field.url
+
+    # S3 사용 시 이미 full URL (http:// or https://로 시작)
+    if image_url.startswith('http://') or image_url.startswith('https://'):
+        return image_url
+
+    # 로컬 파일인 경우 절대 URL로 변환
+    return request.build_absolute_uri(image_url)
 
 
 @extend_schema_view(
@@ -760,11 +780,22 @@ class FortuneViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=['get'])
     def today(self, request):
-        """Get today's fortune with balance score (DB cached)."""
+        """Get today's fortune with balance score (DB cached, with race condition protection)."""
         user = request.user
+        logger.info(f"Fortune today request - user: {user}, is_authenticated: {user.is_authenticated}, type: {type(user)}")
+
+        if not user.is_authenticated:
+            return Response({
+                'status': 'error',
+                'error': {
+                    'code': 'authentication_required',
+                    'message': 'User not authenticated. Please provide X-Test-User-Id header in development mode.'
+                }
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
         today_date = timezone.now().date()
 
-        # Helper functions to convert GanJi/Saju objects (used in both branches)
+        # Helper functions to convert GanJi/Saju objects
         def ganji_to_dict(ganji):
             if ganji is None:
                 return None
@@ -795,42 +826,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                 'hourly': ganji_to_dict(saju.hourly)
             }
 
-        # Try to get from database first (DB cache)
-        try:
-            fortune_result = FortuneResult.objects.get(
-                user=user,
-                for_date=today_date
-            )
-
-            # If fortune exists in DB, return it directly (fast! 두 번째 요청부터 빠름)
-            if fortune_result.fortune_data and fortune_result.fortune_score:
-                from core.services.daewoon import DaewoonCalculator
-                from core.utils.saju_concepts import Saju
-
-                birth_time = user._convert_time_units_to_time(user.birth_time_units)
-                saju_date = Saju.from_date(today_date, birth_time)
-                saju_user = user.saju()
-                daewoon = DaewoonCalculator.calculate_daewoon(user)
-
-                response_data = {
-                    'status': 'success',
-                    'data': {
-                        'date': today_date.isoformat(),
-                        'user_id': user.id,
-                        'fortune': fortune_result.fortune_data,
-                        'fortune_score': fortune_result.fortune_score,
-                        'saju_date': saju_to_dict(saju_date),
-                        'saju_user': saju_to_dict(saju_user),
-                        'daewoon': ganji_to_dict(daewoon)
-                    }
-                }
-
-                return Response(response_data, status=status.HTTP_200_OK)
-
-        except FortuneResult.DoesNotExist:
-            pass  # Generate new fortune below
-
-        # If not in DB, generate new fortune
+        # Generate fortune (handles DB caching and race conditions internally)
         yesterday = today_date - timedelta(days=1)
         result = fortune_service.generate_fortune(
             user=user,
@@ -839,6 +835,16 @@ class FortuneViewSet(viewsets.GenericViewSet):
 
         # Convert Response[FortuneResponse] to dict
         if result.status == 'success' and result.data:
+            # Get the saved fortune result to retrieve image URL
+            try:
+                fortune_result = FortuneResult.objects.get(
+                    user=user,
+                    for_date=today_date
+                )
+                fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
+            except FortuneResult.DoesNotExist:
+                fortune_image_url = None
+
             response_data = {
                 'status': 'success',
                 'data': {
@@ -846,6 +852,7 @@ class FortuneViewSet(viewsets.GenericViewSet):
                     'user_id': result.data.user_id,
                     'fortune': result.data.fortune.model_dump(),
                     'fortune_score': result.data.fortune_score.model_dump(),
+                    'fortune_image_url': fortune_image_url,
                     'saju_date': saju_to_dict(result.data.saju_date),
                     'saju_user': saju_to_dict(result.data.saju_user),
                     'daewoon': ganji_to_dict(result.data.daewoon)
