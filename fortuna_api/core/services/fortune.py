@@ -792,57 +792,17 @@ class FortuneService:
                         fortune_data=placeholder_fortune.model_dump()
                     )
 
-            # Generate fortune with AI (outside transaction to avoid long locks)
-            user_saju = self.get_user_saju_info(user.id)
-            tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
-            fortune_score = self.calculate_fortune_balance(user, tomorrow_date)
+            # Schedule background task to generate fortune with AI
+            from core.tasks import schedule_fortune_generation
+            schedule_fortune_generation(user.id, tomorrow_date.strftime('%Y-%m-%d'))
 
-            compatibility = self.analyze_saju_compatibility(
-                user_saju.daily,
-                tomorrow_day_ganji
-            )
-
-            fortune = self.generate_fortune_with_ai(
-                user_saju,
-                tomorrow_date,
-                tomorrow_day_ganji,
-                compatibility,
-                fortune_score
-            )
-
-            # Generate fortune image with AI
-            image_bytes = self.generate_fortune_image_with_ai(
-                fortune,
-                user_saju,
-                tomorrow_date,
-                tomorrow_day_ganji,
-                fortune_score
-            )
-
-            # Update with completed fortune
-            fortune_result.fortune_data = fortune.model_dump()
-            fortune_result.status = 'completed'
-            fortune_result.save(update_fields=['fortune_data', 'status'])
-
-            # Save image if generated successfully
-            if image_bytes:
-                image_filename = f"fortune_{user.id}_{tomorrow_date.strftime('%Y%m%d')}.png"
-                fortune_result.fortune_image.save(
-                    image_filename,
-                    ContentFile(image_bytes),
-                    save=True
-                )
-                logger.info(f"Fortune image saved for user {user.id} on {tomorrow_date}")
-            else:
-                logger.warning(f"No image generated for user {user.id} on {tomorrow_date}")
-
-            # Prepare final response
+            # Return placeholder response immediately
             birth_time = user._convert_time_units_to_time(user.birth_time_units)
             response_data = FortuneResponse(
                 date=tomorrow_date.strftime('%Y-%m-%d'),
                 user_id=user.id,
-                fortune=fortune,
-                fortune_score=fortune_score,
+                fortune=FortuneAIResponse(**fortune_result.fortune_data),
+                fortune_score=FortuneScore(**fortune_result.fortune_score),
                 saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
                 saju_user=user.saju(),
                 daewoon=DaewoonCalculator.calculate_daewoon(user)

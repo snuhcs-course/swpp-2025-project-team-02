@@ -128,10 +128,10 @@ async def update_fortune_async(user_id: int, image_date_str: str) -> None:
 def schedule_fortune_update(user_id: int, image_date_str: str) -> None:
     """
     Schedule a fortune update task to run in the background.
-    
+
     This function creates and schedules the coroutine without blocking
     the calling thread. It's designed to be called from sync contexts.
-    
+
     Args:
         user_id: ID of the user who uploaded the image
         image_date_str: Date string in YYYY-MM-DD format for the image date
@@ -145,20 +145,167 @@ def schedule_fortune_update(user_id: int, image_date_str: str) -> None:
         else:
             # If we're in a sync context, run the task in the background
             asyncio.run_coroutine_threadsafe(
-                update_fortune_async(user_id, image_date_str), 
+                update_fortune_async(user_id, image_date_str),
                 loop
             )
     except RuntimeError:
         # No event loop exists, create a new thread with its own loop
         import threading
-        
+
         def run_in_thread():
             asyncio.run(update_fortune_async(user_id, image_date_str))
-        
+
         thread = threading.Thread(target=run_in_thread, daemon=True)
         thread.start()
-    
+
     logger.debug(
         f"Scheduled async fortune update for user {user_id}, "
         f"image_date={image_date_str}"
+    )
+
+
+async def generate_fortune_async(user_id: int, date_str: str) -> None:
+    """
+    Fire-and-forget async task to generate fortune with AI.
+
+    This function generates a fortune for the specified date in the background,
+    allowing the API to respond immediately with placeholder data.
+
+    Args:
+        user_id: ID of the user
+        date_str: Date string in YYYY-MM-DD format for the fortune date
+    """
+    try:
+        from .models import FortuneResult
+        from user.models import User
+        from datetime import datetime
+        from django.core.files.base import ContentFile
+
+        # Parse the date
+        date = datetime.strptime(date_str, '%Y-%m-%d')
+
+        logger.info(
+            f"Starting async fortune generation for user {user_id}, date={date_str}"
+        )
+
+        # Get user object
+        try:
+            user = await sync_to_async(User.objects.get)(id=user_id)
+        except User.DoesNotExist:
+            logger.error(f"User {user_id} not found")
+            return
+
+        # Get FortuneResult
+        try:
+            fortune_result = await sync_to_async(FortuneResult.objects.get)(
+                user_id=user_id,
+                for_date=date.date()
+            )
+        except FortuneResult.DoesNotExist:
+            logger.error(f"FortuneResult not found for user {user_id}, date {date.date()}")
+            return
+
+        # Skip if already completed
+        if fortune_result.status == 'completed':
+            logger.info(f"Fortune already completed for user {user_id}, date {date.date()}")
+            return
+
+        # Generate fortune with AI (sync operation)
+        from core.views import fortune_service
+        from core.utils.saju_concepts import Saju
+
+        user_saju = await sync_to_async(fortune_service.get_user_saju_info)(user_id)
+        tomorrow_day_ganji = fortune_service.calculate_day_ganji(date)
+        fortune_score = await sync_to_async(fortune_service.calculate_fortune_balance)(user, date)
+
+        compatibility = fortune_service.analyze_saju_compatibility(
+            user_saju.daily,
+            tomorrow_day_ganji
+        )
+
+        fortune = fortune_service.generate_fortune_with_ai(
+            user_saju,
+            date,
+            tomorrow_day_ganji,
+            compatibility,
+            fortune_score
+        )
+
+        # Generate fortune image with AI
+        image_bytes = fortune_service.generate_fortune_image_with_ai(
+            fortune,
+            user_saju,
+            date,
+            tomorrow_day_ganji,
+            fortune_score
+        )
+
+        # Update with completed fortune
+        fortune_result.fortune_data = fortune.model_dump()
+        fortune_result.status = 'completed'
+        await sync_to_async(fortune_result.save)(update_fields=['fortune_data', 'status'])
+
+        # Save image if generated successfully
+        if image_bytes:
+            image_filename = f"fortune_{user_id}_{date.strftime('%Y%m%d')}.png"
+            await sync_to_async(fortune_result.fortune_image.save)(
+                image_filename,
+                ContentFile(image_bytes),
+                save=True
+            )
+            logger.info(f"Fortune image saved for user {user_id} on {date}")
+        else:
+            logger.warning(f"No image generated for user {user_id} on {date}")
+
+        logger.info(f"Successfully generated fortune for user {user_id}, date={date_str}")
+
+    except Exception as e:
+        logger.error(
+            f"Error in async fortune generation for user {user_id}: {e}",
+            exc_info=True
+        )
+        # Mark as pending so it can be retried
+        try:
+            fortune_result = await sync_to_async(FortuneResult.objects.get)(
+                user_id=user_id,
+                for_date=datetime.strptime(date_str, '%Y-%m-%d').date()
+            )
+            fortune_result.status = 'pending'
+            await sync_to_async(fortune_result.save)(update_fields=['status'])
+        except Exception:
+            pass
+
+
+def schedule_fortune_generation(user_id: int, date_str: str) -> None:
+    """
+    Schedule a fortune generation task to run in the background.
+
+    Args:
+        user_id: ID of the user
+        date_str: Date string in YYYY-MM-DD format for the fortune date
+    """
+    try:
+        # Get the current event loop or create a new one
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If we're already in an async context, schedule the task
+            asyncio.create_task(generate_fortune_async(user_id, date_str))
+        else:
+            # If we're in a sync context, run the task in the background
+            asyncio.run_coroutine_threadsafe(
+                generate_fortune_async(user_id, date_str),
+                loop
+            )
+    except RuntimeError:
+        # No event loop exists, create a new thread with its own loop
+        import threading
+
+        def run_in_thread():
+            asyncio.run(generate_fortune_async(user_id, date_str))
+
+        thread = threading.Thread(target=run_in_thread, daemon=True)
+        thread.start()
+
+    logger.info(
+        f"Scheduled async fortune generation for user {user_id}, date={date_str}"
     )
