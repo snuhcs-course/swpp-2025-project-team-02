@@ -999,6 +999,7 @@ class TestFortuneAPIEndpoints(APITestCase):
         from core.utils.saju_concepts import Saju
         from core.services.daewoon import DaewoonCalculator
         from django.core.files.base import ContentFile
+        from datetime import date, time
         import base64
 
         today = timezone.now().date()
@@ -1007,10 +1008,11 @@ class TestFortuneAPIEndpoints(APITestCase):
         mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         image_bytes = base64.b64decode(mock_image_base64)
 
-        # Create FortuneResult with image
+        # Create FortuneResult with image and status='completed'
         fortune_result = FortuneResult.objects.create(
             user=self.user,
             for_date=today,
+            status='completed',
             gapja_code=1,
             gapja_name='갑자',
             gapja_element='목',
@@ -1036,6 +1038,28 @@ class TestFortuneAPIEndpoints(APITestCase):
             save=True
         )
 
+        # Mock generate_fortune to return cached result
+        mock_fortune_response = FortuneResponse(
+            date=today.strftime('%Y-%m-%d'),
+            user_id=self.user.id,
+            fortune=FortuneAIResponse(
+                today_fortune_summary='좋은 날입니다!',
+                today_element_balance_description='균형 설명',
+                today_daily_guidance='일상 가이드'
+            ),
+            fortune_score=FortuneScore(
+                entropy_score=75.0,
+                elements={},
+                element_distribution={},
+                interpretation='Test',
+                needed_element='수'
+            ),
+            saju_date=Saju.from_date(today, time(0, 0)),
+            saju_user=self.user.saju(),
+            daewoon=DaewoonCalculator.calculate_daewoon(self.user)
+        )
+        mock_generate.return_value = Response(status='success', data=mock_fortune_response)
+
         url = reverse('core:fortune-today')
         response = self.client.get(url)
 
@@ -1055,6 +1079,10 @@ class TestFortuneAPIEndpoints(APITestCase):
     def test_fortune_today_without_image(self, mock_generate):
         """Test /fortune/today returns None for fortune_image_url when no image."""
         from core.models import FortuneResult
+        from core.services.fortune import FortuneResponse, FortuneAIResponse, FortuneScore, Response
+        from core.utils.saju_concepts import Saju
+        from core.services.daewoon import DaewoonCalculator
+        from datetime import time
 
         today = timezone.now().date()
 
@@ -1062,6 +1090,7 @@ class TestFortuneAPIEndpoints(APITestCase):
         FortuneResult.objects.create(
             user=self.user,
             for_date=today,
+            status='completed',
             gapja_code=1,
             gapja_name='갑자',
             gapja_element='목',
@@ -1078,6 +1107,28 @@ class TestFortuneAPIEndpoints(APITestCase):
                 'needed_element': '수'
             }
         )
+
+        # Mock generate_fortune to return cached result
+        mock_fortune_response = FortuneResponse(
+            date=today.strftime('%Y-%m-%d'),
+            user_id=self.user.id,
+            fortune=FortuneAIResponse(
+                today_fortune_summary='좋은 날입니다!',
+                today_element_balance_description='균형 설명',
+                today_daily_guidance='일상 가이드'
+            ),
+            fortune_score=FortuneScore(
+                entropy_score=75.0,
+                elements={},
+                element_distribution={},
+                interpretation='Test',
+                needed_element='수'
+            ),
+            saju_date=Saju.from_date(today, time(0, 0)),
+            saju_user=self.user.saju(),
+            daewoon=DaewoonCalculator.calculate_daewoon(self.user)
+        )
+        mock_generate.return_value = Response(status='success', data=mock_fortune_response)
 
         url = reverse('core:fortune-today')
         response = self.client.get(url)
