@@ -1138,78 +1138,22 @@ class TestFortuneAPIEndpoints(APITestCase):
         self.assertIn('fortune_image_url', response.data['data'])
         self.assertIsNone(response.data['data']['fortune_image_url'])
 
-    @patch('openai.OpenAI')
-    @patch('core.views.fortune_service')
-    def test_fortune_today_generates_new_with_image(self, mock_service, mock_openai):
-        """Test /fortune/today generates new fortune with image when not in DB."""
-        from core.services.fortune import FortuneResponse, FortuneAIResponse, FortuneScore, ElementDistribution, Response
-        from core.utils.saju_concepts import Saju
-        from core.services.daewoon import DaewoonCalculator
-        from django.core.files.base import ContentFile
-        import base64
-
-        today = timezone.now().date()
-        yesterday = today - timedelta(days=1)
-
-        # Mock image generation
-        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-
-        # Create mock fortune response
-        mock_fortune_ai = FortuneAIResponse(
-            today_fortune_summary="좋은 날!",
-            today_element_balance_description="균형 설명",
-            today_daily_guidance="일상 가이드"
-        )
-
-        mock_fortune_score = FortuneScore(
-            entropy_score=75.0,
-            elements={
-                "대운": None,
-                "세운": {"two_letters": "갑자"},
-                "월운": {"two_letters": "병인"},
-                "일운": {"two_letters": "무신"},
-                "년주": {"two_letters": "갑자"},
-                "월주": {"two_letters": "을축"},
-                "일주": {"two_letters": "병인"},
-                "시주": {"two_letters": "정묘"},
-            },
-            element_distribution={
-                "목": ElementDistribution(count=3, percentage=20.0),
-                "화": ElementDistribution(count=3, percentage=20.0),
-                "토": ElementDistribution(count=4, percentage=26.7),
-                "금": ElementDistribution(count=3, percentage=20.0),
-                "수": ElementDistribution(count=2, percentage=13.3)
-            },
-            interpretation="Test",
-            needed_element="수"
-        )
-
-        birth_time = self.user._convert_time_units_to_time(self.user.birth_time_units)
-        mock_saju_date = Saju.from_date(today, birth_time)
-        mock_saju_user = self.user.saju()
-        mock_daewoon = DaewoonCalculator.calculate_daewoon(self.user)
-
-        mock_fortune_response = FortuneResponse(
-            date=today.isoformat(),
-            user_id=self.user.id,
-            fortune=mock_fortune_ai,
-            fortune_score=mock_fortune_score,
-            saju_date=mock_saju_date,
-            saju_user=mock_saju_user,
-            daewoon=mock_daewoon
-        )
-
-        mock_service.generate_fortune.return_value = Response(
-            status='success',
-            data=mock_fortune_response
-        )
-
+    @patch('core.tasks.schedule_fortune_generation')
+    def test_fortune_today_generates_new_with_image(self, mock_schedule):
+        """Test /fortune/today generates new fortune with placeholder when not in DB (async)."""
         url = reverse('core:fortune-today')
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'success')
         self.assertIn('fortune_image_url', response.data['data'])
+
+        # Check placeholder messages
+        fortune_data = response.data['data']['fortune']
+        self.assertIn('운세를 생성하고 있습니다', fortune_data['today_fortune_summary'])
+
+        # Verify background task was scheduled
+        self.assertEqual(mock_schedule.call_count, 1)
 
     @override_settings(DEVELOPMENT_MODE=False)
     def test_fortune_today_unauthenticated(self):

@@ -702,16 +702,19 @@ class TestFortuneServiceIntegration(TestCase):
             for_date=tomorrow_date
         )
 
-        # Verify fortune data
+        # Verify fortune data (placeholder initially)
         self.assertIsNotNone(fortune_result.fortune_data)
         self.assertIsNotNone(fortune_result.fortune_score)
         self.assertIn('today_fortune_summary', fortune_result.fortune_data)
 
-        # Verify image was saved
-        self.assertTrue(fortune_result.fortune_image)
-        # Check that image file has been saved (name is not empty)
-        self.assertIsNotNone(fortune_result.fortune_image.name)
-        self.assertGreater(len(fortune_result.fortune_image.name), 0)
+        # Verify status is processing (image generated in background)
+        self.assertEqual(fortune_result.status, 'processing')
+
+        # Image is not saved yet (generated in background)
+        self.assertFalse(fortune_result.fortune_image)
+
+        # Verify placeholder message
+        self.assertIn('운세를 생성하고 있습니다', fortune_result.fortune_data['today_fortune_summary'])
 
     @patch('openai.OpenAI')
     def test_generate_fortune_without_image_on_failure(self, mock_openai):
