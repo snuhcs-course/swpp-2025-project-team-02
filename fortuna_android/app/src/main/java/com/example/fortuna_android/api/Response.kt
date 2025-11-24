@@ -268,7 +268,9 @@ data class TodayFortuneData(
     val forDate: String?,
     val fortune: TodayFortune,
     @SerializedName("fortune_score")
-    val fortuneScore: FortuneScore
+    val fortuneScore: FortuneScore,
+    @SerializedName("fortune_image_url")
+    val fortuneImageUrl: String?
 )
 
 data class TodayFortune(
