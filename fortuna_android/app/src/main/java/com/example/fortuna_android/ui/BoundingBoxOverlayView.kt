@@ -87,9 +87,9 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
-    // Preview shading paint (different opacity for size selection)
+    // Preview shading paint (same opacity as normal shading for consistency)
     private val previewShadingPaint = Paint().apply {
-        color = Color.argb(150, 0, 0, 0) // Semi-transparent black
+        color = Color.argb(120, 0, 0, 0) // Semi-transparent black - same as shadingPaint
         style = Paint.Style.FILL
         isAntiAlias = true
     }
@@ -326,9 +326,19 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         isInSizeSelectionMode = false
         detectedSizeRatio = finalSizeRatio.coerceIn(0.3f, 1.0f)
 
-        // Clear preview box - normal detection flow will add real boxes
+        // Don't clear preview box immediately - keep it to avoid flickering
+        // It will be replaced when VLM analysis starts with "Analyzing..." boxes
+        // Just update the label to indicate transition
         if (boundingBoxes.any { it.label == "Preview" }) {
-            boundingBoxes = emptyList()
+            boundingBoxes = listOf(
+                DetectedObjectResult(
+                    confidence = 1.0f,
+                    label = "Starting Analysis...",
+                    centerCoordinate = Pair(0, 0),
+                    width = 0,
+                    height = 0
+                )
+            )
         }
 
         invalidate()
