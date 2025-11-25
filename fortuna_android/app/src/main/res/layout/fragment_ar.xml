@@ -123,7 +123,7 @@
             <!-- Back Button (Left) - Pokemon GO style -->
             <ImageButton
                 android:id="@+id/btnBack"
-                android:layout_width="48dp"
+                android:layout_width="70dp"
                 android:layout_height="48dp"
                 android:background="@drawable/ar_back_button_background"
                 android:contentDescription="Back"
@@ -141,7 +141,7 @@
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/scanButton"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
+                android:layout_height="60dp"
                 android:background="@drawable/ar_scan_button_selector"
                 android:minWidth="120dp"
                 android:text="수집"
@@ -149,7 +149,9 @@
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.05"
-                android:elevation="8dp" />
+                android:elevation="8dp"
+                android:gravity="center"
+                android:textAlignment="center" />
 
             <!-- Right Spacer -->
             <View
@@ -160,10 +162,9 @@
             <!-- Clear Button (Right) - Pokemon GO style -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/clearButton"
-                android:layout_width="wrap_content"
+                android:layout_width="70dp"
                 android:layout_height="38dp"
                 android:background="@drawable/ar_reset_button_background"
-                android:minWidth="70dp"
                 android:paddingHorizontal="14dp"
                 android:text="리셋"
                 android:textColor="#424242"

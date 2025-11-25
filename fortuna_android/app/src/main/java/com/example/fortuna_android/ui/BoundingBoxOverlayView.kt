@@ -50,7 +50,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
 
     private val textPaint = Paint().apply {
         color = Color.WHITE
-        textSize = 40f
+        textSize = 60f
         isAntiAlias = true
         style = Paint.Style.FILL
     }
@@ -75,7 +75,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
 
     private val previewTextPaint = Paint().apply {
         color = Color.WHITE
-        textSize = 36f
+        textSize = 60f
         isAntiAlias = true
         style = Paint.Style.FILL
     }
@@ -124,8 +124,8 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
      * Update bounding boxes to display
      */
     fun setBoundingBoxes(boxes: List<DetectedObjectResult>) {
-        val hadAnalyzing = boundingBoxes.any { it.label == "Analyzing..." }
-        val hasAnalyzing = boxes.any { it.label == "Analyzing..." }
+        val hadAnalyzing = boundingBoxes.any { it.label == "분석중..." || it.label == "Analyzing..." }
+        val hasAnalyzing = boxes.any { it.label == "분석중..." || it.label == "Analyzing..." }
 
         boundingBoxes = boxes
         Log.d(TAG, "Updated with ${boxes.size} bounding boxes")
@@ -146,7 +146,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
      * Clear all bounding boxes
      */
     fun clearBoundingBoxes() {
-        val hadAnalyzing = boundingBoxes.any { it.label == "Analyzing..." }
+        val hadAnalyzing = boundingBoxes.any { it.label == "분석중..." || it.label == "Analyzing..." }
         boundingBoxes = emptyList()
         removeCallbacks(spinnerAnimationRunnable)  // Stop spinner animation
 
@@ -213,13 +213,13 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         canvas.drawCircle(centerX, centerY, 8f, centerPointPaint)
 
         // Draw spinner if analyzing
-        if (box.label.contains("Analyzing")) {
+        if (box.label.contains("분석중") || box.label.contains("Analyzing")) {
             drawSpinner(canvas, centerX, centerY, squareSize / 2f - 20f)
         }
 
         // Different labels for preview vs normal mode
         val label = if (isInSizeSelectionMode) {
-            "Size: ${(previewSizeRatio * 100).toInt()}%"
+            "주변에서 원소를 찾아보세요!"
         } else {
             "${box.label} (${(box.confidence * 100).toInt()}%)"
         }
