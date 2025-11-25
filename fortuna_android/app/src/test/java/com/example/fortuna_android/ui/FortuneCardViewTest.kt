@@ -421,7 +421,8 @@ class FortuneCardViewTest {
                     )
                 ),
                 interpretation = "균형잡힌 오행입니다"
-            )
+            ),
+            fortuneImageUrl = null
         )
     }
 
@@ -463,7 +464,8 @@ class FortuneCardViewTest {
                     )
                 ),
                 interpretation = "균형잡힌 오행입니다"
-            )
+            ),
+            fortuneImageUrl = null
         )
     }
 }

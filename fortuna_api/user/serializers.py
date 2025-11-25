@@ -11,13 +11,21 @@ class GoogleLoginSerializer(serializers.Serializer):
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """프로필 업데이트 시리얼라이저"""
-    input_birth_date = serializers.DateField(write_only=True, source='birth_date')
-    input_calendar_type = serializers.ChoiceField(choices=['solar', 'lunar'], write_only=True, source='solar_or_lunar')
+    input_birth_date = serializers.DateField(write_only=True, required=False)
+    input_calendar_type = serializers.ChoiceField(
+        choices=['solar', 'lunar'],
+        write_only=True,
+        required=False
+    )
 
     class Meta:
         model = User
         fields = [
-            'nickname', 'input_birth_date', 'input_calendar_type', 'birth_time_units', 'gender'
+            'nickname',
+            'input_birth_date',
+            'input_calendar_type',
+            'birth_time_units',
+            'gender'
         ]
 
     def validate_nickname(self, value):
@@ -46,9 +54,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         3. 프로필 완성도 재계산
         """
         # 생년월일 정보 추출 (write_only 필드이므로 pop 필요)
-        input_birth_date = validated_data.pop('birth_date', None)
-        input_calendar_type = validated_data.pop('solar_or_lunar', None)
-        input_birth_time_units = validated_data.get('birth_time_units')
+        input_birth_date = validated_data.pop('input_birth_date', None)
+        input_calendar_type = validated_data.pop('input_calendar_type', None)
+        input_birth_time_units = validated_data.pop('birth_time_units', None)
 
         # 일반 필드들 업데이트 (닉네임, 성별 등)
         for attribute_name, attribute_value in validated_data.items():
@@ -56,7 +64,11 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
         # 생년월일 정보가 있으면 양력/음력 변환 및 사주 계산
         if input_birth_date and input_calendar_type:
-            instance.set_birth_date_and_calculate_saju(input_birth_date, input_calendar_type, input_birth_time_units)
+            instance.set_birth_date_and_calculate_saju(
+                input_birth_date,
+                input_calendar_type,
+                input_birth_time_units
+            )
 
         # 프로필 완성도 재계산
         instance.update_profile_completeness_status()

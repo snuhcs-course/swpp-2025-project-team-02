@@ -395,7 +395,13 @@ class ProfileEditFragment : Fragment() {
                     Log.d(TAG, "프로필 업데이트 성공: $updatedProfile")
                     if (isAdded) {
                         try {
-                            CustomToast.show(requireContext(), "프로필이 성공적으로 업데이트되었습니다!")
+                            // fortune_reset이 true면 운세 초기화 알림 추가
+                            val message = if (updatedProfile?.fortuneReset == true) {
+                                "프로필이 업데이트되었습니다.\n사주 정보가 변경되어 운세가 새로 계산됩니다."
+                            } else {
+                                "프로필이 성공적으로 업데이트되었습니다!"
+                            }
+                            CustomToast.show(requireContext(), message)
                         } catch (e: Exception) {
                             // Ignore toast errors in tests
                         }
