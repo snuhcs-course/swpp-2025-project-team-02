@@ -9,14 +9,16 @@ import android.util.Log
  * Represents an individual rendering component (3D Objects).
  * Renders 3D sphere objects at AR anchor positions.
  */
-class ObjectRendererComponent : RenderComponent() {
+class ObjectRendererComponent(
+    private val sharedObjectRenderer: ObjectRender? = null
+) : RenderComponent() {
 
     companion object {
         private const val TAG = "ObjectRenderer"
     }
 
-    // Delegate to existing ObjectRender implementation
-    private val objectRenderer = ObjectRender()
+    // Delegate to existing ObjectRender implementation - use shared instance if provided
+    private lateinit var objectRenderer: ObjectRender
 
     override fun getName(): String = "Object Renderer"
 
@@ -24,7 +26,12 @@ class ObjectRendererComponent : RenderComponent() {
 
     override fun onSurfaceCreated(render: SampleRender) {
         Log.d(TAG, "Initializing object renderer")
-        objectRenderer.onSurfaceCreated(render)
+        objectRenderer = sharedObjectRenderer ?: ObjectRender()
+
+        // Only initialize if we created a new instance (not shared)
+        if (sharedObjectRenderer == null) {
+            objectRenderer.onSurfaceCreated(render)
+        }
     }
 
     /**

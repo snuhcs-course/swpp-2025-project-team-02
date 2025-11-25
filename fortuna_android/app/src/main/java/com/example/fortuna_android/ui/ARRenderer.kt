@@ -325,16 +325,24 @@ class ARRenderer(private val fragment: ARFragment) :
     }
 
     override fun onSurfaceCreated(render: SampleRender) {
-        // Composite Pattern: Build rendering tree structure
+        // Initialize renderers FIRST - before composite tree
+        // This ensures the same instances are used for both animation updates and rendering
+        backgroundRenderer = BackgroundRenderer(render).apply {
+            setUseDepthVisualization(render, false)
+        }
 
+        // Initialize object renderer for animation updates
+        objectRenderer.onSurfaceCreated(render)
+
+        // Composite Pattern: Build rendering tree structure
         rootRenderer = CompositeRenderer("AR Root", "Main AR rendering pipeline").apply {
-            // Background layer (rendered first)
-            add(BackgroundRendererComponent())
+            // Background layer (rendered first) - pass the shared backgroundRenderer instance
+            add(BackgroundRendererComponent(backgroundRenderer))
 
             // 3D Scene layer (composite of point cloud and objects)
             val sceneRenderer = CompositeRenderer("3D Scene", "AR 3D content layer")
             sceneRenderer.add(PointCloudRendererComponent())
-            sceneRenderer.add(ObjectRendererComponent())
+            sceneRenderer.add(ObjectRendererComponent(objectRenderer))  // Pass shared instance
             add(sceneRenderer)
         }
 
@@ -345,12 +353,8 @@ class ARRenderer(private val fragment: ARFragment) :
         // Log the tree structure for debugging
         rootRenderer.printTree()
 
-        // Keep old initialization for backward compatibility
-        backgroundRenderer = BackgroundRenderer(render).apply {
-            setUseDepthVisualization(render, false)
-        }
-        pointCloudRender.onSurfaceCreated(render)
-        objectRenderer.onSurfaceCreated(render)
+        // Note: pointCloudRender is not used anymore - PointCloudRendererComponent has its own instance
+        // Keeping the old objectRenderer instance for animation updates only
 
         // Initialize VLM and VLMObjectDetector in background
         launch(Dispatchers.IO) {
@@ -495,8 +499,9 @@ class ARRenderer(private val fragment: ARFragment) :
         }
 
         // Background rendering is now handled by Composite Pattern (BackgroundRendererComponent)
-         backgroundRenderer.updateDisplayGeometry(frame)
-         backgroundRenderer.drawBackground(render)
+        // Update geometry here, but actual drawing is done by rootRenderer.draw() below
+        backgroundRenderer.updateDisplayGeometry(frame)
+        //  backgroundRenderer.drawBackground(render)
 
         // Get camera and projection matrices
         val camera = frame.camera

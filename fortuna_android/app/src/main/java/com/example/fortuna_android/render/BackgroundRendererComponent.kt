@@ -9,13 +9,15 @@ import android.util.Log
  * Represents an individual rendering component (AR Background).
  * Renders the camera feed background in AR.
  */
-class BackgroundRendererComponent : RenderComponent() {
+class BackgroundRendererComponent(
+    private val sharedBackgroundRenderer: BackgroundRenderer? = null
+) : RenderComponent() {
 
     companion object {
         private const val TAG = "BackgroundRenderer"
     }
 
-    // Background renderer instance
+    // Background renderer instance - use shared instance if provided
     private lateinit var backgroundRenderer: BackgroundRenderer
 
     override fun getName(): String = "Background Renderer"
@@ -24,8 +26,14 @@ class BackgroundRendererComponent : RenderComponent() {
 
     override fun onSurfaceCreated(render: SampleRender) {
         Log.d(TAG, "Initializing background renderer")
-        backgroundRenderer = BackgroundRenderer(render).apply {
+        backgroundRenderer = sharedBackgroundRenderer ?: BackgroundRenderer(render).apply {
             setUseDepthVisualization(render, false)
+        }
+
+        // Shared instance is already initialized by ARRenderer, no need to re-initialize
+        // Only log that we're using the shared instance
+        if (sharedBackgroundRenderer != null) {
+            Log.d(TAG, "Using shared BackgroundRenderer instance")
         }
     }
 
