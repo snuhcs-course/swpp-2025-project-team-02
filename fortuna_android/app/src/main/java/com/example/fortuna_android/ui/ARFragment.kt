@@ -295,7 +295,7 @@ class ARFragment(
             if (::renderer.isInitialized) {
                 renderer.clearAnchors()
                 if (isAdded) {
-                    CustomToast.show(requireContext(), "리셋")
+                    CustomToast.show(requireContext(), "AR 초기화 완료!")
                 }
             }
         }
