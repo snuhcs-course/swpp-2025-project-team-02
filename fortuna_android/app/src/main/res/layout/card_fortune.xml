@@ -7,9 +7,13 @@
     app:cardBackgroundColor="#1E1E1E"
     app:cardElevation="0dp">
 
-    <ScrollView
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -328,14 +332,32 @@
                     android:orientation="vertical"
                     android:layout_marginBottom="28dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="오늘의 오행 균형"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="오늘의 오행 균형"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/ivSpeakerBalance"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_speaker_small"
+                            android:layout_marginStart="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:padding="2dp"
+                            android:background="?attr/selectableItemBackgroundBorderless" />
+                    </LinearLayout>
 
                     <!-- 운세 이미지 (2:3 비율 - 1024x1536) -->
                     <ImageView
@@ -366,14 +388,32 @@
                     android:orientation="vertical"
                     android:layout_marginBottom="28dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="당신의 운세를 좋게 만드는 방법"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="당신의 운세를 좋게 만드는 방법"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/ivSpeakerGuidance"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_speaker_small"
+                            android:layout_marginStart="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:padding="2dp"
+                            android:background="?attr/selectableItemBackgroundBorderless" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/tvDailyGuidance"
@@ -403,6 +443,18 @@
 
         </LinearLayout>
 
-    </ScrollView>
+        </ScrollView>
+
+        <!-- TTS Control Bar (Music Player Style) -->
+        <include
+            android:id="@+id/ttsControlBar"
+            layout="@layout/tts_control_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_margin="16dp"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </androidx.cardview.widget.CardView>

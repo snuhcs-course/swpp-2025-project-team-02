@@ -97,6 +97,23 @@ class FortuneTtsManager(
     }
 
     /**
+     * Speak text directly without UI binding
+     * @param text The text to speak
+     */
+    fun speak(text: String) {
+        Log.d(TAG, "Speaking text: ${text.take(50)}...")
+        ttsAdapter.speak(text)
+    }
+
+    /**
+     * Set completion listener for TTS
+     * @param listener Callback invoked when speaking is done
+     */
+    fun setOnCompleteListener(listener: () -> Unit) {
+        ttsAdapter.setOnCompleteListener(listener)
+    }
+
+    /**
      * Release TTS resources
      * Call this when the view is destroyed or no longer needed
      */
