@@ -494,8 +494,9 @@ class ARRenderer(private val fragment: ARFragment) :
             return
         }
 
-        backgroundRenderer.updateDisplayGeometry(frame)
-        backgroundRenderer.drawBackground(render)
+        // Background rendering is now handled by Composite Pattern (BackgroundRendererComponent)
+         backgroundRenderer.updateDisplayGeometry(frame)
+         backgroundRenderer.drawBackground(render)
 
         // Get camera and projection matrices
         val camera = frame.camera
