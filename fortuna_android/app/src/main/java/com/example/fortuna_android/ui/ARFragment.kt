@@ -26,7 +26,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import androidx.activity.addCallback
 import androidx.activity.OnBackPressedCallback
 import androidx.navigation.NavController
 import com.example.fortuna_android.MainActivity
@@ -39,7 +38,6 @@ import com.google.ar.core.CameraConfig
 import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.Config
 import com.google.ar.core.exceptions.CameraNotAvailableException
-import com.google.ar.core.exceptions.SessionPausedException
 import com.google.ar.core.exceptions.UnavailableApkTooOldException
 import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
@@ -51,7 +49,7 @@ import kotlinx.coroutines.launch
 
 class ARFragment(
     private val sessionManagerFactory: ((Activity) -> ARSessionManager)? = null
-) : Fragment(), DefaultLifecycleObserver {
+) : Fragment(), DefaultLifecycleObserver, BoundingBoxOverlayView.AnalyzeStateListener {
 
     companion object {
         private const val TAG = "ARFragment"
@@ -87,6 +85,10 @@ class ARFragment(
 
     // Capture sound effect player for sphere elimination
     private var capturePlayer: MediaPlayer? = null
+    // Scan button sound effect player for size selection
+    private var scanButtonPlayer: MediaPlayer? = null
+    // Analyze sound effect player for VLM analysis
+    private var analyzePlayer: MediaPlayer? = null
 
     // Track which element sounds have been played to prevent multiple plays per scan
     private var waterSoundPlayed = false
@@ -285,6 +287,9 @@ class ARFragment(
 
         // Press-and-hold for dynamic bounding box sizing
         setupScanButtonPressAndHold()
+
+        // Set analyze state listener for audio feedback
+        binding.boundingBoxOverlay.setAnalyzeStateListener(this)
 
         binding.clearButton.setOnClickListener {
             if (::renderer.isInitialized) {
@@ -568,6 +573,16 @@ class ARFragment(
             com.example.fortuna_android.R.raw.capture,
             "Capture (Sphere Elimination)"
         )
+        setupElementSound(
+            { scanButtonPlayer = it },
+            com.example.fortuna_android.R.raw.scansound,
+            "Scan Button (Size Selection)"
+        )
+        setupElementSound(
+            { analyzePlayer = it },
+            com.example.fortuna_android.R.raw.analyze,
+            "Analyze (VLM Analysis)"
+        )
     }
 
     /**
@@ -622,6 +637,8 @@ class ARFragment(
         stopElementSound(registeelPlayer, "Registeel") { registeelPlayer = null }
         stopElementSound(sudowoodoPlayer, "Sudowoodo") { sudowoodoPlayer = null }
         stopElementSound(capturePlayer, "Capture") { capturePlayer = null }
+        stopElementSound(scanButtonPlayer, "Scan Button") { scanButtonPlayer = null }
+        stopElementSound(analyzePlayer, "Analyze") { analyzePlayer = null }
     }
 
     /**
@@ -642,6 +659,98 @@ class ARFragment(
             Log.e(TAG, "Error stopping $soundName sound effect", e)
             nullifier()
         }
+    }
+
+    /**
+     * Start playing scan button sound effect during press-and-hold
+     */
+    private fun startScanButtonMusic() {
+        try {
+            scanButtonPlayer?.let { player ->
+                if (!player.isPlaying) {
+                    // Lower background music volume during scan button press
+                    bgmPlayer?.setVolume(0f, 0f)
+
+                    player.isLooping = true // Loop the sound while holding
+                    player.start()
+                    Log.d(TAG, "Scan button music started, background music volume lowered")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting scan button music", e)
+        }
+    }
+
+    /**
+     * Stop scan button sound effect when released
+     */
+    private fun stopScanButtonMusic() {
+        try {
+            scanButtonPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.pause()
+                    player.seekTo(0) // Reset to beginning for next play
+
+                    // Don't restore background music volume here - VLM analysis starts next
+                    // Volume will be restored when VLM analysis completes in stopAnalyzeMusic()
+
+                    Log.d(TAG, "Scan button music stopped, keeping background music muted for VLM analysis")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping scan button music", e)
+        }
+    }
+
+    /**
+     * Start playing analyze sound effect during VLM analysis
+     */
+    fun startAnalyzeMusic() {
+        try {
+            analyzePlayer?.let { player ->
+                if (!player.isPlaying) {
+                    // Ensure background music volume stays at zero during analysis
+                    // (Should already be zero from scan button, but ensure it stays that way)
+                    bgmPlayer?.setVolume(0f, 0f)
+
+                    player.isLooping = true // Loop during analysis
+                    player.start()
+                    Log.d(TAG, "Analyze music started, background music kept muted")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting analyze music", e)
+        }
+    }
+
+    /**
+     * Stop analyze sound effect when VLM analysis completes
+     */
+    fun stopAnalyzeMusic() {
+        try {
+            analyzePlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.pause()
+                    player.seekTo(0) // Reset to beginning for next play
+
+                    // Restore background music volume after analysis
+                    bgmPlayer?.setVolume(0.3f, 0.3f)
+
+                    Log.d(TAG, "Analyze music stopped, background music volume restored")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping analyze music", e)
+        }
+    }
+
+    // AnalyzeStateListener interface implementation
+    override fun onAnalyzeStarted() {
+        startAnalyzeMusic()
+    }
+
+    override fun onAnalyzeStopped() {
+        stopAnalyzeMusic()
     }
 
     override fun onResume(owner: LifecycleOwner) {
@@ -969,8 +1078,8 @@ class ARFragment(
     fun onSphereCollected(tappedAnchor: ARRenderer.ARLabeledAnchor, wasNeededElement: Boolean, currentCount: Int) {
         Log.i(TAG, "Sphere tapped! Element: ${tappedAnchor.element.displayName}, wasNeeded: $wasNeededElement, count: $currentCount")
 
-        // Always show celebration animation for any tap
-        showCelebrationAnimation()
+        // Always show celebration animation for any tap with element-specific colors
+        showCelebrationAnimation(tappedAnchor.element)
 
         // Trigger haptic feedback for sphere interaction
         triggerHapticFeedback(wasNeededElement)
@@ -1045,13 +1154,10 @@ class ARFragment(
     private fun playCaptureSound() {
         try {
             capturePlayer?.let { mediaPlayer ->
-                if (!mediaPlayer.isPlaying) {
-                    mediaPlayer.seekTo(0)
-                    mediaPlayer.start()
-                    Log.i(TAG, "🔊 Sphere captured! Playing capture sound effect")
-                } else {
-                    Log.d(TAG, "Capture sound effect already playing, skipping")
-                }
+                // Always restart the sound for immediate feedback on rapid eliminations
+                mediaPlayer.seekTo(0)
+                mediaPlayer.start()
+                Log.i(TAG, "🔊 Sphere captured! Playing capture sound effect")
             } ?: Log.w(TAG, "Capture player is null")
         } catch (e: Exception) {
             Log.e(TAG, "Error playing capture sound effect", e)
@@ -1059,9 +1165,9 @@ class ARFragment(
     }
 
     /**
-     * Show fireworks-style celebration animation at tap location
+     * Show fireworks-style celebration animation at tap location with element-specific colors
      */
-    private fun showCelebrationAnimation() {
+    private fun showCelebrationAnimation(element: ElementMapper.Element) {
         // Play capture sound effect
         playCaptureSound()
 
@@ -1071,19 +1177,49 @@ class ARFragment(
                 binding.celebrationOverlay.removeAllViews()
                 binding.celebrationOverlay.visibility = View.VISIBLE
 
-                // Create firework particles
+                // Create firework particles with element-specific colors and emojis
                 val particleCount = 12
-                val colors = listOf(
-                    "#FFD700", // Gold
-                    "#FF6B6B", // Red
-                    "#4ECDC4", // Cyan
-                    "#45B7D1", // Blue
-                    "#FFA07A", // Light Salmon
-                    "#98D8C8", // Mint
-                    "#F7DC6F", // Yellow
-                    "#BB8FCE"  // Purple
-                )
-                val emojis = listOf("✨", "⭐", "💫", "🌟", "✨", "⭐")
+
+                // Element-specific colors and emojis
+                val (colors, emojis) = when (element) {
+                    ElementMapper.Element.FIRE -> {
+                        Pair(
+                            listOf("#FF4444", "#FF6B6B", "#FF8888", "#FFAA44", "#FF0000", "#DC143C", "#FF6347", "#FF4500"), // Red/orange shades
+                            listOf("🔥", "🌋", "💥", "⚡", "🔥", "🌋", "💥", "⚡")
+                        )
+                    }
+                    ElementMapper.Element.WATER -> {
+                        Pair(
+                            listOf("#4ECDC4", "#45B7D1", "#00CED1", "#20B2AA", "#5F9EA0", "#4682B4", "#6495ED", "#87CEEB"), // Blue/cyan shades
+                            listOf("💧", "🌊", "💎", "❄️", "💧", "🌊", "💎", "❄️")
+                        )
+                    }
+                    ElementMapper.Element.EARTH -> {
+                        Pair(
+                            listOf("#F7DC6F", "#F4D03F", "#F1C40F", "#D4AF37", "#DAA520", "#FFD700", "#FFA500", "#FF8C00"), // Yellow/gold shades
+                            listOf("🌍", "🏔️", "💎", "✨", "🌍", "🏔️", "💎", "✨")
+                        )
+                    }
+                    ElementMapper.Element.WOOD -> {
+                        Pair(
+                            listOf("#98D8C8", "#90EE90", "#32CD32", "#228B22", "#006400", "#7CFC00", "#ADFF2F", "#9AFF9A"), // Green shades
+                            listOf("🌳", "🌿", "🍃", "🌱", "🌳", "🌿", "🍃", "🌱")
+                        )
+                    }
+                    ElementMapper.Element.METAL -> {
+                        Pair(
+                            listOf("#BB8FCE", "#C0C0C0", "#D3D3D3", "#DCDCDC", "#E6E6FA", "#F0F8FF", "#F5F5F5", "#FFFFFF"), // Silver/purple shades
+                            listOf("⚙️", "🔩", "⚡", "💎", "⚙️", "🔩", "⚡", "💎")
+                        )
+                    }
+                    else -> {
+                        // Default colors for OTHERS or unknown elements
+                        Pair(
+                            listOf("#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE"),
+                            listOf("✨", "⭐", "💫", "🌟", "✨", "⭐", "💫", "🌟")
+                        )
+                    }
+                }
 
                 for (i in 0 until particleCount) {
                     val particle = TextView(requireContext()).apply {
@@ -1422,6 +1558,9 @@ class ARFragment(
                     Log.d(TAG, "Scan button press started")
                     holdStartTime = System.currentTimeMillis()
 
+                    // Start scan button music
+                    startScanButtonMusic()
+
                     // Enter size selection mode with preview box
                     binding.boundingBoxOverlay.enterSizeSelectionMode()
 
@@ -1454,6 +1593,9 @@ class ARFragment(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     // User releases button or cancels touch
                     Log.d(TAG, "Scan button press released")
+
+                    // Stop scan button music
+                    stopScanButtonMusic()
 
                     // Stop updating preview size
                     holdUpdateRunnable?.let { runnable ->

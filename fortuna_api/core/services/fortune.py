@@ -4,20 +4,19 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 """
 
 import os
-import json
+import base64
 from datetime import datetime, timedelta
 from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
-from enum import Enum
 from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
 from django.conf import settings
+from django.core.files.base import ContentFile
 from user.models import User
 from ..utils.saju_concepts import (
     Saju,
     GanJi,
     FiveElements,
-    TenStems,
     TwelveBranches
 )
 from .image import ImageService
@@ -102,6 +101,18 @@ class FortuneResponseDeprecated(BaseModel):
 class FortuneService:
     """Service for generating Saju-based fortune tellings."""
 
+    # Element to character file mapping
+    ELEMENT_TO_CHARACTER_FILE = {
+        FiveElements.WOOD: "wood.png",
+        FiveElements.FIRE: "fire.png",
+        FiveElements.EARTH: "earth.png",
+        FiveElements.METAL: "metal.png",
+        FiveElements.WATER: "water.png"
+    }
+
+    # Cache for uploaded character file IDs (class variable)
+    _character_file_cache: Dict[str, str] = {}
+
     def __init__(self, image_service: ImageService | None = None):
         """Initialize FortuneService with OpenAI client."""
         api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
@@ -113,6 +124,72 @@ class FortuneService:
         self.image_service = image_service if image_service else ImageService()
 
     ### private methods ###
+
+    def _get_character_file_path(self, element: FiveElements) -> str:
+        """
+        Get the absolute file path for a character image based on element.
+
+        Args:
+            element: FiveElements enum value
+
+        Returns:
+            Absolute path to the character image file
+        """
+        filename = self.ELEMENT_TO_CHARACTER_FILE[element]
+        # core/static/characters/ directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        character_path = os.path.join(base_dir, 'static', 'characters', filename)
+
+        return character_path
+
+    def _upload_character_file(self, element: FiveElements) -> str:
+        """
+        Upload character image to OpenAI Files API with caching.
+
+        Args:
+            element: FiveElements enum value
+
+        Returns:
+            OpenAI file ID for the uploaded character image
+
+        Raises:
+            ValueError: If client not initialized or file not found
+        """
+        if not self.client:
+            raise ValueError("OpenAI client not initialized")
+
+        # Check cache first
+        element_key = element.chinese
+        if element_key in self._character_file_cache:
+            logger.info(f"Using cached character file ID for {element_key}")
+            return self._character_file_cache[element_key]
+
+        # Get file path
+        character_path = self._get_character_file_path(element)
+
+        # Check if file exists
+        if not os.path.exists(character_path):
+            logger.warning(f"Character file not found: {character_path}")
+            raise ValueError(f"Character image file not found for element {element.chinese}")
+
+        # Upload to OpenAI Files API
+        try:
+            with open(character_path, "rb") as file_content:
+                result = self.client.files.create(
+                    file=file_content,
+                    purpose="vision"
+                )
+                file_id = result.id
+
+                # Cache the file ID
+                self._character_file_cache[element_key] = file_id
+                logger.info(f"Uploaded character file for {element.chinese}: {file_id}")
+
+                return file_id
+
+        except Exception as e:
+            logger.error(f"Failed to upload character file for {element.chinese}: {e}")
+            raise
 
     def calculate_day_ganji(self, date_value: datetime) -> GanJi:
         """
@@ -492,7 +569,7 @@ class FortuneService:
                 today_daily_guidance=f"오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 부족한 {needed_element}의 기운을 보충하기 위해 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
-    def _parse_fortune_response(self, content: str, tomorrow_date: datetime, compatibility: Dict[str, Any]) -> FortuneAIResponse:
+    def _parse_fortune_response(self, content: str, _tomorrow_date: datetime, _compatibility: Dict[str, Any]) -> FortuneAIResponse:
         """Parse AI response into FortuneAIResponse structure."""
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
@@ -502,6 +579,132 @@ class FortuneService:
             today_daily_guidance=content[-200:] if len(content) > 200 else "오늘은 평온한 마음으로 균형을 유지하세요."
         )
 
+    def generate_fortune_image_with_ai(
+        self,
+        fortune_response: FortuneAIResponse,
+        user_saju: Saju,
+        tomorrow_date: datetime,
+        tomorrow_day_ganji: GanJi,
+        fortune_score: FortuneScore
+    ) -> Optional[bytes]:
+        """
+        Generate fortune image using OpenAI API with character image.
+
+        Args:
+            fortune_response: Generated fortune text
+            user_saju: User's Saju object
+            tomorrow_date: Tomorrow's date
+            tomorrow_day_ganji: Tomorrow's day pillar
+            fortune_score: Calculated fortune score
+
+        Returns:
+            Base64 decoded image bytes, or None on error
+        """
+        try:
+            if not self.client:
+                raise ValueError("OpenAI client not initialized")
+
+            # Extract element information
+            user_day_element = user_saju.daily.stem.element
+            needed_element = fortune_score.needed_element
+
+            # Element name mapping for prompt (Korean -> description)
+            element_descriptions = {
+                "목": "나무 (Wood)",
+                "화": "불 (Fire)",
+                "토": "흙 (Earth)",
+                "금": "금속 (Metal)",
+                "수": "물 (Water)"
+            }
+            needed_element_desc = element_descriptions.get(needed_element, needed_element)
+
+            # Get character image path based on user's day element
+            character_path = None
+            try:
+                character_path = self._get_character_file_path(user_day_element)
+                if not os.path.exists(character_path):
+                    logger.warning(f"Character file not found: {character_path}. Proceeding without character image.")
+                    character_path = None
+            except Exception as e:
+                logger.warning(f"Failed to get character file path: {e}. Proceeding without character image.")
+                character_path = None
+
+            # Prepare image generation prompt
+            image_prompt = f"""
+            역할: 당신은 입력받은 텍스트(오늘의 운세)의 핵심 내용과 분위기를 파악하여, 대사 없이도 상황이 이해되는 재치 있는 네컷 만화로 각색하는 전문 웹툰 작가입니다.
+            
+            핵심 지시 사항: 제공된 <오늘의 운세 요약> 텍스트 전체를 읽고, 그 안에 담긴 **오늘 하루의 흐름(시작, 과정, 문제 발생, 해결)**을 당신의 창의력을 발휘하여 자유롭게 네컷 만화로 구성하세요.
+            
+            1. 이미지 구성 지시 (가장 중요):
+            - 포맷: 정확히 4개의 개별 패널(컷)로 구성된 만화 스트립을 생성하세요.
+            - 레이아웃: 2x2 그리드 형식으로, 왼쪽 상단이 1번 컷, 오른쪽 상단이 2번 컷, 왼쪽 하단이 3번 컷, 오른쪽 하단이 4번 컷이 되도록 배치하세요. 각 패널 사이에는 명확한 흰색 테두리가 있어야 합니다.
+            - 텍스트 위치: 각 패널의 바로 위 중앙에 **영어 캡션(제목)**을 배치하세요. 이 캡션은 간결하고 해당 컷의 내용을 명확히 요약해야 합니다. 캡션 외의 다른 대사나 말풍선은 절대 금지합니다.
+            - 스타일: 매우 유머러스하고 과장된 코믹 카툰 스타일로, 굵은 외곽선을 사용하세요.
+            
+            2. 주인공 및 기본 설정:
+            - 주인공: 반드시 제공된 캐릭터 이미지의 스타일과 특징을 유지하여 그리세요.
+            - 스타일: 대사가 전혀 없는, 재미있고 과장된 코믹 카툰 스타일.
+            - 시간의 흐름: 네 컷은 반드시 [오전] -> [점심] -> [오후] -> [밤] 순서로 시간의 경과가 느껴져야 합니다. 배경의 해/달 위치나 분위기로 표현하세요.
+            
+            3. 만화의 내용
+            - 만화의 전체 내용은 **<오늘의 운세 요약>**의 운세 흐름을 반영해야 합니다.
+            - 특히 3컷(오후) 쯤에는 운세에서 말하는 **'문제 상황'이나 '부족한 점'**을 표현해야 합니다.
+            - 마지막 4컷(밤)에는 {needed_element_desc} (부족한 오행 원소)를 채움으로써 문제가 해결되고 평온/만족을 되찾는 결말로 마무리하세요.
+            
+            <오늘의 운세 요약>
+            {fortune_response.today_element_balance_description}
+            
+            각 컷 상단 캡션 예시:
+            1컷: Energetic start based on Earth.
+            2컷: Busy Flow, Water & Fire Energy
+            3컷: Metal Lacking, Deadline Trouble
+            4컷: Metal Added, Perfect Balance
+            
+            오행 원소 설명:
+            - 화: 불 (Fire)
+            - 수: 물 (Water)
+            - 목: 나무 (Wood)
+            - 금: 금속 (Metal)
+            - 토: 흙 (Earth)
+            """
+
+            # With character image reference
+            with open(character_path, "rb") as image_file:
+                response = self.client.images.edit(
+                    model="gpt-image-1",
+                    image=image_file,
+                    prompt=image_prompt.strip(),
+                    size="1024x1536",
+                )
+
+
+            # Extract image data from response
+            image_data = response.data[0].b64_json
+
+            if image_data:
+                # Decode base64 image
+                image_bytes = base64.b64decode(image_data)
+                logger.info(f"Successfully generated fortune image for {tomorrow_date}")
+                return image_bytes
+            else:
+                logger.warning("No image data returned from OpenAI API")
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to generate fortune image: {e}")
+            return None
+
+    def _get_element_color(self, element: str) -> str:
+        """Get color representation for an element."""
+        element_colors = {
+            "목": "초록색, 청색",
+            "화": "빨간색, 주황색",
+            "토": "노란색, 갈색",
+            "금": "흰색, 회색",
+            "수": "검은색, 파란색"
+        }
+        return element_colors.get(element, "무지개색")
+
     ### public methods ###
 
     # Main method for fetching fortune.
@@ -510,60 +713,97 @@ class FortuneService:
         user: User,
         date: datetime
     ) -> Response[FortuneResponse]:
+        """
+        Generate fortune with race condition protection using database-level locking.
+
+        Status flow: pending → processing → completed
+        """
+        from django.db import transaction
+
         try:
             # Get tomorrow's date
             tomorrow_date = date + timedelta(days=1)
 
-            # Get user's Saju information (returns Saju object)
-            user_saju = self.get_user_saju_info(user.id)
+            # Check if fortune already exists
+            with transaction.atomic():
+                try:
+                    # Use select_for_update() to lock the row
+                    fortune_result = FortuneResult.objects.select_for_update().get(
+                        user_id=user.id,
+                        for_date=tomorrow_date.date()
+                    )
 
-            # Calculate tomorrow's day pillar (일주)
-            tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
+                    # If completed, return existing fortune
+                    if fortune_result.status == 'completed':
+                        # Build response from cached data
+                        birth_time = user._convert_time_units_to_time(user.birth_time_units)
+                        response_data = FortuneResponse(
+                            date=tomorrow_date.strftime('%Y-%m-%d'),
+                            user_id=user.id,
+                            fortune=FortuneAIResponse(**fortune_result.fortune_data),
+                            fortune_score=FortuneScore(**fortune_result.fortune_score),
+                            saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
+                            saju_user=user.saju(),
+                            daewoon=DaewoonCalculator.calculate_daewoon(user)
+                        )
+                        return Response(status="success", data=response_data)
 
-            # Analyze compatibility between user's day pillar and tomorrow's day pillar
-            compatibility = self.analyze_saju_compatibility(
-                user_saju.daily,  # User's day pillar
-                tomorrow_day_ganji  # Tomorrow's day pillar
-            )
+                    # If pending or processing, return placeholder
+                    if fortune_result.status in ['pending', 'processing']:
+                        logger.info(f"Fortune generation in progress for user {user.id}, date {tomorrow_date.date()}")
+                        birth_time = user._convert_time_units_to_time(user.birth_time_units)
+                        response_data = FortuneResponse(
+                            date=tomorrow_date.strftime('%Y-%m-%d'),
+                            user_id=user.id,
+                            fortune=FortuneAIResponse(**fortune_result.fortune_data),
+                            fortune_score=FortuneScore(**fortune_result.fortune_score),
+                            saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
+                            saju_user=user.saju(),
+                            daewoon=DaewoonCalculator.calculate_daewoon(user)
+                        )
+                        return Response(status="success", data=response_data)
 
-            # Calculate fortune score (use tomorrow_date for consistency)
-            fortune_score = self.calculate_fortune_balance(user, tomorrow_date)
+                except FortuneResult.DoesNotExist:
+                    # Create placeholder record with 'processing' status (atomic)
+                    user_saju = self.get_user_saju_info(user.id)
+                    tomorrow_day_ganji = self.calculate_day_ganji(tomorrow_date)
+                    fortune_score = self.calculate_fortune_balance(user, tomorrow_date)
 
-            # Generate fortune with AI
-            fortune = self.generate_fortune_with_ai(
-                user_saju,
-                tomorrow_date,
-                tomorrow_day_ganji,
-                compatibility,
-                fortune_score
-            )
+                    # Get index of tomorrow's ganji in 60-ganji cycle
+                    cached_ganji_list = GanJi._get_cached()
+                    tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
 
-            # Get index of tomorrow's ganji in 60-ganji cycle for storage
-            cached_ganji_list = GanJi._get_cached()
-            tomorrow_ganji_index = cached_ganji_list.index(tomorrow_day_ganji)
+                    # Create placeholder fortune message
+                    placeholder_fortune = FortuneAIResponse(
+                        today_fortune_summary="운세를 생성하고 있습니다... 잠시만 기다려주세요!",
+                        today_element_balance_description="AI가 당신의 사주와 오늘의 기운을 분석하고 있습니다.",
+                        today_daily_guidance="곧 맞춤형 조언을 제공해드리겠습니다."
+                    )
 
-           
+                    # Create with 'processing' status immediately to prevent duplicate work
+                    fortune_result = FortuneResult.objects.create(
+                        user_id=user.id,
+                        for_date=tomorrow_date.date(),
+                        status='processing',
+                        gapja_code=tomorrow_ganji_index,
+                        gapja_name=tomorrow_day_ganji.two_letters,
+                        gapja_element=tomorrow_day_ganji.stem.element.chinese,
+                        fortune_score=fortune_score.model_dump(),
+                        fortune_data=placeholder_fortune.model_dump()
+                    )
 
-            # Save to database
-            fortune_result, created = FortuneResult.objects.update_or_create(
-                user_id=user.id,
-                for_date=tomorrow_date.date(),
-                defaults={
-                    'gapja_code': tomorrow_ganji_index,
-                    'gapja_name': tomorrow_day_ganji.two_letters,
-                    'gapja_element': tomorrow_day_ganji.stem.element.chinese,
-                    'fortune_data': fortune.model_dump() if fortune else {},
-                    'fortune_score': fortune_score.model_dump()
-                }
-            )
+            # Schedule background task to generate fortune with AI
+            from core.tasks import schedule_fortune_generation
+            schedule_fortune_generation(user.id, tomorrow_date.strftime('%Y-%m-%d'))
 
-            # Prepare final response
+            # Return placeholder response immediately
+            birth_time = user._convert_time_units_to_time(user.birth_time_units)
             response_data = FortuneResponse(
                 date=tomorrow_date.strftime('%Y-%m-%d'),
                 user_id=user.id,
-                fortune=fortune,
-                fortune_score=fortune_score,
-                saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, user._convert_time_units_to_time(user.birth_time_units)),
+                fortune=FortuneAIResponse(**fortune_result.fortune_data),
+                fortune_score=FortuneScore(**fortune_result.fortune_score),
+                saju_date=Saju.from_date(tomorrow_date.date() if isinstance(tomorrow_date, datetime) else tomorrow_date, birth_time),
                 saju_user=user.saju(),
                 daewoon=DaewoonCalculator.calculate_daewoon(user)
             )

@@ -496,7 +496,8 @@ class ResponseTest {
                 todayDailyGuidance = "오늘은 조심하세요. 오전이 좋습니다.",
                 todayElementBalanceDescription = "균형잡힌 오행입니다"
             ),
-            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석")
+            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석"),
+            fortuneImageUrl = null
         )
 
         val response = TodayFortuneResponse("success", fortuneData)
@@ -517,11 +518,13 @@ class ResponseTest {
                 todayDailyGuidance = "오늘은 조심하세요.",
                 todayElementBalanceDescription = "균형입니다"
             ),
-            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석")
+            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석"),
+            fortuneImageUrl = null
         )
 
         assertNull(data.generatedAt)
         assertNull(data.forDate)
+        assertNull(data.fortuneImageUrl)
     }
 
     @Test
@@ -621,6 +624,26 @@ class ResponseTest {
 
         assertEquals(0, distribution.count)
         assertEquals(0.0, distribution.percentage, 0.001)
+    }
+
+    @Test
+    fun `test TodayFortuneData with fortuneImageUrl`() {
+        val data = TodayFortuneData(
+            fortuneId = 1,
+            userId = 1,
+            generatedAt = "2025-10-24T10:00:00Z",
+            forDate = "2025-10-24",
+            fortune = TodayFortune(
+                todayFortuneSummary = "좋은 하루",
+                todayDailyGuidance = "오늘은 조심하세요.",
+                todayElementBalanceDescription = "균형입니다"
+            ),
+            fortuneScore = FortuneScore(75.0, emptyMap(), emptyMap(), "해석"),
+            fortuneImageUrl = "https://example.com/fortune/image.png"
+        )
+
+        assertNotNull(data.fortuneImageUrl)
+        assertEquals("https://example.com/fortune/image.png", data.fortuneImageUrl)
     }
 
     // Data class copy tests

@@ -215,25 +215,46 @@ class ARRenderer(private val fragment: ARFragment) :
                 val anchor = labeledAnchor.anchor
                 if (anchor.trackingState != TrackingState.TRACKING) continue
 
-                // Project anchor position to screen coordinates
+                // Calculate object dimensions based on distance and scale
                 val anchorPose = anchor.pose
-                val worldPos = floatArrayOf(anchorPose.tx(), anchorPose.ty(), anchorPose.tz(), 1f)
-                val screenPos = projectToScreen(worldPos, viewMatrix, projectionMatrix)
+                val distanceScale = kotlin.math.max(1.0f, labeledAnchor.distance / 1.5f) // REFERENCE_DISTANCE from ObjectRender
+                val baseScale = 0.1f * distanceScale // OBJECT_SCALE from ObjectRender
+                val effectiveScale = kotlin.math.max(0.08f, baseScale) // MIN_VISUAL_SCALE from ObjectRender
 
-                if (screenPos != null) {
-                    // Calculate 2D distance on screen
-                    val dx = screenPos[0] - x
-                    val dy = screenPos[1] - y
-                    val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                // Estimate object height (scale factor * 2 for sphere diameter + bounce height)
+                val objectHeight = effectiveScale * 2.0f + 0.05f // Adding BOUNCE_HEIGHT for animation
 
-                    Log.d(TAG, "${labeledAnchor.element.displayName} sphere at (${screenPos[0].toInt()}, ${screenPos[1].toInt()}), distance: ${distance.toInt()}px")
+                // Check multiple points along the object's height for tap detection
+                var minDistance = Float.MAX_VALUE
+                val checkPoints = 5 // Number of points to check along the object height
 
-                    if (distance < closestDistance && distance < tapThreshold) {
-                        closestDistance = distance
-                        closestAnchor = labeledAnchor
+                for (i in 0 until checkPoints) {
+                    val heightOffset = (i.toFloat() / (checkPoints - 1)) * objectHeight
+                    val worldPos = floatArrayOf(
+                        anchorPose.tx(),
+                        anchorPose.ty() + heightOffset,
+                        anchorPose.tz(),
+                        1f
+                    )
+                    val screenPos = projectToScreen(worldPos, viewMatrix, projectionMatrix)
+
+                    if (screenPos != null) {
+                        // Calculate 2D distance on screen
+                        val dx = screenPos[0] - x
+                        val dy = screenPos[1] - y
+                        val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+
+                        if (distance < minDistance) {
+                            minDistance = distance
+                        }
                     }
-                } else {
-                    Log.d(TAG, "${labeledAnchor.element.displayName} sphere not on screen")
+                }
+
+                Log.d(TAG, "${labeledAnchor.element.displayName} sphere closest distance: ${minDistance.toInt()}px (height: $objectHeight)")
+
+                if (minDistance < closestDistance && minDistance < tapThreshold) {
+                    closestDistance = minDistance
+                    closestAnchor = labeledAnchor
                 }
             }
         }

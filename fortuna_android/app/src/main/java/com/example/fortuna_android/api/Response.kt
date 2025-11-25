@@ -212,7 +212,8 @@ data class UpdateProfileRequest(
 // PATCH /api/user/profile/ 응답 데이터
 data class UpdateProfileResponse(
     @SerializedName("message") val message: String,
-    @SerializedName("user") val user: UpdatedUserData
+    @SerializedName("user") val user: UpdatedUserData,
+    @SerializedName("fortune_reset") val fortuneReset: Boolean
 )
 
 data class UpdatedUserData(
@@ -268,7 +269,9 @@ data class TodayFortuneData(
     val forDate: String?,
     val fortune: TodayFortune,
     @SerializedName("fortune_score")
-    val fortuneScore: FortuneScore
+    val fortuneScore: FortuneScore,
+    @SerializedName("fortune_image_url")
+    val fortuneImageUrl: String?
 )
 
 data class TodayFortune(

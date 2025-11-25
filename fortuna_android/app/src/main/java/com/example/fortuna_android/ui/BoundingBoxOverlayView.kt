@@ -23,6 +23,17 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         private const val TAG = "BoundingBoxOverlayView"
     }
 
+    interface AnalyzeStateListener {
+        fun onAnalyzeStarted()
+        fun onAnalyzeStopped()
+    }
+
+    private var analyzeStateListener: AnalyzeStateListener? = null
+
+    fun setAnalyzeStateListener(listener: AnalyzeStateListener?) {
+        analyzeStateListener = listener
+    }
+
     init {
         // Allow touch events to pass through this overlay
         isClickable = false
@@ -83,6 +94,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
+
     // Spinner animation state
     private var spinnerRotation = 0f
     private val spinnerAnimationRunnable = object : Runnable {
@@ -103,11 +115,13 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         boundingBoxes = boxes
         Log.d(TAG, "Updated with ${boxes.size} bounding boxes")
 
-        // Start/stop spinner animation based on "Analyzing..." status
+        // Start/stop spinner animation and analyze audio based on "Analyzing..." status
         if (hasAnalyzing && !hadAnalyzing) {
             post(spinnerAnimationRunnable)
+            analyzeStateListener?.onAnalyzeStarted()
         } else if (!hasAnalyzing && hadAnalyzing) {
             removeCallbacks(spinnerAnimationRunnable)
+            analyzeStateListener?.onAnalyzeStopped()
         }
 
         invalidate()  // Request redraw
@@ -117,8 +131,15 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
      * Clear all bounding boxes
      */
     fun clearBoundingBoxes() {
+        val hadAnalyzing = boundingBoxes.any { it.label == "Analyzing..." }
         boundingBoxes = emptyList()
         removeCallbacks(spinnerAnimationRunnable)  // Stop spinner animation
+
+        // Stop analyze audio if it was playing
+        if (hadAnalyzing) {
+            analyzeStateListener?.onAnalyzeStopped()
+        }
+
         invalidate()
         Log.d(TAG, "Cleared all bounding boxes and stopped spinner animation")
     }
@@ -197,8 +218,10 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         )
         canvas.drawText(label, textX, textY, paintForText)
 
+
         Log.d(TAG, "Drew fixed center square: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
     }
+
 
     /**
      * Draw animated spinner (circular loading indicator)
