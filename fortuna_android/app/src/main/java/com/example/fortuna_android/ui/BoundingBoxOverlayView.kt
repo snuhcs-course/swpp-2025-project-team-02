@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -47,13 +48,6 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
     private var previewSizeRatio = 0.3f // Current preview size (30%-100%)
     private var detectedSizeRatio = 0.3f // Size used for detected objects
 
-    private val boxPaint = Paint().apply {
-        color = Color.GREEN
-        style = Paint.Style.STROKE
-        strokeWidth = 4f
-        isAntiAlias = true
-    }
-
     private val textPaint = Paint().apply {
         color = Color.WHITE
         textSize = 40f
@@ -79,19 +73,40 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         isAntiAlias = true
     }
 
-    // Preview mode paint (different color for size selection)
-    private val previewBoxPaint = Paint().apply {
-        color = Color.BLUE
-        style = Paint.Style.STROKE
-        strokeWidth = 6f
-        isAntiAlias = true
-    }
-
     private val previewTextPaint = Paint().apply {
         color = Color.WHITE
         textSize = 36f
         isAntiAlias = true
         style = Paint.Style.FILL
+    }
+
+    // Shading overlay paint for non-bounding box areas
+    private val shadingPaint = Paint().apply {
+        color = Color.argb(120, 0, 0, 0) // Semi-transparent black
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+
+    // Preview shading paint (different opacity for size selection)
+    private val previewShadingPaint = Paint().apply {
+        color = Color.argb(150, 0, 0, 0) // Semi-transparent black
+        style = Paint.Style.FILL
+        isAntiAlias = true
+    }
+
+    // Highlight border for the bounding box
+    private val highlightPaint = Paint().apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        isAntiAlias = true
+    }
+
+    private val previewHighlightPaint = Paint().apply {
+        color = Color.argb(255, 100, 150, 255)
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+        isAntiAlias = true
     }
 
 
@@ -182,12 +197,18 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         val right = centerX + squareSize / 2f
         val bottom = centerY + squareSize / 2f
 
-        // Use different colors for preview vs normal mode
-        val paintToUse = if (isInSizeSelectionMode) previewBoxPaint else boxPaint
-        canvas.drawRect(left, top, right, bottom, paintToUse)
+        // Create the shading effect by drawing the entire screen with overlay,
+        // then cutting out the bounding box area
+        drawShadedOverlay(canvas, left, top, right, bottom, viewWidth, viewHeight)
+
+        // Draw subtle highlight border around the bounding box
+        val highlightPaintToUse = if (isInSizeSelectionMode) previewHighlightPaint else highlightPaint
+        canvas.drawRect(left, top, right, bottom, highlightPaintToUse)
 
         // Draw center point
-        canvas.drawCircle(centerX, centerY, 15f, centerPointPaint)
+        val centerPointColor = if (isInSizeSelectionMode) Color.argb(255, 100, 150, 255) else Color.WHITE
+        centerPointPaint.color = centerPointColor
+        canvas.drawCircle(centerX, centerY, 8f, centerPointPaint)
 
         // Draw spinner if analyzing
         if (box.label.contains("Analyzing")) {
@@ -207,19 +228,43 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
 
         // Position text above the bounding box
         val textX = centerX - textWidth / 2f
-        val textY = top - 10f
+        val textY = top - 20f
 
         canvas.drawRect(
-            textX - 8f,
+            textX - 12f,
             textY - textHeight,
-            textX + textWidth + 8f,
-            textY + 8f,
+            textX + textWidth + 12f,
+            textY + 12f,
             textBackgroundPaint
         )
         canvas.drawText(label, textX, textY, paintForText)
 
+        Log.d(TAG, "Drew shaded overlay with highlighted area: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
+    }
 
-        Log.d(TAG, "Drew fixed center square: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
+    /**
+     * Draw shaded overlay covering the entire screen except for the bounding box area
+     */
+    private fun drawShadedOverlay(
+        canvas: Canvas,
+        boundingLeft: Float,
+        boundingTop: Float,
+        boundingRight: Float,
+        boundingBottom: Float,
+        viewWidth: Float,
+        viewHeight: Float
+    ) {
+        val shadingPaintToUse = if (isInSizeSelectionMode) previewShadingPaint else shadingPaint
+
+        // Create a path that covers the entire screen except the bounding box
+        val overlayPath = Path().apply {
+            // Add the entire screen as a rectangle
+            addRect(0f, 0f, viewWidth, viewHeight, Path.Direction.CW)
+            // Subtract the bounding box area (this creates a "hole")
+            addRect(boundingLeft, boundingTop, boundingRight, boundingBottom, Path.Direction.CCW)
+        }
+
+        canvas.drawPath(overlayPath, shadingPaintToUse)
     }
 
 
