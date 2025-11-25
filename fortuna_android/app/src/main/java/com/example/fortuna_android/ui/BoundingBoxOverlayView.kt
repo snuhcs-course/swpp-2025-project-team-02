@@ -191,7 +191,8 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         val sizeRatio = if (isInSizeSelectionMode) previewSizeRatio else detectedSizeRatio
         val squareSize = kotlin.math.min(viewWidth, viewHeight) * sizeRatio
 
-        // Calculate bounding box coordinates
+        // Calculate bounding box coordinates (IMPORTANT: These square coordinates are used for actual VLM cropping)
+        // Visual feedback will be circular, but the actual analysis area remains square
         val left = centerX - squareSize / 2f
         val top = centerY - squareSize / 2f
         val right = centerX + squareSize / 2f
@@ -201,9 +202,10 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
         // then cutting out the bounding box area
         drawShadedOverlay(canvas, left, top, right, bottom, viewWidth, viewHeight)
 
-        // Draw subtle highlight border around the bounding box
+        // Draw subtle circular highlight border around the viewing area
         val highlightPaintToUse = if (isInSizeSelectionMode) previewHighlightPaint else highlightPaint
-        canvas.drawRect(left, top, right, bottom, highlightPaintToUse)
+        val circleRadius = squareSize / 2f
+        canvas.drawCircle(centerX, centerY, circleRadius, highlightPaintToUse)
 
         // Draw center point
         val centerPointColor = if (isInSizeSelectionMode) Color.argb(255, 100, 150, 255) else Color.WHITE
@@ -243,7 +245,8 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
     }
 
     /**
-     * Draw shaded overlay covering the entire screen except for the bounding box area
+     * Draw shaded overlay covering the entire screen except for the circular viewing area
+     * Note: The actual crop area remains square, this is only for visual feedback
      */
     private fun drawShadedOverlay(
         canvas: Canvas,
@@ -256,12 +259,18 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
     ) {
         val shadingPaintToUse = if (isInSizeSelectionMode) previewShadingPaint else shadingPaint
 
-        // Create a path that covers the entire screen except the bounding box
+        // Calculate circle parameters based on the square bounding box
+        val centerX = (boundingLeft + boundingRight) / 2f
+        val centerY = (boundingTop + boundingBottom) / 2f
+        val squareSize = boundingRight - boundingLeft
+        val circleRadius = squareSize / 2f
+
+        // Create a path that covers the entire screen except the circular area
         val overlayPath = Path().apply {
             // Add the entire screen as a rectangle
             addRect(0f, 0f, viewWidth, viewHeight, Path.Direction.CW)
-            // Subtract the bounding box area (this creates a "hole")
-            addRect(boundingLeft, boundingTop, boundingRight, boundingBottom, Path.Direction.CCW)
+            // Subtract the circular area (this creates a "hole")
+            addCircle(centerX, centerY, circleRadius, Path.Direction.CCW)
         }
 
         canvas.drawPath(overlayPath, shadingPaintToUse)
