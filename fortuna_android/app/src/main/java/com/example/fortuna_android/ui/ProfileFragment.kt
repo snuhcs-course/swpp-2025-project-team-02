@@ -22,6 +22,7 @@ import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
+import com.example.fortuna_android.common.AppColors
 import com.example.fortuna_android.databinding.FragmentProfileBinding
 import com.example.fortuna_android.util.CustomToast
 import kotlinx.coroutines.launch
@@ -253,12 +254,12 @@ class ProfileFragment : Fragment() {
         val binding = _binding ?: return
         val collectionStatus = profile.collectionStatus
 
-        // Element colors matching SajuPaljaView
-        val woodColor = Color.parseColor("#0BEFA0")   // Green
-        val fireColor = Color.parseColor("#F93E3E")   // Red
-        val earthColor = Color.parseColor("#FF9500")  // Orange
-        val metalColor = Color.parseColor("#C1BFBF")  // Gray
-        val waterColor = Color.parseColor("#2BB3FC")  // Blue
+        // Element colors from AppColors
+        val woodColor = Color.parseColor(AppColors.ELEMENT_WOOD)
+        val fireColor = Color.parseColor(AppColors.ELEMENT_FIRE)
+        val earthColor = Color.parseColor(AppColors.ELEMENT_EARTH)
+        val metalColor = Color.parseColor(AppColors.ELEMENT_METAL)
+        val waterColor = Color.parseColor(AppColors.ELEMENT_WATER)
 
         // Update badge 1: 목 (Wood) - Green
         updateElementBadge(
@@ -372,14 +373,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun getElementColor(cheongan: String): Int {
-        return when (cheongan) {
-            "갑", "을" -> Color.parseColor("#0BEFA0")  // 나무 - 초록
-            "병", "정" -> Color.parseColor("#F93E3E")  // 불 - 빨강
-            "무", "기" -> Color.parseColor("#8B4513")  // 흙 - 갈색
-            "경", "신" -> Color.parseColor("#C0C0C0")  // 쇠 - 은색
-            "임", "계" -> Color.parseColor("#2BB3FC")  // 물 - 파랑
-            else -> Color.WHITE
-        }
+        return AppColors.getElementColorByStem(cheongan)
     }
 
 

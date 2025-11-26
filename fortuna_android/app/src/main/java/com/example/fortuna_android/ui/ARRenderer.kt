@@ -15,6 +15,7 @@ import com.example.fortuna_android.classification.ObjectDetector
 import com.example.fortuna_android.classification.ObjectDetectorFactory
 import com.example.fortuna_android.classification.ConfigurableDetectorFactory
 import com.example.fortuna_android.classification.ElementMapper
+import com.example.fortuna_android.common.AppConstants
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
 import com.example.fortuna_android.common.helpers.ImageUtils
 import com.example.fortuna_android.vlm.SmolVLMManager
@@ -199,7 +200,7 @@ class ARRenderer(private val fragment: ARFragment) :
      */
     private fun processTap(x: Float, y: Float): Pair<ARLabeledAnchor, Boolean>? {
         // Screen-space distance threshold (in pixels)
-        val tapThreshold = 150f // pixels
+        val tapThreshold = AppConstants.TAP_THRESHOLD_PIXELS
 
         var closestAnchor: ARLabeledAnchor? = null
         var closestDistance = Float.MAX_VALUE

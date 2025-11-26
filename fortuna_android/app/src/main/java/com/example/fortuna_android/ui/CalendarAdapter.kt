@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fortuna_android.api.DayData
+import com.example.fortuna_android.common.AppColors
 import com.example.fortuna_android.databinding.ItemCalendarDayBinding
 
 data class CalendarDay(
@@ -86,16 +87,16 @@ class CalendarAdapter(private var days: List<CalendarDay>) :
 
                 // 완료된 경우 배경 색상 변경
                 if (data.isCompleted) {
-                    binding.dayContainer.setBackgroundColor(Color.parseColor("#2A2A2A"))
+                    binding.dayContainer.setBackgroundColor(Color.parseColor(AppColors.BACKGROUND_DARK))
                 } else {
-                    binding.dayContainer.setBackgroundColor(Color.parseColor("#1E1E1E"))
+                    binding.dayContainer.setBackgroundColor(Color.parseColor(AppColors.BACKGROUND_REGULAR))
                 }
             } else {
                 // 데이터가 없는 경우
                 binding.checkIcon.visibility = View.GONE
                 binding.elementCircle.visibility = View.GONE
                 binding.progressDots.visibility = View.GONE
-                binding.dayContainer.setBackgroundColor(Color.parseColor("#1E1E1E"))
+                binding.dayContainer.setBackgroundColor(Color.parseColor(AppColors.BACKGROUND_REGULAR))
             }
         }
 
@@ -108,7 +109,7 @@ class CalendarAdapter(private var days: List<CalendarDay>) :
                 binding.dot5
             )
 
-            val emptyColor = Color.parseColor("#3A3A3A")
+            val emptyColor = Color.parseColor(AppColors.BACKGROUND_EMPTY)
 
             dots.forEachIndexed { index, dot ->
                 val color = if (index < count) elementColor else emptyColor
@@ -121,14 +122,7 @@ class CalendarAdapter(private var days: List<CalendarDay>) :
         }
 
         private fun getElementColor(element: String): Int {
-            return when (element.lowercase()) {
-                "wood", "나무", "목" -> Color.parseColor("#0BEFA0")  // 초록
-                "fire", "불", "화" -> Color.parseColor("#F93E3E")     // 빨강
-                "earth", "흙", "토" -> Color.parseColor("#FF9500")    // 노랑
-                "metal", "쇠", "금" -> Color.parseColor("#C0C0C0")    // 은색
-                "water", "물", "수" -> Color.parseColor("#2BB3FC")    // 파랑
-                else -> Color.parseColor("#FFFFFF")
-            }
+            return AppColors.getElementColorByEnglish(element)
         }
     }
 }

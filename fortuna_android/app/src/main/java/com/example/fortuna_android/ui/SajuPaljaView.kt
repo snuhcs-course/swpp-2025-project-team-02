@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.example.fortuna_android.common.AppColors
 import com.example.fortuna_android.databinding.ViewSajuPaljaBinding
 
 class SajuPaljaView @JvmOverloads constructor(
@@ -106,18 +107,6 @@ class SajuPaljaView @JvmOverloads constructor(
     }
 
     private fun getGanjiColor(ganji: String): Int {
-        return when (ganji) {
-            // 목(木) - 초록색
-            "갑", "을", "인", "묘" -> Color.parseColor("#0BEFA0")
-            // 화(火) - 빨간색
-            "병", "정", "사", "오" -> Color.parseColor("#F93E3E")
-            // 토(土) - 노란색
-            "무", "기", "술", "미", "축", "진" -> Color.parseColor("#FF9500")
-            // 금(金) - 흰색
-            "경", "신", "유" -> Color.parseColor("#C1BFBF")
-            // 수(水) - 회색
-            "임", "계", "자", "해" -> Color.parseColor("#2BB3FC")
-            else -> Color.parseColor("#CCCCCC")
-        }
+        return AppColors.getElementColorByBranch(ganji)
     }
 }

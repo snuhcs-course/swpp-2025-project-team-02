@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
+import com.example.fortuna_android.common.AppColors
 import com.example.fortuna_android.databinding.DialogElementHistoryBinding
 import com.example.fortuna_android.util.CustomToast
 import kotlinx.coroutines.launch
@@ -66,7 +67,7 @@ class ElementHistoryDialogFragment : DialogFragment() {
 
         elementType = arguments?.getString(ARG_ELEMENT_TYPE) ?: "wood"
         val elementKr = arguments?.getString(ARG_ELEMENT_KR) ?: "목"
-        val elementColor = arguments?.getInt(ARG_ELEMENT_COLOR) ?: Color.parseColor("#0BEFA0")
+        val elementColor = arguments?.getInt(ARG_ELEMENT_COLOR) ?: Color.parseColor(AppColors.ELEMENT_WOOD)
 
         setupUI(elementKr, elementColor)
         setupRecyclerView()
