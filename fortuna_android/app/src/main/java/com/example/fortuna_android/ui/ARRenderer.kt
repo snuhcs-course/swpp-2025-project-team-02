@@ -625,29 +625,6 @@ class ARRenderer(private val fragment: ARFragment) :
 
             Log.i(TAG, "Stored ${pendingClassifications.size} anchors for VLM classification")
         }
-
-        // OLD CODE - now handled by Composite Pattern above
-        // Draw 3D sphere objects at their anchor positions - create a safe copy to avoid concurrent modification
-        // val anchorsCopy = synchronized(arLabeledAnchors) {
-        //     arLabeledAnchors.toList()
-        // }
-        //
-        // for (arLabeledAnchor in anchorsCopy) {
-        //     val anchor = arLabeledAnchor.anchor
-        //     if (anchor.trackingState != TrackingState.TRACKING) continue
-        //
-        //     // Always show all detected elements - no filtering for display
-        //     // Draw 3D sphere object for each element with distance-based scaling and animation type
-        //     objectRenderer.draw(
-        //         render,
-        //         viewMatrix,
-        //         projectionMatrix,
-        //         anchor.pose,
-        //         arLabeledAnchor.element,
-        //         arLabeledAnchor.distance,
-        //         arLabeledAnchor.animationType
-        //     )
-        // }
     }
 
     // Temporary arrays to prevent allocations in createAnchor

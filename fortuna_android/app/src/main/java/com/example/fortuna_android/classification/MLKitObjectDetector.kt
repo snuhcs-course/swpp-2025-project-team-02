@@ -102,7 +102,4 @@ class MLKitObjectDetector(
     }.sortedByDescending { it.confidence } // Sort by confidence (highest first)
       .take(maxDetectedObjects) // Limit number of detected objects
   }
-
-  @Suppress("USELESS_IS_CHECK")
-  fun hasCustomModel() = builder is CustomObjectDetectorOptions.Builder
 }
