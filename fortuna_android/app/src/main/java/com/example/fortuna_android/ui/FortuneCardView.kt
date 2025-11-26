@@ -19,6 +19,7 @@ import com.example.fortuna_android.api.ChakraReading
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.BuildConfig
+import com.example.fortuna_android.common.AppColors
 import com.example.fortuna_android.databinding.CardFortuneBinding
 import com.example.fortuna_android.tts.AndroidTtsAdapter
 import com.example.fortuna_android.tts.FortuneTtsManager
@@ -70,7 +71,7 @@ class FortuneCardView @JvmOverloads constructor(
 
     init {
         // Set CardView background to black to prevent white corners
-        setCardBackgroundColor(Color.parseColor("#000000"))
+        setCardBackgroundColor(Color.parseColor(AppColors.COLOR_BLACK))
 
         binding = CardFortuneBinding.inflate(LayoutInflater.from(context), this, true)
 
@@ -243,8 +244,8 @@ class FortuneCardView @JvmOverloads constructor(
                     withContext(Dispatchers.Main) {
                         // Show default if API fails
                         binding.tvElementCharacter.text = "運"
-                        binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
-                        updateProgressDots(0, Color.parseColor("#FFD700"))
+                        binding.tvElementCharacter.setTextColor(Color.parseColor(AppColors.COLOR_GOLD))
+                        updateProgressDots(0, Color.parseColor(AppColors.COLOR_GOLD))
                         updateScoreWithBonus(0)
                     }
                 }
@@ -253,8 +254,8 @@ class FortuneCardView @JvmOverloads constructor(
                 withContext(Dispatchers.Main) {
                     // Show default if error occurs
                     binding.tvElementCharacter.text = "運"
-                    binding.tvElementCharacter.setTextColor(Color.parseColor("#FFD700"))
-                    updateProgressDots(0, Color.parseColor("#FFD700"))
+                    binding.tvElementCharacter.setTextColor(Color.parseColor(AppColors.COLOR_GOLD))
+                    updateProgressDots(0, Color.parseColor(AppColors.COLOR_GOLD))
                     updateScoreWithBonus(0)
                 }
             }
@@ -293,7 +294,7 @@ class FortuneCardView @JvmOverloads constructor(
             binding.dotProgress5
         )
 
-        val emptyColor = Color.parseColor("#3A3A3A")
+        val emptyColor = Color.parseColor(AppColors.BACKGROUND_EMPTY)
 
         // Check if completed (5/5)
         if (currentCount >= 5) {
@@ -302,7 +303,7 @@ class FortuneCardView @JvmOverloads constructor(
         } else {
             // Normal state
             binding.tvCollectionLabel.text = "오늘 보충한 기운"
-            binding.tvCollectionLabel.setTextColor(Color.parseColor("#888888"))
+            binding.tvCollectionLabel.setTextColor(Color.parseColor(AppColors.COLOR_GRAY))
 
             dots.forEachIndexed { index, dot ->
                 val color = if (index < currentCount) elementColor else emptyColor
@@ -330,7 +331,7 @@ class FortuneCardView @JvmOverloads constructor(
 
         // Update label with celebration text
         binding.tvCollectionLabel.text = "✨기운을 모두 채웠어요!✨"
-        binding.tvCollectionLabel.setTextColor(Color.parseColor("#FFD700")) // Gold color
+        binding.tvCollectionLabel.setTextColor(Color.parseColor(AppColors.COLOR_GOLD)) // Gold color
 
         // Make all dots filled with element color
         dots.forEach { dot ->
@@ -339,7 +340,7 @@ class FortuneCardView @JvmOverloads constructor(
             drawable.setColor(elementColor)
 
             // Add golden stroke for celebration effect
-            drawable.setStroke(2, Color.parseColor("#FFD700"))
+            drawable.setStroke(2, Color.parseColor(AppColors.COLOR_GOLD))
 
             dot.background = drawable
         }
@@ -378,14 +379,7 @@ class FortuneCardView @JvmOverloads constructor(
      * 오행 원소 색상 반환
      */
     private fun getElementColorFromString(element: String): Int {
-        return when (element.lowercase()) {
-            "wood", "나무", "목" -> Color.parseColor("#0BEFA0")  // 초록
-            "fire", "불", "화" -> Color.parseColor("#F93E3E")     // 빨강
-            "earth", "흙", "토" -> Color.parseColor("#FF9500")    // 노랑
-            "metal", "쇠", "금" -> Color.parseColor("#C0C0C0")    // 은색
-            "water", "물", "수" -> Color.parseColor("#2BB3FC")    // 파랑
-            else -> Color.parseColor("#FFFFFF")
-        }
+        return AppColors.getElementColorByEnglish(element)
     }
 
     /**

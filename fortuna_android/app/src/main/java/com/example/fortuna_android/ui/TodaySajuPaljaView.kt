@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.example.fortuna_android.api.ElementPillar
+import com.example.fortuna_android.common.AppColors
 import com.example.fortuna_android.databinding.ViewTodaySajuPaljaBinding
 
 class TodaySajuPaljaView @JvmOverloads constructor(
@@ -150,13 +151,6 @@ class TodaySajuPaljaView @JvmOverloads constructor(
     }
 
     private fun getElementColor(element: String): Int {
-        return when (element.lowercase()) {
-            "목", "wood" -> Color.parseColor("#0BEFA0")  // 초록
-            "화", "fire" -> Color.parseColor("#F93E3E")   // 빨강
-            "토", "earth" -> Color.parseColor("#FF9500")  // 노랑
-            "금", "metal" -> Color.parseColor("#C1BFBF")  // 흰색
-            "수", "water" -> Color.parseColor("#2BB3FC")  // 파랑
-            else -> Color.parseColor("#CCCCCC")
-        }
+        return AppColors.getElementColorByKorean(element)
     }
 }

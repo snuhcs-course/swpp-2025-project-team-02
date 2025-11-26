@@ -35,14 +35,8 @@ class HomeFragment : Fragment() {
         // Initialize ViewModel
         fortuneViewModel = ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
 
-        setupClickListeners()
-
         // Load today's fortune automatically
         loadTodayFortune()
-    }
-
-    private fun setupClickListeners() {
-        // No click listeners needed for header anymore
     }
 
     private fun loadTodayFortune() {

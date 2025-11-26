@@ -22,6 +22,7 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
 
     companion object {
         private const val TAG = "BoundingBoxOverlayView"
+        private val ANALYZING_LABELS = setOf("분석중...", "Analyzing...")
     }
 
     interface AnalyzeStateListener {
@@ -124,35 +125,53 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
      * Update bounding boxes to display
      */
     fun setBoundingBoxes(boxes: List<DetectedObjectResult>) {
-        val hadAnalyzing = boundingBoxes.any { it.label == "분석중..." || it.label == "Analyzing..." }
-        val hasAnalyzing = boxes.any { it.label == "분석중..." || it.label == "Analyzing..." }
+        val wasAnalyzing = isAnalyzing(boundingBoxes)
+        val isNowAnalyzing = isAnalyzing(boxes)
 
         boundingBoxes = boxes
         Log.d(TAG, "Updated with ${boxes.size} bounding boxes")
 
-        // Start/stop spinner animation and analyze audio based on "Analyzing..." status
-        if (hasAnalyzing && !hadAnalyzing) {
-            post(spinnerAnimationRunnable)
-            analyzeStateListener?.onAnalyzeStarted()
-        } else if (!hasAnalyzing && hadAnalyzing) {
-            removeCallbacks(spinnerAnimationRunnable)
-            analyzeStateListener?.onAnalyzeStopped()
+        // Handle analyzing state transitions
+        when {
+            !wasAnalyzing && isNowAnalyzing -> startAnalysisAnimation()
+            wasAnalyzing && !isNowAnalyzing -> stopAnalysisAnimation()
         }
 
         invalidate()  // Request redraw
     }
 
     /**
+     * Check if any box is in analyzing state
+     */
+    private fun isAnalyzing(boxes: List<DetectedObjectResult>): Boolean {
+        return boxes.any { it.label in ANALYZING_LABELS }
+    }
+
+    /**
+     * Start animation and notify listener
+     */
+    private fun startAnalysisAnimation() {
+        post(spinnerAnimationRunnable)
+        analyzeStateListener?.onAnalyzeStarted()
+    }
+
+    /**
+     * Stop animation and notify listener
+     */
+    private fun stopAnalysisAnimation() {
+        removeCallbacks(spinnerAnimationRunnable)
+        analyzeStateListener?.onAnalyzeStopped()
+    }
+
+    /**
      * Clear all bounding boxes
      */
     fun clearBoundingBoxes() {
-        val hadAnalyzing = boundingBoxes.any { it.label == "분석중..." || it.label == "Analyzing..." }
+        val wasAnalyzing = isAnalyzing(boundingBoxes)
         boundingBoxes = emptyList()
-        removeCallbacks(spinnerAnimationRunnable)  // Stop spinner animation
 
-        // Stop analyze audio if it was playing
-        if (hadAnalyzing) {
-            analyzeStateListener?.onAnalyzeStopped()
+        if (wasAnalyzing) {
+            stopAnalysisAnimation()
         }
 
         invalidate()
