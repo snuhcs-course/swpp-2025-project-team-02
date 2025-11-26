@@ -189,29 +189,9 @@ class ARFragment(
 
         // Configure ARCore session
         sessionManager.exceptionCallback = { exception ->
-            val message = when (exception) {
-                is UnavailableArcoreNotInstalledException,
-                is UnavailableUserDeclinedInstallationException -> "Please install ARCore"
-                is UnavailableApkTooOldException -> "Please update ARCore"
-                is UnavailableSdkTooOldException -> "Please update this app"
-                is UnavailableDeviceNotCompatibleException -> "This device does not support AR"
-                is CameraNotAvailableException -> "Camera not available. Try restarting the app."
-                is CameraAccessException -> {
-                    when (exception.reason) {
-                        CameraAccessException.CAMERA_DISCONNECTED -> "Camera disconnected. Please restart the app."
-                        CameraAccessException.CAMERA_ERROR -> "Camera error occurred. Please restart the app."
-                        CameraAccessException.CAMERA_IN_USE -> "Camera is in use by another app."
-                        CameraAccessException.MAX_CAMERAS_IN_USE -> "Too many cameras in use."
-                        CameraAccessException.CAMERA_DISABLED -> "Camera is disabled by device policy."
-                        else -> "Camera access error: ${exception.message}"
-                    }
-                }
-                else -> "Failed to create AR session: $exception"
-            }
+            val message = getARExceptionMessage(exception)
             Log.e(TAG, message, exception)
-            if (isAdded) {
-                CustomToast.show(requireContext(), message)
-            }
+            showToastIfAdded(message)
         }
 
         sessionManager.beforeSessionResume = { session ->
@@ -1013,7 +993,7 @@ class ARFragment(
     private fun updateCollectionProgress() {
         val binding = _binding ?: return
 
-        binding.collectionProgressText.text = "$localCollectedCount / $AppConstants.TARGET_COLLECTION_COUNT 수집"
+        binding.collectionProgressText.text = "$localCollectedCount / ${AppConstants.TARGET_COLLECTION_COUNT} 수집"
 
         // Check if quest is complete
         if (localCollectedCount >= AppConstants.TARGET_COLLECTION_COUNT) {
@@ -1093,7 +1073,7 @@ class ARFragment(
 
             // Show success feedback
             if (isAdded) {
-                CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/$AppConstants.TARGET_COLLECTION_COUNT)")
+                CustomToast.show(requireContext(), "수집 완료! ($localCollectedCount/${AppConstants.TARGET_COLLECTION_COUNT})")
             }
 
             // Trigger API call in background
@@ -1627,6 +1607,45 @@ class ARFragment(
 
                 else -> false
             }
+        }
+    }
+
+    // ============================================
+    // Helper Functions for Code Simplification
+    // ============================================
+
+    /**
+     * Get user-friendly error message for AR exceptions
+     */
+    private fun getARExceptionMessage(exception: Exception): String = when (exception) {
+        is UnavailableArcoreNotInstalledException,
+        is UnavailableUserDeclinedInstallationException -> "Please install ARCore"
+        is UnavailableApkTooOldException -> "Please update ARCore"
+        is UnavailableSdkTooOldException -> "Please update this app"
+        is UnavailableDeviceNotCompatibleException -> "This device does not support AR"
+        is CameraNotAvailableException -> "Camera not available. Try restarting the app."
+        is CameraAccessException -> getCameraErrorMessage(exception)
+        else -> "Failed to create AR session: $exception"
+    }
+
+    /**
+     * Get specific error message for camera access exceptions
+     */
+    private fun getCameraErrorMessage(exception: CameraAccessException): String = when (exception.reason) {
+        CameraAccessException.CAMERA_DISCONNECTED -> "Camera disconnected. Please restart the app."
+        CameraAccessException.CAMERA_ERROR -> "Camera error occurred. Please restart the app."
+        CameraAccessException.CAMERA_IN_USE -> "Camera is in use by another app."
+        CameraAccessException.MAX_CAMERAS_IN_USE -> "Too many cameras in use."
+        CameraAccessException.CAMERA_DISABLED -> "Camera is disabled by device policy."
+        else -> "Camera access error: ${exception.message}"
+    }
+
+    /**
+     * Show toast message only if fragment is added to activity
+     */
+    private fun showToastIfAdded(message: String) {
+        if (isAdded) {
+            CustomToast.show(requireContext(), message)
         }
     }
 }

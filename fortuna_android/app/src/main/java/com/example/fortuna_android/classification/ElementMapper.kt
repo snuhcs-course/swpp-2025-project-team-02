@@ -193,70 +193,75 @@ class ElementMapper(private val context: Context) {
             return Element.OTHERS
         }
 
-        // Skip processing if label starts with "Analyzing" (VLM is still processing)
         if (detectedLabel.startsWith("Analyzing", ignoreCase = true)) {
             Log.d(TAG, "Skipping label matching for in-progress VLM analysis: $detectedLabel")
             return Element.OTHERS
         }
 
-        val normalizedLabel = detectedLabel.lowercase().trim()
+        val normalized = detectedLabel.lowercase().trim()
 
-        // VLM element name direct matching (for VLM-based detection)
-        // VLM returns: Water, Fire, Earth, Metal, Wood (capitalized)
-        when (normalizedLabel) {
-            "water" -> {
-                Log.d(TAG, "VLM element match: '$detectedLabel' -> Water")
-                return Element.WATER
+        // Try matching strategies in order of specificity
+        return tryDirectVlmMatch(normalized, detectedLabel)
+            ?: tryDirectClassMatch(normalized, detectedLabel)
+            ?: tryFuzzyMatch(normalized, detectedLabel)
+            ?: tryPartialWordMatch(normalized, detectedLabel)
+            ?: Element.OTHERS.also {
+                Log.d(TAG, "No match found for '$detectedLabel', returning OTHERS")
             }
-            "fire" -> {
-                Log.d(TAG, "VLM element match: '$detectedLabel' -> Fire")
-                return Element.FIRE
-            }
-            "earth" -> {
-                Log.d(TAG, "VLM element match: '$detectedLabel' -> Earth")
-                return Element.EARTH
-            }
-            "metal" -> {
-                Log.d(TAG, "VLM element match: '$detectedLabel' -> Metal")
-                return Element.METAL
-            }
-            "wood" -> {
-                Log.d(TAG, "VLM element match: '$detectedLabel' -> Wood")
-                return Element.WOOD
-            }
+    }
+
+    /**
+     * Try direct VLM element name matching
+     * VLM returns: Water, Fire, Earth, Metal, Wood (capitalized)
+     */
+    private fun tryDirectVlmMatch(normalized: String, original: String): Element? {
+        return when (normalized) {
+            "water" -> Element.WATER
+            "fire" -> Element.FIRE
+            "earth" -> Element.EARTH
+            "metal" -> Element.METAL
+            "wood" -> Element.WOOD
+            else -> null
+        }?.also { Log.d(TAG, "VLM element match: '$original' -> $it") }
+    }
+
+    /**
+     * Try direct match with class.txt mappings
+     */
+    private fun tryDirectClassMatch(normalized: String, original: String): Element? {
+        return labelToElementMap[normalized]?.also {
+            Log.d(TAG, "Direct match: '$original' -> ${it.displayName}")
         }
+    }
 
-        // Direct match with class.txt mappings
-        labelToElementMap[normalizedLabel]?.let { element ->
-            Log.d(TAG, "Direct match: '$detectedLabel' -> ${element.displayName}")
-            return element
+    /**
+     * Try fuzzy matching - check if label contains any class label
+     */
+    private fun tryFuzzyMatch(normalized: String, original: String): Element? {
+        return labelToElementMap.entries.firstOrNull { (classLabel, _) ->
+            normalized.contains(classLabel) || classLabel.contains(normalized)
+        }?.value?.also { element ->
+            Log.d(TAG, "Fuzzy match: '$original' -> ${element.displayName}")
         }
+    }
 
-        // Fuzzy matching - check if detected label contains any of our class labels
-        for ((classLabel, element) in labelToElementMap) {
-            if (normalizedLabel.contains(classLabel) || classLabel.contains(normalizedLabel)) {
-                Log.d(TAG, "Fuzzy match: '$detectedLabel' contains '$classLabel' -> ${element.displayName}")
-                return element
-            }
-        }
+    /**
+     * Try partial word matching (optimized from O(n^4) to O(n^2))
+     */
+    private fun tryPartialWordMatch(normalized: String, original: String): Element? {
+        val detectedWords = normalized.split(" ").filter { it.length > 3 }
+        if (detectedWords.isEmpty()) return null
 
-        // Check for partial word matches
-        val detectedWords = normalizedLabel.split(" ")
-        for ((classLabel, element) in labelToElementMap) {
-            val classWords = classLabel.split(" ")
-            for (detectedWord in detectedWords) {
-                for (classWord in classWords) {
-                    if (detectedWord.length > 3 && classWord.length > 3 &&
-                        (detectedWord.contains(classWord) || classWord.contains(detectedWord))) {
-                        Log.d(TAG, "Word match: '$detectedWord' matches '$classWord' -> ${element.displayName}")
-                        return element
-                    }
+        return labelToElementMap.entries.firstOrNull { (classLabel, _) ->
+            val classWords = classLabel.split(" ").filter { it.length > 3 }
+            classWords.any { classWord ->
+                detectedWords.any { detectedWord ->
+                    detectedWord.contains(classWord) || classWord.contains(detectedWord)
                 }
             }
+        }?.value?.also { element ->
+            Log.d(TAG, "Word match: '$original' -> ${element.displayName}")
         }
-
-        Log.d(TAG, "No match found for '$detectedLabel', returning OTHERS")
-        return Element.OTHERS
     }
 
     /**
