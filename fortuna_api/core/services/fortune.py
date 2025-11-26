@@ -4,14 +4,12 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 """
 
 import os
-import base64
 from datetime import datetime, timedelta
 from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
 from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
 from django.conf import settings
-from django.core.files.base import ContentFile
 from user.models import User
 from ..utils.saju_concepts import (
     Saju,
@@ -23,9 +21,18 @@ from .image import ImageService
 from core.models import FortuneResult
 from loguru import logger
 import numpy as np
-from google import genai
-from google.genai import types
-from PIL import Image
+
+# Gemini imports - conditional to avoid import errors in tests
+try:
+    from google import genai
+    from google.genai import types
+    from PIL import Image
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
+    types = None
+    Image = None
 
 # TODO - move to global utils
 
@@ -127,7 +134,7 @@ class FortuneService:
 
         # Gemini for image generation
         gemini_api_key = settings.GEMINI_API_KEY if hasattr(settings, 'GEMINI_API_KEY') else os.getenv('GEMINI_API_KEY')
-        if gemini_api_key:
+        if gemini_api_key and GEMINI_AVAILABLE:
             self.gemini_client = genai.Client(api_key=gemini_api_key)
         else:
             self.gemini_client = None
@@ -580,7 +587,7 @@ class FortuneService:
                 today_daily_guidance=f"오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 부족한 {needed_element}의 기운을 보충하기 위해 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
-    def _parse_fortune_response(self, content: str, _tomorrow_date: datetime, _compatibility: Dict[str, Any]) -> FortuneAIResponse:
+    def _parse_fortune_response(self, content: str) -> FortuneAIResponse:
         """Parse AI response into FortuneAIResponse structure."""
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
@@ -733,10 +740,16 @@ class FortuneService:
     def generate_fortune(
         self,
         user: User,
-        date: datetime
+        date: datetime,
+        generate_image: bool = True
     ) -> Response[FortuneResponse]:
         """
         Generate fortune with race condition protection using database-level locking.
+
+        Args:
+            user: User object
+            date: Date for fortune generation
+            generate_image: Whether to generate image (default: True for API, False for batch)
 
         Status flow: pending → processing → completed
         """
@@ -816,7 +829,7 @@ class FortuneService:
 
             # Schedule background task to generate fortune with AI
             from core.tasks import schedule_fortune_generation
-            schedule_fortune_generation(user.id, tomorrow_date.strftime('%Y-%m-%d'))
+            schedule_fortune_generation(user.id, tomorrow_date.strftime('%Y-%m-%d'), generate_image)
 
             # Return placeholder response immediately
             birth_time = user._convert_time_units_to_time(user.birth_time_units)
