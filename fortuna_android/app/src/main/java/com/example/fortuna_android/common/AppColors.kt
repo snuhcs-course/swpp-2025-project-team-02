@@ -30,16 +30,6 @@ object AppColors {
     const val ELEMENT_WATER = "#2BB3FC"
 
     // ============================================
-    // Alternative Element Colors
-    // ============================================
-
-    /** Alternative Metal color - Light Silver */
-    const val ELEMENT_METAL_ALT = "#C0C0C0"
-
-    /** Alternative Earth color - Brown */
-    const val ELEMENT_EARTH_BROWN = "#8B4513"
-
-    // ============================================
     // UI Background Colors
     // ============================================
 
@@ -97,7 +87,7 @@ object AppColors {
             "wood", "나무" -> Color.parseColor(ELEMENT_WOOD)
             "fire", "불" -> Color.parseColor(ELEMENT_FIRE)
             "earth", "흙" -> Color.parseColor(ELEMENT_EARTH)
-            "metal", "쇠" -> Color.parseColor(ELEMENT_METAL_ALT)
+            "metal", "쇠" -> Color.parseColor(ELEMENT_METAL)
             "water", "물" -> Color.parseColor(ELEMENT_WATER)
             else -> Color.parseColor(COLOR_WHITE)
         }
