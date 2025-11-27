@@ -955,7 +955,7 @@ class ARFragment(
 
         // Apply styled text to instruction TextView
         val instructionView = tutorialView.findViewById<TextView>(com.example.fortuna_android.R.id.tvInstructionText)
-        val instructionText = "1. 카메라를 돌려 대상을 찾고 수집 버튼을 클릭하세요\n2. 대상이 인식되면 오행 캐릭터가 등장합니다\n3. 캐릭터를 클릭하여 기운을 수집하세요!"
+        val instructionText = "1. 카메라를 돌려 원소를 찾고 수집 버튼을 꾹 눌러 대상을 잡아보세요\n2. 대상이 인식되면 오행 캐릭터가 등장합니다\n3. 캐릭터를 클릭하여 기운을 수집하세요!"
         val spannableString = android.text.SpannableString(instructionText)
 
         // Highlight words with color and bold
