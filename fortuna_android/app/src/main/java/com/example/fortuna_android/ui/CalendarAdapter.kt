@@ -122,7 +122,7 @@ class CalendarAdapter(private var days: List<CalendarDay>) :
         }
 
         private fun getElementColor(element: String): Int {
-            return AppColors.getElementColorByEnglish(element)
+            return AppColors.getElementColorByKorean(element)
         }
     }
 }
