@@ -11,6 +11,7 @@ import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import com.example.fortuna_android.util.CustomToast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.core.view.ViewCompat
@@ -31,6 +32,8 @@ class ProfileEditFragment : Fragment() {
     private var selectedSolarLunar = ""
     private var currentProfile: UserProfile? = null
 
+    private lateinit var fortuneViewModel: FortuneViewModel
+
     companion object {
         private const val TAG = "ProfileEditFragment"
         private const val PREFS_NAME = "fortuna_prefs"
@@ -48,6 +51,9 @@ class ProfileEditFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Get shared ViewModel from parent activity
+        fortuneViewModel = ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
 
         // 하단 네비게이션 바 숨기기
 
@@ -393,6 +399,12 @@ class ProfileEditFragment : Fragment() {
                 if (response.isSuccessful) {
                     val updatedProfile = response.body()
                     Log.d(TAG, "프로필 업데이트 성공: $updatedProfile")
+
+                    // Clear ViewModel cache to force refresh on home screen
+                    // This ensures updated profile and new fortune data will be loaded
+                    Log.d(TAG, "Clearing ViewModel cache after profile update")
+                    fortuneViewModel.clearAllData()
+
                     if (isAdded) {
                         try {
                             // fortune_reset이 true면 운세 초기화 알림 추가

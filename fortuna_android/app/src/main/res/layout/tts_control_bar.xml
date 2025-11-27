@@ -17,16 +17,16 @@
         <!-- Play/Pause Button -->
         <FrameLayout
             android:id="@+id/btnPlayPause"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:background="@drawable/tts_play_button_bg"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
                 android:id="@+id/ivPlayPauseIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_volume_on"
                 android:tint="#FFFFFF" />

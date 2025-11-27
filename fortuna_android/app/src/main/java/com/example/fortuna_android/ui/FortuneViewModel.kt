@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import android.util.Log
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
@@ -20,6 +21,9 @@ class FortuneViewModel : ViewModel() {
         private const val TAG = "FortuneViewModel"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"
+        private const val POLLING_INTERVAL_MS = 30000L // 30 seconds
+        private const val MAX_POLLING_ATTEMPTS = 20 // 최대 10분 (30초 x 20)
+        private const val AI_GENERATING_MESSAGE = "AI가 당신의 사주와 오늘의 기운을 분석하고 있습니다."
     }
 
     // LiveData for fortune result
@@ -42,12 +46,22 @@ class FortuneViewModel : ViewModel() {
     private val _userProfile = MutableLiveData<UserProfile?>()
     val userProfile: LiveData<UserProfile?> = _userProfile
 
+    // LiveData for AI generation status message
+    private val _generatingMessage = MutableLiveData<String?>()
+    val generatingMessage: LiveData<String?> = _generatingMessage
+
     // Coroutine job for fortune generation
     private var fortuneJob: Job? = null
 
+    // Coroutine job for polling
+    private var pollingJob: Job? = null
+
+    // Polling attempt counter
+    private var pollingAttempts = 0
+
     fun getTodayFortune(context: Context, forceRefresh: Boolean = false) {
-        // Don't start new request if one is already running
-        if (_isLoading.value == true) {
+        // Don't start new request if one is already running (unless forcing refresh)
+        if (!forceRefresh && _isLoading.value == true) {
             Log.d(TAG, "Fortune generation already in progress")
             return
         }
@@ -57,6 +71,9 @@ class FortuneViewModel : ViewModel() {
             Log.d(TAG, "Fortune data already loaded, skipping API call")
             return
         }
+
+        // Stop any ongoing polling when starting new request
+        stopPolling()
 
         // Cancel any existing job
         fortuneJob?.cancel()
@@ -103,7 +120,15 @@ class FortuneViewModel : ViewModel() {
 
                     // Check if fortune data is complete
                     val fortune = fortuneResponse.data.fortune
-                    if (!fortune.todayDailyGuidance.isNullOrEmpty()) {
+
+                    // Check if AI is generating (special message)
+                    val isAiGenerating = fortune.todayElementBalanceDescription?.contains(AI_GENERATING_MESSAGE) == true
+
+                    if (!fortune.todayDailyGuidance.isNullOrEmpty() && !isAiGenerating) {
+                        // Fortune is complete - stop polling
+                        Log.d(TAG, "Fortune generation completed!")
+                        stopPolling()
+
                         // Update success state
                         val fortuneScore = (fortuneResponse.data.fortuneScore.entropyScore / 100.0).toInt()
                         val fortuneText = "${fortuneResponse.data.forDate}\nOverall Fortune: $fortuneScore\n\n${fortune.todayElementBalanceDescription}\n\n${fortune.todayDailyGuidance}"
@@ -114,13 +139,26 @@ class FortuneViewModel : ViewModel() {
 
                         _isLoading.postValue(false)
                         _errorMessage.postValue(null)
+                        _generatingMessage.postValue(null)
+                    } else if (isAiGenerating) {
+                        // AI is generating - show generating message and start polling
+                        Log.w(TAG, "AI is generating fortune... Starting polling")
+                        _fortuneResult.postValue(null)
+                        _fortuneData.postValue(null)
+                        _isLoading.postValue(true)
+                        _errorMessage.postValue(null)
+                        _generatingMessage.postValue(fortune.todayElementBalanceDescription)
+
+                        // Start polling if not already started
+                        startPolling(context)
                     } else {
-                        // Fortune is pending or incomplete
+                        // Fortune is pending or incomplete (other reasons)
                         Log.w(TAG, "Fortune data is incomplete or pending")
                         _fortuneResult.postValue(null)
                         _fortuneData.postValue(null)
                         _isLoading.postValue(false)
                         _errorMessage.postValue("Your fortune is still being generated. Please wait until it's ready.")
+                        _generatingMessage.postValue(null)
                     }
 
                 } else {
@@ -173,14 +211,14 @@ class FortuneViewModel : ViewModel() {
         _fortuneData.value = null
     }
 
-    fun loadUserProfile() {
-        // If user profile already loaded, skip API call
-        if (_userProfile.value != null) {
+    fun loadUserProfile(forceRefresh: Boolean = false) {
+        // If user profile already loaded and not forcing refresh, skip API call
+        if (!forceRefresh && _userProfile.value != null) {
             Log.d(TAG, "User profile already loaded, skipping API call")
             return
         }
 
-        Log.d(TAG, "Loading user profile...")
+        Log.d(TAG, "Loading user profile... (forceRefresh=$forceRefresh)")
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -198,8 +236,126 @@ class FortuneViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Refresh user profile by forcing a reload from server
+     */
+    fun refreshUserProfile() {
+        Log.d(TAG, "Refreshing user profile...")
+        loadUserProfile(forceRefresh = true)
+    }
+
+    /**
+     * Refresh fortune data by forcing a reload from server
+     */
+    fun refreshFortuneData(context: Context) {
+        Log.d(TAG, "Refreshing fortune data...")
+        getTodayFortune(context, forceRefresh = true)
+    }
+
+    /**
+     * Clear all cached data - useful when profile is updated and fortune needs regeneration
+     */
+    fun clearAllData() {
+        Log.d(TAG, "Clearing all cached data")
+        stopPolling() // Stop any ongoing polling
+        _userProfile.value = null
+        _fortuneData.value = null
+        _fortuneResult.value = null
+        _errorMessage.value = null
+        _generatingMessage.value = null
+    }
+
+    /**
+     * Start polling for fortune data every 30 seconds
+     */
+    private fun startPolling(context: Context) {
+        // If polling is already running, don't start another
+        if (pollingJob?.isActive == true) {
+            Log.d(TAG, "Polling already active, skipping start")
+            return
+        }
+
+        // Reset counter
+        pollingAttempts = 0
+
+        Log.d(TAG, "Starting fortune polling (interval: ${POLLING_INTERVAL_MS}ms, max attempts: $MAX_POLLING_ATTEMPTS)")
+
+        pollingJob = viewModelScope.launch(Dispatchers.IO) {
+            while (pollingAttempts < MAX_POLLING_ATTEMPTS) {
+                // Wait before next poll
+                delay(POLLING_INTERVAL_MS)
+
+                pollingAttempts++
+                Log.d(TAG, "Polling attempt $pollingAttempts/$MAX_POLLING_ATTEMPTS")
+
+                try {
+                    // Fetch fortune data again
+                    val response = RetrofitClient.instance.getTodayFortune()
+
+                    if (response.isSuccessful && response.body() != null) {
+                        val fortuneResponse = response.body()!!
+                        val fortune = fortuneResponse.data.fortune
+
+                        // Check if AI is still generating
+                        val isAiGenerating = fortune.todayElementBalanceDescription?.contains(AI_GENERATING_MESSAGE) == true
+
+                        if (!fortune.todayDailyGuidance.isNullOrEmpty() && !isAiGenerating) {
+                            // Fortune is complete!
+                            Log.d(TAG, "Fortune generation completed during polling!")
+
+                            // Update success state
+                            val fortuneScore = (fortuneResponse.data.fortuneScore.entropyScore / 100.0).toInt()
+                            val fortuneText = "${fortuneResponse.data.forDate}\nOverall Fortune: $fortuneScore\n\n${fortune.todayElementBalanceDescription}\n\n${fortune.todayDailyGuidance}"
+                            _fortuneResult.postValue(fortuneText)
+
+                            // Post TodayFortuneData
+                            _fortuneData.postValue(fortuneResponse.data)
+
+                            _isLoading.postValue(false)
+                            _errorMessage.postValue(null)
+                            _generatingMessage.postValue(null)
+
+                            // Stop polling
+                            break
+                        } else {
+                            Log.d(TAG, "Fortune still generating, continuing to poll...")
+                            // Update generating message if changed
+                            if (fortune.todayElementBalanceDescription != null) {
+                                _generatingMessage.postValue(fortune.todayElementBalanceDescription)
+                            }
+                        }
+                    } else {
+                        Log.w(TAG, "Polling request failed: ${response.code()}")
+                    }
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error during polling: ${e.message}", e)
+                }
+            }
+
+            // If we exhausted all attempts
+            if (pollingAttempts >= MAX_POLLING_ATTEMPTS) {
+                Log.w(TAG, "Polling stopped: Maximum attempts reached")
+                _isLoading.postValue(false)
+                _errorMessage.postValue("운세 생성이 지연되고 있습니다. 잠시 후 다시 시도해주세요.")
+                _generatingMessage.postValue(null)
+            }
+        }
+    }
+
+    /**
+     * Stop polling for fortune data
+     */
+    private fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+        pollingAttempts = 0
+        Log.d(TAG, "Polling stopped")
+    }
+
     override fun onCleared() {
         super.onCleared()
         fortuneJob?.cancel()
+        stopPolling()
     }
 }

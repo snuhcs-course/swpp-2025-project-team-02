@@ -338,7 +338,7 @@ class FortuneCardView @JvmOverloads constructor(
                     Log.w("FortuneCardView", "Failed to fetch today's progress: ${response.code()}")
                     withContext(Dispatchers.Main) {
                         // Show default if API fails
-                        binding.tvElementCharacter.text = "運"
+                        binding.tvElementCharacter.text = ""
                         binding.tvElementCharacter.setTextColor(Color.parseColor(AppColors.COLOR_GOLD))
                         updateProgressDots(0, Color.parseColor(AppColors.COLOR_GOLD))
                         updateScoreWithBonus(0)
@@ -348,7 +348,7 @@ class FortuneCardView @JvmOverloads constructor(
                 Log.e("FortuneCardView", "Error fetching today's progress", e)
                 withContext(Dispatchers.Main) {
                     // Show default if error occurs
-                    binding.tvElementCharacter.text = "運"
+                    binding.tvElementCharacter.text = ""
                     binding.tvElementCharacter.setTextColor(Color.parseColor(AppColors.COLOR_GOLD))
                     updateProgressDots(0, Color.parseColor(AppColors.COLOR_GOLD))
                     updateScoreWithBonus(0)

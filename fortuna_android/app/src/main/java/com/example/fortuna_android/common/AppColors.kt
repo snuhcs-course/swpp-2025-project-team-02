@@ -112,7 +112,7 @@ object AppColors {
         return when (stem) {
             "갑", "을" -> Color.parseColor(ELEMENT_WOOD)
             "병", "정" -> Color.parseColor(ELEMENT_FIRE)
-            "무", "기" -> Color.parseColor(ELEMENT_EARTH_BROWN)
+            "무", "기" -> Color.parseColor(ELEMENT_EARTH)
             "경", "신" -> Color.parseColor(ELEMENT_METAL_ALT)
             "임", "계" -> Color.parseColor(ELEMENT_WATER)
             else -> Color.parseColor(COLOR_LIGHT_GRAY)
