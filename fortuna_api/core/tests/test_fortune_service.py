@@ -18,7 +18,11 @@ class TestFortuneService(TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        with patch('core.services.fortune.openai'):
+        # Patch both OpenAI and Gemini modules
+        with patch('core.services.fortune.openai'), \
+             patch('core.services.fortune.GEMINI_AVAILABLE', True), \
+             patch('core.services.fortune.genai'), \
+             patch('core.services.fortune.Image'):
             self.service = FortuneService()
         self.user_id = 1
         self.test_date = datetime(2024, 1, 1, 12, 0, 0)
@@ -325,9 +329,10 @@ class TestFortuneService(TestCase):
         # Invalid element should return default
         self.assertEqual(self.service._get_element_color("invalid"), "무지개색")
 
-    @patch('openai.OpenAI')
-    def test_generate_fortune_image_with_ai_success(self, mock_openai):
-        """Test successful fortune image generation with AI."""
+    @patch('core.services.fortune.Image')
+    @patch('core.services.fortune.genai')
+    def test_generate_fortune_image_with_ai_success(self, mock_genai, mock_image_module):
+        """Test successful fortune image generation with AI using Gemini."""
         from django.contrib.auth import get_user_model
         from core.utils.saju_concepts import GanJi
         from core.services.fortune import FortuneScore, ElementDistribution
@@ -344,20 +349,33 @@ class TestFortuneService(TestCase):
             hourly_ganji='임오'
         )
 
-        # Create a mock image (1x1 pixel PNG)
-        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        # Create a mock image bytes (PNG format)
+        mock_image_bytes = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
 
-        # Mock OpenAI Images API (new gpt-image-1 structure)
-        mock_image_data = Mock()
-        mock_image_data.b64_json = mock_image_base64
+        # Mock PIL Image
+        mock_pil_image = Mock()
+        mock_image_module.open.return_value = mock_pil_image
+
+        # Mock Gemini API response structure
+        mock_inline_data = Mock()
+        mock_inline_data.data = mock_image_bytes
+
+        mock_part = Mock()
+        mock_part.inline_data = mock_inline_data
+
+        mock_content = Mock()
+        mock_content.parts = [mock_part]
+
+        mock_candidate = Mock()
+        mock_candidate.content = mock_content
 
         mock_response = Mock()
-        mock_response.data = [mock_image_data]
+        mock_response.candidates = [mock_candidate]
 
-        mock_client = Mock()
-        mock_client.images.generate.return_value = mock_response
-        mock_client.images.edit.return_value = mock_response
-        self.service.client = mock_client
+        # Mock Gemini client
+        mock_gemini_client = Mock()
+        mock_gemini_client.models.generate_content.return_value = mock_response
+        self.service.gemini_client = mock_gemini_client
 
         # Create test data
         user_saju = self.service.get_user_saju_info(user.id)
@@ -407,31 +425,28 @@ class TestFortuneService(TestCase):
         self.assertIsInstance(result, bytes)
         self.assertGreater(len(result), 0)
 
-        # Verify API was called with correct parameters (either generate or edit)
-        # Character file doesn't exist in test, so it should call generate
-        self.assertTrue(
-            mock_client.images.generate.called or mock_client.images.edit.called
-        )
+        # Verify Gemini API was called
+        self.assertTrue(mock_gemini_client.models.generate_content.called)
 
-        # Get the call args from whichever was called
-        if mock_client.images.generate.called:
-            call_args = mock_client.images.generate.call_args
-        else:
-            call_args = mock_client.images.edit.call_args
+        # Get the call args
+        call_args = mock_gemini_client.models.generate_content.call_args
 
-        self.assertEqual(call_args[1]['model'], 'gpt-image-1')
-        self.assertIn('prompt', call_args[1])
-        self.assertEqual(call_args[1]['size'], '1024x1536')  # Verify vertical size for mobile (2:3 ratio)
+        # Verify model name
+        self.assertEqual(call_args[1]['model'], 'gemini-2.5-flash-image')
+
+        # Verify prompt is in contents
+        self.assertIn('contents', call_args[1])
+        contents = call_args[1]['contents']
+
+        # First element should be the prompt string
+        prompt_text = contents[0] if isinstance(contents[0], str) else str(contents[0])
 
         # Verify prompt contains key elements
-        prompt_text = call_args[1]['prompt']
-
-        # New prompt structure uses today_element_balance_description
-        self.assertIn("물 (Water)", prompt_text)  # needed_element_desc in Korean and English
+        self.assertIn("물 (Water)", prompt_text)  # needed_element_desc
         self.assertIn("오행 균형 설명", prompt_text)  # today_element_balance_description content
 
     def test_generate_fortune_image_with_ai_no_client(self):
-        """Test fortune image generation when OpenAI client is not initialized."""
+        """Test fortune image generation when Gemini client is not initialized."""
         from django.contrib.auth import get_user_model
         from core.utils.saju_concepts import GanJi
         from core.services.fortune import FortuneScore, ElementDistribution
@@ -447,8 +462,8 @@ class TestFortuneService(TestCase):
             hourly_ganji='임오'
         )
 
-        # Set client to None
-        self.service.client = None
+        # Set gemini_client to None
+        self.service.gemini_client = None
 
         user_saju = self.service.get_user_saju_info(user.id)
         tomorrow_date = self.test_date + timedelta(days=1)
@@ -494,9 +509,10 @@ class TestFortuneService(TestCase):
         # Should return None on error
         self.assertIsNone(result)
 
-    @patch('openai.OpenAI')
-    def test_generate_fortune_image_with_ai_no_image_data(self, mock_openai):
-        """Test fortune image generation when API returns no image data."""
+    @patch('core.services.fortune.Image')
+    @patch('core.services.fortune.genai')
+    def test_generate_fortune_image_with_ai_no_image_data(self, mock_genai, mock_image_module):
+        """Test fortune image generation when Gemini API returns no image data."""
         from django.contrib.auth import get_user_model
         from core.utils.saju_concepts import GanJi
         from core.services.fortune import FortuneScore, ElementDistribution
@@ -512,13 +528,17 @@ class TestFortuneService(TestCase):
             hourly_ganji='임오'
         )
 
-        # Mock OpenAI responses API with no image data
-        mock_response = Mock()
-        mock_response.output = []  # Empty output
+        # Mock PIL Image
+        mock_pil_image = Mock()
+        mock_image_module.open.return_value = mock_pil_image
 
-        mock_client = Mock()
-        mock_client.responses.create.return_value = mock_response
-        self.service.client = mock_client
+        # Mock Gemini API response with empty candidates
+        mock_response = Mock()
+        mock_response.candidates = []  # No candidates
+
+        mock_gemini_client = Mock()
+        mock_gemini_client.models.generate_content.return_value = mock_response
+        self.service.gemini_client = mock_gemini_client
 
         user_saju = self.service.get_user_saju_info(user.id)
         tomorrow_date = self.test_date + timedelta(days=1)
@@ -564,9 +584,10 @@ class TestFortuneService(TestCase):
         # Should return None when no image data
         self.assertIsNone(result)
 
-    @patch('openai.OpenAI')
-    def test_generate_fortune_image_with_ai_api_exception(self, mock_openai):
-        """Test fortune image generation when API raises exception."""
+    @patch('core.services.fortune.Image')
+    @patch('core.services.fortune.genai')
+    def test_generate_fortune_image_with_ai_api_exception(self, mock_genai, mock_image_module):
+        """Test fortune image generation when Gemini API raises exception."""
         from django.contrib.auth import get_user_model
         from core.utils.saju_concepts import GanJi
         from core.services.fortune import FortuneScore, ElementDistribution
@@ -582,10 +603,14 @@ class TestFortuneService(TestCase):
             hourly_ganji='임오'
         )
 
-        # Mock OpenAI responses API to raise exception
-        mock_client = Mock()
-        mock_client.responses.create.side_effect = Exception("API Error")
-        self.service.client = mock_client
+        # Mock PIL Image
+        mock_pil_image = Mock()
+        mock_image_module.open.return_value = mock_pil_image
+
+        # Mock Gemini API to raise exception
+        mock_gemini_client = Mock()
+        mock_gemini_client.models.generate_content.side_effect = Exception("Gemini API Error")
+        self.service.gemini_client = mock_gemini_client
 
         user_saju = self.service.get_user_saju_info(user.id)
         tomorrow_date = self.test_date + timedelta(days=1)
@@ -635,13 +660,18 @@ class TestFortuneServiceIntegration(TestCase):
     """Integration tests for FortuneService."""
 
     @patch('core.services.fortune.openai')
-    def setUp(self, mock_openai_model):
+    @patch('core.services.fortune.GEMINI_AVAILABLE', True)
+    @patch('core.services.fortune.genai')
+    @patch('core.services.fortune.Image')
+    def setUp(self, mock_image, mock_genai, mock_openai_model):
         """Set up test fixtures."""
         self.service = FortuneService()
         self.user_id = 1
 
+    @patch('core.services.fortune.Image')
+    @patch('core.services.fortune.genai')
     @patch('openai.OpenAI')
-    def test_generate_fortune_with_image(self, mock_openai):
+    def test_generate_fortune_with_image(self, mock_openai, mock_genai, mock_image_module):
         """Test generate_fortune includes image generation and saves it to DB."""
         from django.contrib.auth import get_user_model
         from core.models import FortuneResult
@@ -673,19 +703,33 @@ class TestFortuneServiceIntegration(TestCase):
         mock_text_response.choices = [Mock()]
         mock_text_response.choices[0].message.parsed = mock_parsed
 
-        # Mock AI image response (new Images API structure)
-        mock_image_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-        mock_image_data = Mock()
-        mock_image_data.b64_json = mock_image_base64
-        mock_image_response = Mock()
-        mock_image_response.data = [mock_image_data]
+        # Mock Gemini image response
+        mock_image_bytes = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
 
-        # Set up mock client
+        # Mock PIL Image
+        mock_pil_image = Mock()
+        mock_image_module.open.return_value = mock_pil_image
+
+        # Mock Gemini response structure
+        mock_inline_data = Mock()
+        mock_inline_data.data = mock_image_bytes
+        mock_part = Mock()
+        mock_part.inline_data = mock_inline_data
+        mock_content = Mock()
+        mock_content.parts = [mock_part]
+        mock_candidate = Mock()
+        mock_candidate.content = mock_content
+        mock_gemini_response = Mock()
+        mock_gemini_response.candidates = [mock_candidate]
+
+        # Set up mock clients
         mock_client = Mock()
         mock_client.chat.completions.parse.return_value = mock_text_response
-        mock_client.images.generate.return_value = mock_image_response
-        mock_client.images.edit.return_value = mock_image_response
         self.service.client = mock_client
+
+        mock_gemini_client = Mock()
+        mock_gemini_client.models.generate_content.return_value = mock_gemini_response
+        self.service.gemini_client = mock_gemini_client
 
         # Generate fortune
         test_date = datetime(2024, 1, 1, 12, 0, 0)
@@ -716,8 +760,10 @@ class TestFortuneServiceIntegration(TestCase):
         # Verify placeholder message
         self.assertIn('운세를 생성하고 있습니다', fortune_result.fortune_data['today_fortune_summary'])
 
+    @patch('core.services.fortune.Image')
+    @patch('core.services.fortune.genai')
     @patch('openai.OpenAI')
-    def test_generate_fortune_without_image_on_failure(self, mock_openai):
+    def test_generate_fortune_without_image_on_failure(self, mock_openai, mock_genai, mock_image_module):
         """Test generate_fortune saves fortune even if image generation fails."""
         from django.contrib.auth import get_user_model
         from core.models import FortuneResult
@@ -749,12 +795,19 @@ class TestFortuneServiceIntegration(TestCase):
         mock_text_response.choices = [Mock()]
         mock_text_response.choices[0].message.parsed = mock_parsed
 
+        # Mock PIL Image
+        mock_pil_image = Mock()
+        mock_image_module.open.return_value = mock_pil_image
+
         # Set up mock client with image generation failure
         mock_client = Mock()
         mock_client.chat.completions.parse.return_value = mock_text_response
-        mock_client.images.generate.side_effect = Exception("Image API Error")
-        mock_client.images.edit.side_effect = Exception("Image API Error")
         self.service.client = mock_client
+
+        # Mock Gemini to raise exception
+        mock_gemini_client = Mock()
+        mock_gemini_client.models.generate_content.side_effect = Exception("Gemini API Error")
+        self.service.gemini_client = mock_gemini_client
 
         # Generate fortune
         test_date = datetime(2024, 1, 1, 12, 0, 0)
