@@ -314,22 +314,24 @@ class TutorialOverlayFragment : Fragment() {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
-        // Dismiss overlay first
+        // Dismiss overlay first, and only navigate if dismissal is successful
         try {
             if (isAdded && !requireActivity().isFinishing) {
+                // It is unsafe to commit fragment transactions when activity state has been saved.
+                if (requireActivity().supportFragmentManager.isStateSaved) {
+                    Log.w(TAG, "Aborting tutorial dismissal and navigation: Activity state has been saved.")
+                    return
+                }
+
                 requireActivity().supportFragmentManager.popBackStackImmediate()
                 Log.d(TAG, "Tutorial overlay dismissed")
+
+                // Navigate to AR screen AFTER successful dismissal
+                mainActivity?.startActivity(intent)
+                Log.d(TAG, "Navigating to AR screen")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error dismissing overlay: ${e.message}")
-        }
-
-        // Navigate to AR screen after dismissal
-        try {
-            mainActivity?.startActivity(intent)
-            Log.d(TAG, "Navigating to AR screen")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error navigating to AR screen: ${e.message}")
+            Log.e(TAG, "Error dismissing overlay, navigation to AR cancelled: ${e.message}")
         }
     }
 

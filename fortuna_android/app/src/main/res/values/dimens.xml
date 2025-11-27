@@ -39,4 +39,7 @@
     <dimen name="icon_md">24dp</dimen>
     <dimen name="icon_lg">32dp</dimen>
     <dimen name="icon_xl">48dp</dimen>
+
+    <!-- Floating Button -->
+    <dimen name="floating_button_size">64dp</dimen>
 </resources>
