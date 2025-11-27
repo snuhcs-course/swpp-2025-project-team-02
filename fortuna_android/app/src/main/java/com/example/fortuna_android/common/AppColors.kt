@@ -68,11 +68,11 @@ object AppColors {
      */
     fun getElementColorByKorean(element: String): Int {
         return when (element) {
-            "목", "wood" -> Color.parseColor(ELEMENT_WOOD)
-            "화", "fire" -> Color.parseColor(ELEMENT_FIRE)
-            "토", "earth" -> Color.parseColor(ELEMENT_EARTH)
-            "금", "metal" -> Color.parseColor(ELEMENT_METAL)
-            "수", "water" -> Color.parseColor(ELEMENT_WATER)
+            "목", "나무", "wood" -> Color.parseColor(ELEMENT_WOOD)
+            "화", "불", "fire" -> Color.parseColor(ELEMENT_FIRE)
+            "토", "흙", "earth" -> Color.parseColor(ELEMENT_EARTH)
+            "금", "쇠", "metal" -> Color.parseColor(ELEMENT_METAL)
+            "수", "물", "water" -> Color.parseColor(ELEMENT_WATER)
             else -> Color.parseColor(COLOR_LIGHT_GRAY)
         }
     }
@@ -84,11 +84,11 @@ object AppColors {
      */
     fun getElementColorByEnglish(element: String): Int {
         return when (element.lowercase()) {
-            "wood", "나무" -> Color.parseColor(ELEMENT_WOOD)
-            "fire", "불" -> Color.parseColor(ELEMENT_FIRE)
-            "earth", "흙" -> Color.parseColor(ELEMENT_EARTH)
-            "metal", "쇠" -> Color.parseColor(ELEMENT_METAL)
-            "water", "물" -> Color.parseColor(ELEMENT_WATER)
+            "wood", "나무", "목" -> Color.parseColor(ELEMENT_WOOD)
+            "fire", "불", "화" -> Color.parseColor(ELEMENT_FIRE)
+            "earth", "흙", "토" -> Color.parseColor(ELEMENT_EARTH)
+            "metal", "쇠", "금" -> Color.parseColor(ELEMENT_METAL)
+            "water", "물", "수" -> Color.parseColor(ELEMENT_WATER)
             else -> Color.parseColor(COLOR_WHITE)
         }
     }
