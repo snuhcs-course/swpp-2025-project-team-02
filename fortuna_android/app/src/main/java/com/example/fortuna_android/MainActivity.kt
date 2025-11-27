@@ -40,8 +40,7 @@ class MainActivity : AppCompatActivity() {
         private const val REFRESH_TOKEN = "refresh_token"
         private const val PERMISSION_REQUEST_CODE = 1001
         private val REQUIRED_PERMISSIONS = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.CAMERA
         )
     }
 
@@ -309,7 +308,6 @@ class MainActivity : AppCompatActivity() {
         val permissionNames = deniedPermissions.map { permission ->
             when (permission) {
                 Manifest.permission.CAMERA -> "Camera"
-                Manifest.permission.ACCESS_FINE_LOCATION -> "Location"
                 else -> permission
             }
         }
