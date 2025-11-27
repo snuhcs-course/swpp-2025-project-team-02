@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import com.example.fortuna_android.databinding.FragmentTutorialOverlayBinding
 import com.example.fortuna_android.ui.FortuneCardView
 
@@ -298,7 +299,19 @@ class TutorialOverlayFragment : Fragment() {
     }
 
     private fun dismissOverlay() {
-        requireActivity().supportFragmentManager.popBackStack()
+        val fragmentManager = requireActivity().supportFragmentManager
+        val canPop = !fragmentManager.isStateSaved &&
+            fragmentManager.popBackStackImmediate(TAG, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+
+        if (!canPop) {
+            Log.w(TAG, "Cannot pop back stack (state saved or not in stack), force removing fragment")
+            fragmentManager.beginTransaction()
+                .remove(this)
+                .commitAllowingStateLoss()
+            fragmentManager.executePendingTransactions()
+        } else {
+            Log.d(TAG, "Overlay dismissed via popBackStack")
+        }
     }
 
     private fun navigateToARScreen() {
@@ -316,22 +329,44 @@ class TutorialOverlayFragment : Fragment() {
 
         // Dismiss overlay first, and only navigate if dismissal is successful
         try {
+            val fragmentManager = requireActivity().supportFragmentManager
             if (isAdded && !requireActivity().isFinishing) {
-                // It is unsafe to commit fragment transactions when activity state has been saved.
-                if (requireActivity().supportFragmentManager.isStateSaved) {
-                    Log.w(TAG, "Aborting tutorial dismissal and navigation: Activity state has been saved.")
-                    return
+                // If state is already saved, skip pop and force-remove allowing state loss
+                val overlayDismissed = if (!fragmentManager.isStateSaved) {
+                    Log.d(TAG, "Attempting normal popBackStack with TAG")
+                    fragmentManager.popBackStackImmediate(
+                        TAG,
+                        FragmentManager.POP_BACK_STACK_INCLUSIVE
+                    )
+                } else {
+                    Log.w(TAG, "Activity state is saved, will use commitAllowingStateLoss")
+                    false
                 }
 
-                requireActivity().supportFragmentManager.popBackStackImmediate()
-                Log.d(TAG, "Tutorial overlay dismissed")
+                if (!overlayDismissed) {
+                    Log.w(TAG, "PopBackStack failed or skipped, force removing fragment")
+                    fragmentManager.beginTransaction()
+                        .remove(this)
+                        .commitAllowingStateLoss()
+                    fragmentManager.executePendingTransactions()
+                    Log.d(TAG, "Fragment removed via commitAllowingStateLoss")
+                }
 
-                // Navigate to AR screen AFTER successful dismissal
+                // Navigate to AR screen AFTER dismissal
                 mainActivity?.startActivity(intent)
-                Log.d(TAG, "Navigating to AR screen")
+                Log.d(TAG, "Tutorial overlay dismissed and navigating to AR screen")
+            } else {
+                Log.w(TAG, "Fragment not added or activity finishing, skipping dismissal and navigation")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error dismissing overlay, navigation to AR cancelled: ${e.message}")
+            Log.e(TAG, "Error dismissing overlay: ${e.message}", e)
+            // Still try to navigate even if dismissal failed
+            try {
+                mainActivity?.startActivity(intent)
+                Log.w(TAG, "Attempted AR navigation despite dismissal error")
+            } catch (navException: Exception) {
+                Log.e(TAG, "Navigation also failed: ${navException.message}", navException)
+            }
         }
     }
 
