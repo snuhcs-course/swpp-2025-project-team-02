@@ -304,10 +304,13 @@ class TutorialOverlayFragment : Fragment() {
             fragmentManager.popBackStackImmediate(TAG, FragmentManager.POP_BACK_STACK_INCLUSIVE)
 
         if (!canPop) {
+            Log.w(TAG, "Cannot pop back stack (state saved or not in stack), force removing fragment")
             fragmentManager.beginTransaction()
                 .remove(this)
                 .commitAllowingStateLoss()
             fragmentManager.executePendingTransactions()
+        } else {
+            Log.d(TAG, "Overlay dismissed via popBackStack")
         }
     }
 
@@ -330,27 +333,40 @@ class TutorialOverlayFragment : Fragment() {
             if (isAdded && !requireActivity().isFinishing) {
                 // If state is already saved, skip pop and force-remove allowing state loss
                 val overlayDismissed = if (!fragmentManager.isStateSaved) {
+                    Log.d(TAG, "Attempting normal popBackStack with TAG")
                     fragmentManager.popBackStackImmediate(
                         TAG,
                         FragmentManager.POP_BACK_STACK_INCLUSIVE
                     )
                 } else {
+                    Log.w(TAG, "Activity state is saved, will use commitAllowingStateLoss")
                     false
                 }
 
                 if (!overlayDismissed) {
+                    Log.w(TAG, "PopBackStack failed or skipped, force removing fragment")
                     fragmentManager.beginTransaction()
                         .remove(this)
                         .commitAllowingStateLoss()
                     fragmentManager.executePendingTransactions()
+                    Log.d(TAG, "Fragment removed via commitAllowingStateLoss")
                 }
 
                 // Navigate to AR screen AFTER dismissal
                 mainActivity?.startActivity(intent)
                 Log.d(TAG, "Tutorial overlay dismissed and navigating to AR screen")
+            } else {
+                Log.w(TAG, "Fragment not added or activity finishing, skipping dismissal and navigation")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error dismissing overlay, navigation to AR cancelled: ${e.message}")
+            Log.e(TAG, "Error dismissing overlay: ${e.message}", e)
+            // Still try to navigate even if dismissal failed
+            try {
+                mainActivity?.startActivity(intent)
+                Log.w(TAG, "Attempted AR navigation despite dismissal error")
+            } catch (navException: Exception) {
+                Log.e(TAG, "Navigation also failed: ${navException.message}", navException)
+            }
         }
     }
 
