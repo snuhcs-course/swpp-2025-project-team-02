@@ -4,14 +4,12 @@ Generates personalized daily fortunes based on Saju compatibility and user data.
 """
 
 import os
-import base64
 from datetime import datetime, timedelta
 from typing import Dict, Any, Generic, List, Literal, Optional, TypeVar
 from core.services.daewoon import DaewoonCalculator
 from pydantic import BaseModel, Field
 import openai
 from django.conf import settings
-from django.core.files.base import ContentFile
 from user.models import User
 from ..utils.saju_concepts import (
     Saju,
@@ -23,6 +21,18 @@ from .image import ImageService
 from core.models import FortuneResult
 from loguru import logger
 import numpy as np
+
+# Gemini imports - conditional to avoid import errors in tests
+try:
+    from google import genai
+    from google.genai import types
+    from PIL import Image
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
+    types = None
+    Image = None
 
 # TODO - move to global utils
 
@@ -114,13 +124,21 @@ class FortuneService:
     _character_file_cache: Dict[str, str] = {}
 
     def __init__(self, image_service: ImageService | None = None):
-        """Initialize FortuneService with OpenAI client."""
-        api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
-        if api_key:
-            self.client = openai.OpenAI(api_key=api_key)
+        """Initialize FortuneService with OpenAI and Gemini clients."""
+        # OpenAI for text generation
+        openai_api_key = settings.OPENAI_API_KEY if hasattr(settings, 'OPENAI_API_KEY') else os.getenv('OPENAI_API_KEY')
+        if openai_api_key:
+            self.client = openai.OpenAI(api_key=openai_api_key)
         else:
             self.client = None
-        # logger.info(f"FortuneService initialized with OpenAI client: {api_key}")
+
+        # Gemini for image generation
+        gemini_api_key = settings.GEMINI_API_KEY if hasattr(settings, 'GEMINI_API_KEY') else os.getenv('GEMINI_API_KEY')
+        if gemini_api_key and GEMINI_AVAILABLE:
+            self.gemini_client = genai.Client(api_key=gemini_api_key)
+        else:
+            self.gemini_client = None
+
         self.image_service = image_service if image_service else ImageService()
 
     ### private methods ###
@@ -569,7 +587,7 @@ class FortuneService:
                 today_daily_guidance=f"오늘은 평온한 마음으로 일상의 균형을 유지하는 것이 좋습니다. 부족한 {needed_element}의 기운을 보충하기 위해 자신의 내면에 집중하며 안정적인 선택을 해보세요."
             )
 
-    def _parse_fortune_response(self, content: str, _tomorrow_date: datetime, _compatibility: Dict[str, Any]) -> FortuneAIResponse:
+    def _parse_fortune_response(self, content: str) -> FortuneAIResponse:
         """Parse AI response into FortuneAIResponse structure."""
         # For now, create a structured response with the content
         # TODO: Implement proper JSON parsing when AI returns structured data
@@ -588,7 +606,7 @@ class FortuneService:
         fortune_score: FortuneScore
     ) -> Optional[bytes]:
         """
-        Generate fortune image using OpenAI API with character image.
+        Generate fortune image using Gemini API with character image.
 
         Args:
             fortune_response: Generated fortune text
@@ -598,11 +616,11 @@ class FortuneService:
             fortune_score: Calculated fortune score
 
         Returns:
-            Base64 decoded image bytes, or None on error
+            Image bytes (PNG format), or None on error
         """
         try:
-            if not self.client:
-                raise ValueError("OpenAI client not initialized")
+            if not self.gemini_client:
+                raise ValueError("Gemini client not initialized")
 
             # Extract element information
             user_day_element = user_saju.daily.stem.element
@@ -632,34 +650,27 @@ class FortuneService:
             # Prepare image generation prompt
             image_prompt = f"""
             역할: 당신은 입력받은 텍스트(오늘의 운세)의 핵심 내용과 분위기를 파악하여, 대사 없이도 상황이 이해되는 재치 있는 네컷 만화로 각색하는 전문 웹툰 작가입니다.
-            
-            핵심 지시 사항: 제공된 <오늘의 운세 요약> 텍스트 전체를 읽고, 그 안에 담긴 **오늘 하루의 흐름(시작, 과정, 문제 발생, 해결)**을 당신의 창의력을 발휘하여 자유롭게 네컷 만화로 구성하세요.
-            
+
+            핵심 지시 사항: 제공된 <오늘의 운세 요약> 텍스트 전체를 읽고, 그 안에 담긴 **오늘 하루의 흐름**을 당신의 창의력을 발휘하여 자유롭게 네컷 만화로 구성하세요.
+
             1. 이미지 구성 지시 (가장 중요):
             - 포맷: 정확히 4개의 개별 패널(컷)로 구성된 만화 스트립을 생성하세요.
             - 레이아웃: 2x2 그리드 형식으로, 왼쪽 상단이 1번 컷, 오른쪽 상단이 2번 컷, 왼쪽 하단이 3번 컷, 오른쪽 하단이 4번 컷이 되도록 배치하세요. 각 패널 사이에는 명확한 흰색 테두리가 있어야 합니다.
-            - 텍스트 위치: 각 패널의 바로 위 중앙에 **영어 캡션(제목)**을 배치하세요. 이 캡션은 간결하고 해당 컷의 내용을 명확히 요약해야 합니다. 캡션 외의 다른 대사나 말풍선은 절대 금지합니다.
+            - 텍스트 위치: 각 패널의 바로 위 중앙에 **영어 캡션(제목)**을 배치하세요. 이 캡션은 간결하고 해당 컷의 내용을 명확히 요약해야 합니다.(2~3 단어) 캡션 외의 다른 대사나 말풍선은 절대 금지합니다.
             - 스타일: 매우 유머러스하고 과장된 코믹 카툰 스타일로, 굵은 외곽선을 사용하세요.
-            
+
             2. 주인공 및 기본 설정:
             - 주인공: 반드시 제공된 캐릭터 이미지의 스타일과 특징을 유지하여 그리세요.
             - 스타일: 대사가 전혀 없는, 재미있고 과장된 코믹 카툰 스타일.
-            - 시간의 흐름: 네 컷은 반드시 [오전] -> [점심] -> [오후] -> [밤] 순서로 시간의 경과가 느껴져야 합니다. 배경의 해/달 위치나 분위기로 표현하세요.
-            
+
             3. 만화의 내용
             - 만화의 전체 내용은 **<오늘의 운세 요약>**의 운세 흐름을 반영해야 합니다.
-            - 특히 3컷(오후) 쯤에는 운세에서 말하는 **'문제 상황'이나 '부족한 점'**을 표현해야 합니다.
-            - 마지막 4컷(밤)에는 {needed_element_desc} (부족한 오행 원소)를 채움으로써 문제가 해결되고 평온/만족을 되찾는 결말로 마무리하세요.
-            
+            - 각 컷은 내용이 연결되어야합니다.
+            - 마지막 4컷에는 {needed_element_desc} (부족한 오행 원소)를 채움으로써 문제가 해결되고 평온/만족을 되찾는 결말로 마무리하세요.
+
             <오늘의 운세 요약>
             {fortune_response.today_element_balance_description}
-            
-            각 컷 상단 캡션 예시:
-            1컷: Energetic start based on Earth.
-            2컷: Busy Flow, Water & Fire Energy
-            3컷: Metal Lacking, Deadline Trouble
-            4컷: Metal Added, Perfect Balance
-            
+
             오행 원소 설명:
             - 화: 불 (Fire)
             - 수: 물 (Water)
@@ -668,30 +679,41 @@ class FortuneService:
             - 토: 흙 (Earth)
             """
 
-            # With character image reference
-            with open(character_path, "rb") as image_file:
-                response = self.client.images.edit(
-                    model="gpt-image-1",
-                    image=image_file,
-                    prompt=image_prompt.strip(),
-                    size="1024x1536",
+            # Load character image with PIL
+            character_image = Image.open(character_path)
+
+            # Generate image with Gemini
+            response = self.gemini_client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[image_prompt.strip(), character_image],
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                    image_config=types.ImageConfig(
+                        aspect_ratio="2:3",
+                    )
                 )
+            )
 
+            # Extract image from response
+            if response and hasattr(response, 'candidates') and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'inline_data') and part.inline_data:
+                            # Get image data from inline_data
+                            image_data = part.inline_data.data
+                            logger.info(f"Successfully generated fortune image for {tomorrow_date}")
+                            return image_data
+                        elif hasattr(part, 'file_data') and part.file_data:
+                            # Handle file_data if present
+                            logger.warning("Received file_data instead of inline_data")
+                            return None
 
-            # Extract image data from response
-            image_data = response.data[0].b64_json
-
-            if image_data:
-                # Decode base64 image
-                image_bytes = base64.b64decode(image_data)
-                logger.info(f"Successfully generated fortune image for {tomorrow_date}")
-                return image_bytes
-            else:
-                logger.warning("No image data returned from OpenAI API")
-                return None
+            logger.warning("No image data returned from Gemini API")
+            return None
 
         except Exception as e:
-            logger.error(f"Failed to generate fortune image: {e}")
+            logger.error(f"Failed to generate fortune image with Gemini: {e}", exc_info=True)
             return None
 
     def _get_element_color(self, element: str) -> str:
@@ -711,10 +733,16 @@ class FortuneService:
     def generate_fortune(
         self,
         user: User,
-        date: datetime
+        date: datetime,
+        generate_image: bool = True
     ) -> Response[FortuneResponse]:
         """
         Generate fortune with race condition protection using database-level locking.
+
+        Args:
+            user: User object
+            date: Date for fortune generation
+            generate_image: Whether to generate image (default: True for API, False for batch)
 
         Status flow: pending → processing → completed
         """
@@ -794,7 +822,7 @@ class FortuneService:
 
             # Schedule background task to generate fortune with AI
             from core.tasks import schedule_fortune_generation
-            schedule_fortune_generation(user.id, tomorrow_date.strftime('%Y-%m-%d'))
+            schedule_fortune_generation(user.id, tomorrow_date.strftime('%Y-%m-%d'), generate_image)
 
             # Return placeholder response immediately
             birth_time = user._convert_time_units_to_time(user.birth_time_units)

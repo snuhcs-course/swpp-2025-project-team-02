@@ -134,7 +134,7 @@ def schedule_fortune_update(user_id: int, image_date_str: str) -> None:
     )
 
 
-def generate_fortune_sync(user_id: int, date_str: str) -> None:
+def generate_fortune_sync(user_id: int, date_str: str, generate_image: bool = True) -> None:
     """
     Generate fortune with AI in worker thread.
     Runs synchronously in dedicated worker thread pool.
@@ -142,6 +142,7 @@ def generate_fortune_sync(user_id: int, date_str: str) -> None:
     Args:
         user_id: ID of the user
         date_str: Date string in YYYY-MM-DD format for the fortune date
+        generate_image: Whether to generate image (default: True)
     """
     try:
         from .models import FortuneResult
@@ -197,31 +198,33 @@ def generate_fortune_sync(user_id: int, date_str: str) -> None:
             fortune_score
         )
 
-        # Generate fortune image with AI
-        image_bytes = fortune_service.generate_fortune_image_with_ai(
-            fortune,
-            user_saju,
-            date,
-            tomorrow_day_ganji,
-            fortune_score
-        )
-
         # Update with completed fortune
         fortune_result.fortune_data = fortune.model_dump()
         fortune_result.status = 'completed'
         fortune_result.save(update_fields=['fortune_data', 'status'])
 
-        # Save image if generated successfully
-        if image_bytes:
-            image_filename = f"fortune_{user_id}_{date.strftime('%Y%m%d')}.png"
-            fortune_result.fortune_image.save(
-                image_filename,
-                ContentFile(image_bytes),
-                save=True
+        # Generate image if requested (default: True for API, False for batch)
+        if generate_image:
+            image_bytes = fortune_service.generate_fortune_image_with_ai(
+                fortune,
+                user_saju,
+                date,
+                tomorrow_day_ganji,
+                fortune_score
             )
-            logger.info(f"Fortune image saved for user {user_id} on {date}")
+
+            if image_bytes:
+                image_filename = f"fortune_{user_id}_{date.strftime('%Y%m%d')}.png"
+                fortune_result.fortune_image.save(
+                    image_filename,
+                    ContentFile(image_bytes),
+                    save=True
+                )
+                logger.info(f"Fortune image saved for user {user_id} on {date}")
+            else:
+                logger.warning(f"No image generated for user {user_id} on {date}")
         else:
-            logger.warning(f"No image generated for user {user_id} on {date}")
+            logger.info(f"Image generation skipped for user {user_id} on {date}")
 
         logger.info(f"Successfully generated fortune for user {user_id}, date={date_str}")
 
@@ -243,15 +246,16 @@ def generate_fortune_sync(user_id: int, date_str: str) -> None:
             pass
 
 
-def schedule_fortune_generation(user_id: int, date_str: str) -> None:
+def schedule_fortune_generation(user_id: int, date_str: str, generate_image: bool = True) -> None:
     """
     Schedule a fortune generation task to run in worker thread pool.
 
     Args:
         user_id: ID of the user
         date_str: Date string in YYYY-MM-DD format for the fortune date
+        generate_image: Whether to generate image (default: True for API, False for batch)
     """
-    FORTUNE_WORKER_POOL.submit(generate_fortune_sync, user_id, date_str)
+    FORTUNE_WORKER_POOL.submit(generate_fortune_sync, user_id, date_str, generate_image)
     logger.info(
-        f"Scheduled fortune generation for user {user_id}, date={date_str}"
+        f"Scheduled fortune generation for user {user_id}, date={date_str}, generate_image={generate_image}"
     )
