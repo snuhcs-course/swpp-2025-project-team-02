@@ -124,7 +124,7 @@
             <ImageButton
                 android:id="@+id/btnBack"
                 android:layout_width="70dp"
-                android:layout_height="48dp"
+                android:layout_height="38dp"
                 android:background="@drawable/ar_back_button_background"
                 android:contentDescription="Back"
                 android:src="@drawable/ic_arrow_back"

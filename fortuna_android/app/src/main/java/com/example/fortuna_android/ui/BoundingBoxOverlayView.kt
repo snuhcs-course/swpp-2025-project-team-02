@@ -236,29 +236,14 @@ class BoundingBoxOverlayView @JvmOverloads constructor(
             drawSpinner(canvas, centerX, centerY, squareSize / 2f - 20f)
         }
 
-        // Different labels for preview vs normal mode
+        // Labels are hidden - keeping logical flow for preview mode detection
         val label = if (isInSizeSelectionMode) {
             "주변에서 원소를 찾아보세요!"
         } else {
             "${box.label} (${(box.confidence * 100).toInt()}%)"
         }
 
-        val paintForText = if (isInSizeSelectionMode) previewTextPaint else textPaint
-        val textWidth = paintForText.measureText(label)
-        val textHeight = paintForText.textSize
-
-        // Position text above the bounding box
-        val textX = centerX - textWidth / 2f
-        val textY = top - 20f
-
-        canvas.drawRect(
-            textX - 12f,
-            textY - textHeight,
-            textX + textWidth + 12f,
-            textY + 12f,
-            textBackgroundPaint
-        )
-        canvas.drawText(label, textX, textY, paintForText)
+        // Label drawing is disabled but logical flow preserved
 
         Log.d(TAG, "Drew shaded overlay with highlighted area: ${box.label} at center($centerX, $centerY) size=${squareSize.toInt()}")
     }

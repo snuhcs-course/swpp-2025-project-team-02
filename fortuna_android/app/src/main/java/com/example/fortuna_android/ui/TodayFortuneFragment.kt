@@ -43,6 +43,14 @@ class TodayFortuneFragment : Fragment() {
         setupClickListeners()
         setupObservers()
         loadUserProfile()
+        loadFortuneData()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh data when fragment becomes visible again (e.g., after profile edit)
+        Log.d(TAG, "onResume - refreshing data")
+        refreshData()
     }
 
     private fun setupClickListeners() {
@@ -151,6 +159,20 @@ class TodayFortuneFragment : Fragment() {
                 )
             }
         }
+
+        // Observe AI generation status message
+        fortuneViewModel.generatingMessage.observe(viewLifecycleOwner) { message ->
+            val binding = _binding ?: return@observe
+
+            if (message != null) {
+                Log.d(TAG, "AI is generating fortune: $message")
+                // Update loading message to show AI generation status
+                binding.loadingContainer.visibility = View.VISIBLE
+                binding.fortuneCardView.visibility = View.GONE
+                binding.todaySajuPaljaView.visibility = View.GONE
+                binding.tvError.visibility = View.GONE
+            }
+        }
     }
 
     /**
@@ -216,6 +238,20 @@ class TodayFortuneFragment : Fragment() {
     private fun loadUserProfile() {
         // Use ViewModel to load user profile (with caching)
         fortuneViewModel.loadUserProfile()
+    }
+
+    private fun loadFortuneData() {
+        // Load today's fortune data on initial load
+        Log.d(TAG, "Loading fortune data...")
+        fortuneViewModel.getTodayFortune(requireContext())
+    }
+
+    private fun refreshData() {
+        // Refresh both user profile and fortune data
+        // This will force reload from server if data has changed
+        Log.d(TAG, "Refreshing all data from server...")
+        fortuneViewModel.refreshUserProfile()
+        fortuneViewModel.refreshFortuneData(requireContext())
     }
 
     override fun onDestroyView() {

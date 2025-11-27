@@ -45,6 +45,9 @@ class FortuneCardView @JvmOverloads constructor(
     // Store base entropy score for bonus calculation
     private var baseEntropyScore: Int = 0
 
+    // Store current fortune text for TTS playback
+    private var currentFortuneText: String = ""
+
     // TTS manager for reading fortune text
     // Toggle between Android TTS (fast, free) and OpenAI Realtime TTS (high quality, paid)
     private val ttsManager: FortuneTtsManager by lazy {
@@ -97,29 +100,112 @@ class FortuneCardView @JvmOverloads constructor(
 
         // Set up TTS click listeners for fortune text sections
         setupTtsClickListeners()
+
+        // Set up TTS control bar
+        setupTtsControlBar()
     }
 
     /**
      * Set up click listeners for TTS on fortune text sections
      */
     private fun setupTtsClickListeners() {
-        // 오행 균형 설명 클릭 시 TTS 재생/중단
-        binding.tvElementBalanceDescription.setOnClickListener {
-            ttsManager.handleTextClick(
-                textView = binding.tvElementBalanceDescription,
-                glowBackground = R.drawable.text_glow_active,
-                normalBackground = R.drawable.text_normal
-            )
+        // 오행 균형 설명 스피커 아이콘 클릭 시 TTS 재생
+        binding.ivSpeakerBalance.setOnClickListener {
+            showTtsControlBar()
+            playSection(binding.tvElementBalanceDescription.text.toString(), "오행 균형")
         }
 
-        // 사주를 좋게 하는 방법 클릭 시 TTS 재생/중단
-        binding.tvDailyGuidance.setOnClickListener {
-            ttsManager.handleTextClick(
-                textView = binding.tvDailyGuidance,
-                glowBackground = R.drawable.text_glow_active,
-                normalBackground = R.drawable.text_normal
-            )
+        // 사주를 좋게 하는 방법 스피커 아이콘 클릭 시 TTS 재생
+        binding.ivSpeakerGuidance.setOnClickListener {
+            showTtsControlBar()
+            playSection(binding.tvDailyGuidance.text.toString(), "운세 가이드")
         }
+    }
+
+    private fun setupTtsControlBar() {
+        val controlBar = binding.root.findViewById<View>(R.id.ttsControlBar)
+        val btnPlayPause = controlBar.findViewById<View>(R.id.btnPlayPause)
+        val btnClose = controlBar.findViewById<View>(R.id.btnClose)
+        val ivPlayPauseIcon = controlBar.findViewById<android.widget.ImageView>(R.id.ivPlayPauseIcon)
+
+        // Play/Pause button
+        btnPlayPause.setOnClickListener {
+            if (ttsManager.isPlaying()) {
+                // Pause
+                ttsManager.stopTts(R.drawable.text_normal)
+                ivPlayPauseIcon.setImageResource(R.drawable.ic_volume_off)
+            } else {
+                // Play all fortune text
+                if (currentFortuneText.isNotEmpty()) {
+                    playAllFortuneText()
+                    ivPlayPauseIcon.setImageResource(R.drawable.ic_volume_on)
+                }
+            }
+        }
+
+        // Close button
+        btnClose.setOnClickListener {
+            hideTtsControlBar()
+            ttsManager.stopTts(R.drawable.text_normal)
+        }
+
+        // Set completion listener
+        ttsManager.setOnCompleteListener {
+            Log.d("FortuneCardView", "TTS playback completed")
+            ivPlayPauseIcon.setImageResource(R.drawable.ic_volume_off)
+        }
+    }
+
+    /**
+     * Show TTS control bar
+     */
+    private fun showTtsControlBar() {
+        val controlBar = binding.root.findViewById<View>(R.id.ttsControlBar)
+        controlBar.visibility = View.VISIBLE
+        controlBar.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(300)
+            .start()
+    }
+
+    /**
+     * Hide TTS control bar
+     */
+    private fun hideTtsControlBar() {
+        val controlBar = binding.root.findViewById<View>(R.id.ttsControlBar)
+        controlBar.animate()
+            .alpha(0f)
+            .translationY(100f)
+            .setDuration(300)
+            .withEndAction {
+                controlBar.visibility = View.GONE
+            }
+            .start()
+    }
+
+    /**
+     * Play a specific section
+     */
+    private fun playSection(text: String, sectionName: String) {
+        val controlBar = binding.root.findViewById<View>(R.id.ttsControlBar)
+        val tvTtsDetail = controlBar.findViewById<TextView>(R.id.tvTtsDetail)
+        val ivPlayPauseIcon = controlBar.findViewById<android.widget.ImageView>(R.id.ivPlayPauseIcon)
+
+        tvTtsDetail.text = sectionName
+        ivPlayPauseIcon.setImageResource(R.drawable.ic_volume_on)
+
+        ttsManager.speak(text)
+    }
+
+    /**
+     * Play all fortune text sections together
+     */
+    private fun playAllFortuneText() {
+        val controlBar = binding.root.findViewById<View>(R.id.ttsControlBar)
+        val tvTtsDetail = controlBar.findViewById<TextView>(R.id.tvTtsDetail)
+        tvTtsDetail.text = "전체 운세를 읽어드립니다"
+        ttsManager.speak(currentFortuneText)
     }
 
     /**
@@ -187,6 +273,15 @@ class FortuneCardView @JvmOverloads constructor(
         // 새로운 섹션: 일일 가이던스
         binding.tvDailyGuidance.text = fortuneData.fortune.todayDailyGuidance
 
+        // Store combined fortune text for TTS playback
+        currentFortuneText = buildString {
+            append(fortuneData.fortune.todayFortuneSummary)
+            append("\n\n")
+            append(fortuneData.fortune.todayElementBalanceDescription)
+            append("\n\n")
+            append(fortuneData.fortune.todayDailyGuidance)
+        }
+
         // Load fortune image if available
         loadFortuneImage(fortuneData.fortuneImageUrl)
     }
@@ -243,7 +338,7 @@ class FortuneCardView @JvmOverloads constructor(
                     Log.w("FortuneCardView", "Failed to fetch today's progress: ${response.code()}")
                     withContext(Dispatchers.Main) {
                         // Show default if API fails
-                        binding.tvElementCharacter.text = "運"
+                        binding.tvElementCharacter.text = ""
                         binding.tvElementCharacter.setTextColor(Color.parseColor(AppColors.COLOR_GOLD))
                         updateProgressDots(0, Color.parseColor(AppColors.COLOR_GOLD))
                         updateScoreWithBonus(0)
@@ -253,7 +348,7 @@ class FortuneCardView @JvmOverloads constructor(
                 Log.e("FortuneCardView", "Error fetching today's progress", e)
                 withContext(Dispatchers.Main) {
                     // Show default if error occurs
-                    binding.tvElementCharacter.text = "運"
+                    binding.tvElementCharacter.text = ""
                     binding.tvElementCharacter.setTextColor(Color.parseColor(AppColors.COLOR_GOLD))
                     updateProgressDots(0, Color.parseColor(AppColors.COLOR_GOLD))
                     updateScoreWithBonus(0)

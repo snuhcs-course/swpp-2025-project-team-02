@@ -11,7 +11,6 @@ Receives a base date and generates fortunes for the NEXT day.
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.core.management.base import BaseCommand
-from django.db import transaction
 from loguru import logger
 from user.models import User
 from core.services.fortune import FortuneService
@@ -181,6 +180,8 @@ class Command(BaseCommand):
         """
         Generate fortune for a single user for the day after base_date.
 
+        Calls FortuneService.generate_fortune() which schedules background AI generation.
+
         Args:
             user: User object
             base_date: date object (base date, will generate for next day)
@@ -204,9 +205,12 @@ class Command(BaseCommand):
             # Convert date to datetime for service call
             base_datetime = datetime.combine(base_date, datetime.min.time())
 
+            # This will schedule background AI generation via tasks.py
+            # Images are skipped in batch to improve performance
             result = fortune_service.generate_fortune(
                 user=user,
-                date=base_datetime
+                date=base_datetime,
+                generate_image=False  # Skip image generation in batch
             )
 
             if result.status == 'success':
