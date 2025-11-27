@@ -107,6 +107,11 @@ class SajuPaljaView @JvmOverloads constructor(
     }
 
     private fun getGanjiColor(ganji: String): Int {
-        return AppColors.getElementColorByBranch(ganji)
+        // 천간과 지지를 구분하여 적절한 함수 사용
+        return if (ganji in listOf("갑", "을", "병", "정", "무", "기", "경", "신", "임", "계")) {
+            AppColors.getElementColorByStem(ganji)
+        } else {
+            AppColors.getElementColorByBranch(ganji)
+        }
     }
 }

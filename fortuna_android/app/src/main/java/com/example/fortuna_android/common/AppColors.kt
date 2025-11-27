@@ -129,7 +129,7 @@ object AppColors {
             "인", "묘" -> Color.parseColor(ELEMENT_WOOD)
             "사", "오" -> Color.parseColor(ELEMENT_FIRE)
             "술", "미", "축", "진" -> Color.parseColor(ELEMENT_EARTH)
-            "유" -> Color.parseColor(ELEMENT_METAL)
+            "신", "유" -> Color.parseColor(ELEMENT_METAL)
             "해", "자" -> Color.parseColor(ELEMENT_WATER)
             else -> Color.parseColor(COLOR_LIGHT_GRAY)
         }
