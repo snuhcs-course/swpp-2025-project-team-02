@@ -141,11 +141,15 @@ class FortuneViewModel : ViewModel() {
                         _errorMessage.postValue(null)
                         _generatingMessage.postValue(null)
                     } else if (isAiGenerating) {
-                        // AI is generating - show generating message and start polling
+                        // AI is generating - show card with generating message
                         Log.w(TAG, "AI is generating fortune... Starting polling")
+
+                        // Post the fortune data even though AI is generating
+                        // This will show the card with "AI is generating..." message
+                        _fortuneData.postValue(fortuneResponse.data)
+
                         _fortuneResult.postValue(null)
-                        _fortuneData.postValue(null)
-                        _isLoading.postValue(true)
+                        _isLoading.postValue(false)  // Show card, not loading spinner
                         _errorMessage.postValue(null)
                         _generatingMessage.postValue(fortune.todayElementBalanceDescription)
 
@@ -308,7 +312,7 @@ class FortuneViewModel : ViewModel() {
                             val fortuneText = "${fortuneResponse.data.forDate}\nOverall Fortune: $fortuneScore\n\n${fortune.todayElementBalanceDescription}\n\n${fortune.todayDailyGuidance}"
                             _fortuneResult.postValue(fortuneText)
 
-                            // Post TodayFortuneData
+                            // Post TodayFortuneData - this will update the card with complete fortune
                             _fortuneData.postValue(fortuneResponse.data)
 
                             _isLoading.postValue(false)
@@ -317,12 +321,19 @@ class FortuneViewModel : ViewModel() {
 
                             // Stop polling
                             break
-                        } else {
+                        } else if (isAiGenerating) {
                             Log.d(TAG, "Fortune still generating, continuing to poll...")
+
+                            // Update the fortune data even during generation
+                            // This ensures the card shows the latest "generating..." message
+                            _fortuneData.postValue(fortuneResponse.data)
+
                             // Update generating message if changed
                             if (fortune.todayElementBalanceDescription != null) {
                                 _generatingMessage.postValue(fortune.todayElementBalanceDescription)
                             }
+                        } else {
+                            Log.d(TAG, "Fortune in unknown state, continuing to poll...")
                         }
                     } else {
                         Log.w(TAG, "Polling request failed: ${response.code()}")

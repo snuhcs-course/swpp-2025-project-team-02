@@ -48,9 +48,30 @@ class TodayFortuneFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh data when fragment becomes visible again (e.g., after profile edit)
-        Log.d(TAG, "onResume - refreshing data")
-        refreshData()
+        // Only refresh if data doesn't exist yet
+        // Don't refresh if data already loaded or if currently loading/polling
+        Log.d(TAG, "onResume called")
+
+        // Check if we need to load data
+        val hasFortuneData = fortuneViewModel.fortuneData.value != null
+        val hasUserProfile = fortuneViewModel.userProfile.value != null
+        val isCurrentlyLoading = fortuneViewModel.isLoading.value == true
+
+        // Load fortune data if missing and not currently loading
+        if (!hasFortuneData && !isCurrentlyLoading) {
+            Log.d(TAG, "onResume - no fortune data and not loading, loading fortune data")
+            loadFortuneData()
+        }
+
+        // Load user profile if missing (e.g., after profile edit and clearAllData)
+        if (!hasUserProfile) {
+            Log.d(TAG, "onResume - no user profile, loading user profile")
+            loadUserProfile()
+        }
+
+        if (hasFortuneData && hasUserProfile) {
+            Log.d(TAG, "onResume - all data exists, skipping refresh")
+        }
     }
 
     private fun setupClickListeners() {
@@ -157,20 +178,6 @@ class TodayFortuneFragment : Fragment() {
                     daily = profile.dailyGanji,
                     hourly = profile.hourlyGanji
                 )
-            }
-        }
-
-        // Observe AI generation status message
-        fortuneViewModel.generatingMessage.observe(viewLifecycleOwner) { message ->
-            val binding = _binding ?: return@observe
-
-            if (message != null) {
-                Log.d(TAG, "AI is generating fortune: $message")
-                // Update loading message to show AI generation status
-                binding.loadingContainer.visibility = View.VISIBLE
-                binding.fortuneCardView.visibility = View.GONE
-                binding.todaySajuPaljaView.visibility = View.GONE
-                binding.tvError.visibility = View.GONE
             }
         }
     }
