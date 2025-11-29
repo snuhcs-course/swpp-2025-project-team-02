@@ -307,7 +307,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val message = "Fortuna를 즐기기 위해서는 다음과 같은 권한이 필요합니다.:\n\n" +
+        val message = "Fortuna를 즐기기 위해서는 다음과 같은 권한이 필요합니다.\n\n" +
                 "• 카메라\n\n" +
                 "기기 설정에서 권한을 허용해 주십시오."
 
