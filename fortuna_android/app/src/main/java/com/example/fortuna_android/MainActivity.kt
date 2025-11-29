@@ -107,11 +107,6 @@ class MainActivity : AppCompatActivity() {
         // Check permissions on startup
         requestPermissions()
 
-        // Request notification permission and generate FCM token
-        NotificationManager.requestNotificationPermission(this)
-        NotificationManager.generateFCMToken(this) { token ->
-            Log.d(TAG, "FCM Token: $token")
-        }
 
         // Initialize RetrofitClient with context for auth interceptor
         RetrofitClient.initialize(this)

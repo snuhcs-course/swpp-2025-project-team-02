@@ -35,20 +35,12 @@ class HomeFragment : Fragment() {
         // Initialize ViewModel
         fortuneViewModel = ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
 
-        // Load today's fortune automatically
-        loadTodayFortune()
-    }
-
-    private fun loadTodayFortune() {
-        Log.d(TAG, "Loading today's fortune...")
-        fortuneViewModel.getTodayFortune(requireContext())
+        // Note: TodayFortuneFragment (embedded in XML) handles the API call
     }
 
     override fun onResume() {
         super.onResume()
-
-        // Reload fortune (ViewModel will cache if already loaded)
-        loadTodayFortune()
+        Log.d(TAG, "onResume: HomeFragment resumed")
     }
 
     override fun onDestroyView() {
