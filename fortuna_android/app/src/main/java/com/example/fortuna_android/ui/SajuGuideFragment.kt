@@ -1,6 +1,8 @@
 package com.example.fortuna_android.ui
 
+import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,9 +13,16 @@ import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
 import com.example.fortuna_android.IntroPagerAdapter
 import com.example.fortuna_android.R
+import com.example.fortuna_android.SajuGuideWalkthroughOverlayFragment
 import com.example.fortuna_android.databinding.FragmentSajuGuideBinding
 
 class SajuGuideFragment : Fragment() {
+
+    companion object {
+        private const val TAG = "SajuGuideFragment"
+        private const val PREFS_NAME = "fortuna_prefs"
+        private const val PREF_KEY_START_WALKTHROUGH = "start_saju_walkthrough"
+    }
     private var _binding: FragmentSajuGuideBinding? = null
     private val binding get() = _binding!!
 
@@ -33,6 +42,50 @@ class SajuGuideFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupViewPager()
         setupDots()
+
+        // Check if walkthrough should be shown
+        checkAndShowWalkthrough()
+    }
+
+    /**
+     * Check if walkthrough should be shown and display it
+     */
+    private fun checkAndShowWalkthrough() {
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val shouldStartWalkthrough = prefs.getBoolean(PREF_KEY_START_WALKTHROUGH, false)
+
+        if (shouldStartWalkthrough) {
+            // Clear the flag
+            prefs.edit().putBoolean(PREF_KEY_START_WALKTHROUGH, false).apply()
+
+            // Show walkthrough overlay if not completed yet
+            if (SajuGuideWalkthroughOverlayFragment.shouldShowWalkthrough(requireContext())) {
+                Log.d(TAG, "Starting Saju Guide walkthrough")
+                showWalkthroughOverlay()
+            }
+        }
+    }
+
+    /**
+     * Show the walkthrough overlay
+     */
+    private fun showWalkthroughOverlay() {
+        // Check if overlay is already showing
+        val existingOverlay = requireActivity().supportFragmentManager
+            .findFragmentByTag(SajuGuideWalkthroughOverlayFragment.TAG)
+        if (existingOverlay != null) {
+            Log.d(TAG, "Walkthrough overlay already showing")
+            return
+        }
+
+        val walkthroughFragment = SajuGuideWalkthroughOverlayFragment.newInstance()
+
+        requireActivity().supportFragmentManager.beginTransaction()
+            .add(android.R.id.content, walkthroughFragment, SajuGuideWalkthroughOverlayFragment.TAG)
+            .addToBackStack(SajuGuideWalkthroughOverlayFragment.TAG)
+            .commit()
+
+        Log.d(TAG, "Walkthrough overlay shown")
     }
 
     private fun setupViewPager() {

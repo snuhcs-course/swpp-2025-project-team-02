@@ -8,7 +8,7 @@ import com.example.fortuna_android.databinding.*
 
 class IntroPagerAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    override fun getItemCount(): Int = 5
+    override fun getItemCount(): Int = 6
 
     override fun getItemViewType(position: Int): Int {
         return when (position) {
@@ -35,6 +35,7 @@ class IntroPagerAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 IntroPage4ViewHolder(binding)
             }
             5 -> IntroPage5ViewHolder(IntroPage5Binding.inflate(inflater, parent, false))
+            6 -> IntroPage6ViewHolder(IntroPage6Binding.inflate(inflater, parent, false))
             else -> throw IllegalArgumentException("Invalid view type")
         }
     }
@@ -46,4 +47,5 @@ class IntroPagerAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     class IntroPage3ViewHolder(binding: IntroPage3Binding) : RecyclerView.ViewHolder(binding.root)
     class IntroPage4ViewHolder(binding: IntroPage4Binding) : RecyclerView.ViewHolder(binding.root)
     class IntroPage5ViewHolder(binding: IntroPage5Binding) : RecyclerView.ViewHolder(binding.root)
+    class IntroPage6ViewHolder(binding: IntroPage6Binding) : RecyclerView.ViewHolder(binding.root)
 }
