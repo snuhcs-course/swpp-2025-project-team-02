@@ -37,6 +37,10 @@ class FortuneCardView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : CardView(context, attrs, defStyleAttr) {
 
+    companion object {
+        private const val AI_GENERATING_MESSAGE = "AI가 당신의 사주와 오늘의 기운을 분석하고 있습니다."
+    }
+
     private val binding: CardFortuneBinding
 
     private var onRefreshFortuneClickListener: (() -> Unit)? = null
@@ -266,6 +270,12 @@ class FortuneCardView @JvmOverloads constructor(
 
         // 오늘의 운세 요약을 elementMessage에 표시
         binding.tvElementMessage.text = fortuneData.fortune.todayFortuneSummary
+
+        // AI 생성 중인지 체크
+        val isGenerating = fortuneData.fortune.todayElementBalanceDescription?.contains(AI_GENERATING_MESSAGE) == true
+
+        // 생성 중이면 상세 섹션 숨기기, 완료되면 표시
+        binding.llDetailedInfo.visibility = if (isGenerating) View.GONE else View.VISIBLE
 
         // 새로운 섹션: 오행 균형 설명
         binding.tvElementBalanceDescription.text = fortuneData.fortune.todayElementBalanceDescription
