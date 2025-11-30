@@ -13,6 +13,9 @@ import com.example.fortuna_android.api.UserProfile
 import com.example.fortuna_android.databinding.FragmentDetailAnalysisBinding
 import com.example.fortuna_android.util.CustomToast
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class DetailAnalysisFragment : Fragment() {
     private var _binding: FragmentDetailAnalysisBinding? = null
@@ -117,7 +120,8 @@ class DetailAnalysisFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getTodayFortune()
+                val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val response = RetrofitClient.instance.getTodayFortune(todayDate)
 
                 if (response.isSuccessful) {
                     val fortuneResponse = response.body()

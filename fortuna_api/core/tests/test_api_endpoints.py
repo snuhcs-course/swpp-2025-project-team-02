@@ -576,7 +576,7 @@ class TestImageAPIEndpoints(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data['status'], 'error')
-        self.assertIn('Fortune not generated for today', response.data['message'])
+        self.assertIn('Fortune not generated for', response.data['message'])
 
     def test_today_progress_incomplete_fortune_score(self):
         """Test today's progress with incomplete fortune score data."""
@@ -611,6 +611,113 @@ class TestImageAPIEndpoints(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_today_progress_with_date_parameter(self):
+        """Test today's progress with specific date parameter."""
+        from core.models import FortuneResult, ChakraImage
+        from django.utils import timezone
+
+        # Create FortuneResult for a specific date (Dec 4, 2025)
+        target_date = datetime(2025, 12, 4).date()
+
+        FortuneResult.objects.create(
+            user=self.user,
+            for_date=target_date,
+            gapja_code=1,
+            gapja_name='을축',
+            gapja_element='화',
+            fortune_data={'test': 'data'},
+            fortune_score={
+                'entropy_score': 75.0,
+                'elements': {},
+                'element_distribution': {},
+                'interpretation': 'Test',
+                'needed_element': '화'
+            }
+        )
+
+        # Create some ChakraImages for that date
+        for _ in range(3):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='fire',
+                date=target_date,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        url = reverse('core:chakra-today-progress')
+        response = self.client.get(url, {'date': '2025-12-04'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['data']['date'], '2025-12-04')
+        self.assertEqual(response.data['data']['needed_element'], '화')
+        self.assertEqual(response.data['data']['current_count'], 3)
+
+    def test_collect_chakra_with_date_parameter(self):
+        """Test collecting chakra with specific date parameter."""
+        from core.models import ChakraImage
+
+        url = reverse('core:collect_chakra')
+        response = self.client.post(url, {
+            'chakra_type': 'fire',
+            'date': '2025-12-04'
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['status'], 'success')
+
+        # Verify the chakra was created with the correct date
+        chakra = ChakraImage.objects.filter(user=self.user, chakra_type='fire').first()
+        self.assertIsNotNone(chakra)
+        self.assertEqual(str(chakra.date), '2025-12-04')
+
+    def test_collection_status_with_date_parameter(self):
+        """Test collection status with specific date filter."""
+        from core.models import ChakraImage
+        from django.utils import timezone
+
+        # Create chakras on different dates
+        date1 = datetime(2025, 12, 4).date()
+        date2 = datetime(2025, 12, 5).date()
+
+        for _ in range(2):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='fire',
+                date=date1,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        for _ in range(3):
+            ChakraImage.objects.create(
+                user=self.user,
+                image=None,
+                chakra_type='water',
+                date=date2,
+                timestamp=timezone.now(),
+                device_make='PoC',
+                device_model='PoC'
+            )
+
+        # Test without date filter (should return all 5)
+        url = reverse('core:chakra_collection_status')
+        response = self.client.get(url)
+        self.assertEqual(response.data['data']['total_count'], 5)
+
+        # Test with date filter for date1 (should return 2)
+        response = self.client.get(url, {'date': '2025-12-04'})
+        self.assertEqual(response.data['data']['total_count'], 2)
+
+        # Test with date filter for date2 (should return 3)
+        response = self.client.get(url, {'date': '2025-12-05'})
+        self.assertEqual(response.data['data']['total_count'], 3)
 
     def test_monthly_history_success(self):
         """Test getting monthly history with multiple days."""

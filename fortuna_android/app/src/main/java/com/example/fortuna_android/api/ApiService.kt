@@ -46,7 +46,9 @@ interface ApiService {
     ): Response<FortuneResponse>
 
     @GET("api/fortune/today")
-    suspend fun getTodayFortune(): Response<TodayFortuneResponse>
+    suspend fun getTodayFortune(
+        @Query("date") date: String
+    ): Response<TodayFortuneResponse>
 
     @POST("api/user/auth/refresh/")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
@@ -65,10 +67,14 @@ interface ApiService {
     ): Response<CollectElementResponse>
 
     @GET("api/chakra/collection-status/")
-    suspend fun getCollectionStatus(): Response<CollectionStatusResponse>
+    suspend fun getCollectionStatus(
+        @Query("date") date: String
+    ): Response<CollectionStatusResponse>
 
     @GET("api/core/chakras/today-progress/")
-    suspend fun getTodayProgress(): Response<TodayProgressResponse>
+    suspend fun getTodayProgress(
+        @Query("date") date: String
+    ): Response<TodayProgressResponse>
 
     @GET("api/chakra/monthly-history/")
     suspend fun getMonthlyHistory(

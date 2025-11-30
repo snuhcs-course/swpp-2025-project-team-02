@@ -365,7 +365,7 @@ class ApiServiceTest {
 
         mockWebServer.enqueue(MockResponse().setBody(responseJson).setResponseCode(200))
 
-        val response = apiService.getTodayFortune()
+        val response = apiService.getTodayFortune("2025-12-04")
 
         assertTrue(response.isSuccessful)
         assertEquals("success", response.body()?.status)
@@ -374,6 +374,7 @@ class ApiServiceTest {
         val recordedRequest = mockWebServer.takeRequest()
         assertEquals("GET", recordedRequest.method)
         assertTrue(recordedRequest.path?.contains("api/fortune/today") == true)
+        assertTrue(recordedRequest.path?.contains("date=2025-12-04") == true)
     }
 
     @Test

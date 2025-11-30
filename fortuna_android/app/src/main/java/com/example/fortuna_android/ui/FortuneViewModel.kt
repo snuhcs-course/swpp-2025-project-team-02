@@ -14,6 +14,9 @@ import android.util.Log
 import com.example.fortuna_android.api.TodayFortuneData
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class FortuneViewModel : ViewModel() {
 
@@ -24,6 +27,12 @@ class FortuneViewModel : ViewModel() {
         private const val POLLING_INTERVAL_MS = 30000L // 30 seconds
         private const val MAX_POLLING_ATTEMPTS = 20 // 최대 10분 (30초 x 20)
         private const val AI_GENERATING_MESSAGE = "AI가 당신의 사주와 오늘의 기운을 분석하고 있습니다."
+
+        /** 현재 기기 날짜를 yyyy-MM-dd 형식으로 반환 */
+        fun getTodayDateString(): String {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            return dateFormat.format(Date())
+        }
     }
 
     // LiveData for fortune result
@@ -99,7 +108,9 @@ class FortuneViewModel : ViewModel() {
                 }
 
                 // Network call on IO thread - AuthInterceptor will handle token automatically
-                val response = RetrofitClient.instance.getTodayFortune()
+                val todayDate = getTodayDateString()
+                Log.d(TAG, "Fetching fortune for date: $todayDate")
+                val response = RetrofitClient.instance.getTodayFortune(todayDate)
 
                 // Process result
                 if (response.isSuccessful && response.body() != null) {
@@ -294,7 +305,8 @@ class FortuneViewModel : ViewModel() {
 
                 try {
                     // Fetch fortune data again
-                    val response = RetrofitClient.instance.getTodayFortune()
+                    val todayDate = getTodayDateString()
+                    val response = RetrofitClient.instance.getTodayFortune(todayDate)
 
                     if (response.isSuccessful && response.body() != null) {
                         val fortuneResponse = response.body()!!

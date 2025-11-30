@@ -55,6 +55,10 @@ class ChakraCollectSerializer(serializers.Serializer):
             'invalid_choice': 'chakra_type must be one of: fire, water, earth, metal, wood'
         }
     )
+    date = serializers.DateField(
+        required=False,
+        help_text='Date for collection (YYYY-MM-DD). Defaults to server today if not provided.'
+    )
 
 
 class ChakraCollectionItemSerializer(serializers.Serializer):

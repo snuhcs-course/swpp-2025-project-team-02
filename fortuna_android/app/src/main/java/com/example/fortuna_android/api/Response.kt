@@ -329,7 +329,8 @@ data class NeededElementData(
 
 // POST /api/chakra/collect
 data class CollectElementRequest(
-    @SerializedName("chakra_type") val chakraType: String  // English: fire/water/earth/metal/wood
+    @SerializedName("chakra_type") val chakraType: String,  // English: fire/water/earth/metal/wood
+    @SerializedName("date") val date: String  // Format: yyyy-MM-dd
 )
 
 data class CollectElementResponse(
