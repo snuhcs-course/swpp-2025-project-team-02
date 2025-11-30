@@ -83,11 +83,60 @@ class TodayFortuneFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // Tutorial replay button click listener
+        // Saju Guide button - navigates to Saju Guide and shows walkthrough
+        binding.btnSajuGuide.setOnClickListener {
+            Log.d(TAG, "Saju Guide button clicked, navigating to Saju Guide with walkthrough")
+            navigateToSajuGuideWithWalkthrough()
+        }
+
+        // Tutorial replay button - always shows tutorial overlay
         binding.btnReplayTutorial.setOnClickListener {
             Log.d(TAG, "Tutorial replay button clicked")
             resetTutorials()
             showTutorialOverlay()
+        }
+    }
+
+    private fun navigateToSajuGuide() {
+        try {
+            val mainActivity = requireActivity() as? com.example.fortuna_android.MainActivity
+            val navHostFragment = mainActivity?.supportFragmentManager
+                ?.findFragmentById(com.example.fortuna_android.R.id.nav_host_fragment) as? androidx.navigation.fragment.NavHostFragment
+            navHostFragment?.navController?.navigate(com.example.fortuna_android.R.id.sajuGuideFragment)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to Saju Guide: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Navigate to Saju Guide and show walkthrough overlay
+     */
+    private fun navigateToSajuGuideWithWalkthrough() {
+        try {
+            val mainActivity = requireActivity() as? com.example.fortuna_android.MainActivity
+            val navHostFragment = mainActivity?.supportFragmentManager
+                ?.findFragmentById(com.example.fortuna_android.R.id.nav_host_fragment) as? androidx.navigation.fragment.NavHostFragment
+
+            // Navigate to Saju Guide first
+            navHostFragment?.navController?.navigate(com.example.fortuna_android.R.id.sajuGuideFragment)
+
+            // Reset walkthrough flag so it shows again
+            val prefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+            prefs.edit().remove(com.example.fortuna_android.SajuGuideWalkthroughOverlayFragment.PREF_KEY_HAS_COMPLETED_WALKTHROUGH).apply()
+
+            // Show walkthrough overlay after a short delay to allow navigation to complete
+            binding.root.postDelayed({
+                if (isAdded && !requireActivity().isFinishing) {
+                    val walkthroughFragment = com.example.fortuna_android.SajuGuideWalkthroughOverlayFragment.newInstance()
+                    requireActivity().supportFragmentManager.beginTransaction()
+                        .add(android.R.id.content, walkthroughFragment, com.example.fortuna_android.SajuGuideWalkthroughOverlayFragment.TAG)
+                        .addToBackStack(com.example.fortuna_android.SajuGuideWalkthroughOverlayFragment.TAG)
+                        .commit()
+                    Log.d(TAG, "Saju Guide walkthrough overlay shown")
+                }
+            }, 300)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to Saju Guide with walkthrough: ${e.message}", e)
         }
     }
 
@@ -199,7 +248,6 @@ class TodayFortuneFragment : Fragment() {
         }
 
         // Observe generating message for Saju Guide nudge
-        // Element Collection nudge is now shown after walkthrough completion, not after fortune generation
         fortuneViewModel.generatingMessage.observe(viewLifecycleOwner) { generatingMessage ->
             if (generatingMessage != null) {
                 // Fortune is being generated
@@ -214,8 +262,6 @@ class TodayFortuneFragment : Fragment() {
                     }
                 }
             }
-            // Note: After Saju Guide walkthrough, user is guided to use
-            // "오늘의 기운 보충하러 가기" button on home screen
         }
     }
 
