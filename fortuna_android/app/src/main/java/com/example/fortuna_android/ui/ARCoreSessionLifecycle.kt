@@ -108,7 +108,7 @@ class ARCoreSessionLifecycleHelper(
     grantResults: IntArray
   ) {
     if (!CameraPermissionHelper.hasCameraPermission(activity)) {
-      Toast.makeText(activity, "Camera permission is needed to run this application", Toast.LENGTH_LONG)
+      Toast.makeText(activity, "AR 개운 게임을 위해서는 카메라 권한이 필요합니다.", Toast.LENGTH_LONG)
         .show()
       if (!CameraPermissionHelper.shouldShowRequestPermissionRationale(activity)) {
         // Permission denied with checking "Do not ask again".

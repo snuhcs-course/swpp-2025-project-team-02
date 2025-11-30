@@ -107,11 +107,6 @@ class MainActivity : AppCompatActivity() {
         // Check permissions on startup
         requestPermissions()
 
-        // Request notification permission and generate FCM token
-        NotificationManager.requestNotificationPermission(this)
-        NotificationManager.generateFCMToken(this) { token ->
-            Log.d(TAG, "FCM Token: $token")
-        }
 
         // Initialize RetrofitClient with context for auth interceptor
         RetrofitClient.initialize(this)
@@ -312,14 +307,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val message = "The following permissions are required for the app to work properly:\n\n" +
-                "• ${permissionNames.joinToString("\n• ")}\n\n" +
-                "Please grant these permissions in Settings to use all features."
+        val message = "Fortuna를 즐기기 위해서는 다음과 같은 권한이 필요합니다.\n\n" +
+                "• 카메라\n\n" +
+                "기기 설정에서 권한을 허용해 주십시오."
 
         AlertDialog.Builder(this)
-            .setTitle("Permissions Required")
+            .setTitle("권한 설정")
             .setMessage(message)
-            .setNegativeButton("Cancel") { dialog, _ ->
+            .setNegativeButton("취소") { dialog, _ ->
                 dialog.dismiss()
             }
             .setCancelable(false)

@@ -146,7 +146,7 @@ class ProfileFragment : Fragment() {
             Log.e(TAG, "No access token found")
             hideLoading()
             if (isAdded) {
-                CustomToast.show(requireContext(), "Authentication required. Please log in again.")
+                CustomToast.show(requireContext(), "재인증이 필요합니다. 다시 로그인해 주세요.")
             }
             return
         }
