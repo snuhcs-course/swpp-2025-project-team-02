@@ -5,5 +5,7 @@
         <domain includeSubdomains="true">10.0.2.2</domain>
         <!-- 실제 PC의 IP 주소 (필요 시) -->
         <domain includeSubdomains="true">192.168.0.13</domain>
+        <!-- Railway.app 서버 (HTTP 허용) -->
+        <domain includeSubdomains="true">fortuna.up.railway.app</domain>
     </domain-config>
 </network-security-config>
