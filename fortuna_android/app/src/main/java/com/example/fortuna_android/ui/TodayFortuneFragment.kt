@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.fortuna_android.TutorialOverlayFragment
 import com.example.fortuna_android.SajuGuideNudgeOverlayFragment
 import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
+import com.example.fortuna_android.util.CustomToast
 
 class TodayFortuneFragment : Fragment() {
     private var _binding: FragmentTodayFortuneBinding? = null
@@ -20,7 +21,10 @@ class TodayFortuneFragment : Fragment() {
     private lateinit var fortuneViewModel: FortuneViewModel
 
     // Flag to prevent showing nudge multiple times in the same session
-    private var hasShownNudgeThisSession = false
+    private var hasShownSajuGuideNudgeThisSession = false
+
+    // Track if fortune was generating (for Saju Guide nudge trigger)
+    private var wasGenerating = false
 
     companion object {
         private const val TAG = "TodayFortuneFragment"
@@ -115,6 +119,15 @@ class TodayFortuneFragment : Fragment() {
                 // Set up refresh fortune button click listener - Show Tutorial or Navigate to AR
                 binding.fortuneCardView.setOnRefreshFortuneClickListener {
                     Log.d(TAG, "Refresh fortune button clicked")
+
+                    // Check if fortune is still generating
+                    val isGenerating = fortuneViewModel.generatingMessage.value != null
+                    if (isGenerating) {
+                        Log.w(TAG, "Fortune is still generating, cannot navigate to AR")
+                        CustomToast.show(requireContext(), "운세 생성이 완료되면 이용 가능합니다.")
+                        return@setOnRefreshFortuneClickListener
+                    }
+
                     checkTutorialStatusAndNavigate()
                 }
             }
@@ -186,16 +199,23 @@ class TodayFortuneFragment : Fragment() {
         }
 
         // Observe generating message for Saju Guide nudge
-        // Show nudge only when fortune is being generated (AI processing)
+        // Element Collection nudge is now shown after walkthrough completion, not after fortune generation
         fortuneViewModel.generatingMessage.observe(viewLifecycleOwner) { generatingMessage ->
-            if (generatingMessage != null && !hasShownNudgeThisSession) {
-                // Fortune is being generated - check if we should show the nudge
-                if (SajuGuideNudgeOverlayFragment.shouldShowNudge(requireContext())) {
-                    Log.d(TAG, "Fortune generating, showing Saju Guide nudge")
-                    hasShownNudgeThisSession = true
-                    showSajuGuideNudge()
+            if (generatingMessage != null) {
+                // Fortune is being generated
+                wasGenerating = true
+
+                // Show Saju Guide nudge if applicable
+                if (!hasShownSajuGuideNudgeThisSession) {
+                    if (SajuGuideNudgeOverlayFragment.shouldShowNudge(requireContext())) {
+                        Log.d(TAG, "Fortune generating, showing Saju Guide nudge")
+                        hasShownSajuGuideNudgeThisSession = true
+                        showSajuGuideNudge()
+                    }
                 }
             }
+            // Note: After Saju Guide walkthrough, user is guided to use
+            // "오늘의 기운 보충하러 가기" button on home screen
         }
     }
 

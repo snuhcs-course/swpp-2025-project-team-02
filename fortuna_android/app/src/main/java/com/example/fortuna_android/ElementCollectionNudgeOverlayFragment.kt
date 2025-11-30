@@ -1,6 +1,7 @@
 package com.example.fortuna_android
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -11,19 +12,19 @@ import androidx.fragment.app.FragmentManager
 import com.example.fortuna_android.databinding.FragmentSajuGuideNudgeOverlayBinding
 
 /**
- * Saju Guide Nudge overlay fragment that appears during fortune generation
- * Shows Pokemon-style dialogue with mascot, guiding user to Saju Guide tab
- * Only appears once after first onboarding when fortune is generating
+ * Element Collection Nudge overlay fragment that appears after fortune is generated
+ * Shows Pokemon-style dialogue with mascot, guiding user to AR screen for element collection
+ * Only appears once after user has seen the Saju Guide nudge and fortune is ready
  */
-class SajuGuideNudgeOverlayFragment : Fragment() {
+class ElementCollectionNudgeOverlayFragment : Fragment() {
     private var _binding: FragmentSajuGuideNudgeOverlayBinding? = null
     private val binding get() = _binding!!
 
     private var currentDialogueIndex = 0
     private val dialogues = listOf(
-        "운세가 생성되는 동안\n사주 가이드를 둘러보세요!",
-        "사주 가이드에서는 오행의 의미와\n사주팔자에 대해 알 수 있어요.",
-        "지금 가이드를 확인해 볼까요?"
+        "운세가 준비되었어요!",
+        "오늘의 기운이 부족하네요.\n개운을 위해 기운을 보충해볼까요?",
+        "AR 카메라로 주변에서\n부족한 오행을 찾아보세요!"
     )
 
     override fun onCreateView(
@@ -31,6 +32,7 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        // Reuse the same layout as SajuGuideNudgeOverlayFragment
         _binding = FragmentSajuGuideNudgeOverlayBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -39,6 +41,9 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupClickListeners()
         updateDialogue()
+
+        // Change button text for this nudge type
+        binding.btnGoToGuide.text = "기운 보충하기"
     }
 
     private fun setupClickListeners() {
@@ -54,12 +59,10 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
             dismissOverlay()
         }
 
-        // "가이드 보기" button - navigate to Saju Guide with walkthrough
+        // "기운 보충하기" button - navigate to AR screen
         binding.btnGoToGuide.setOnClickListener {
             markNudgeAsSeen()
-            // Set flag to start walkthrough when SajuGuideFragment opens
-            setWalkthroughFlag()
-            navigateToSajuGuide()
+            navigateToAR()
         }
 
         // Dialogue box click - advance to next dialogue
@@ -97,13 +100,7 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
     private fun markNudgeAsSeen() {
         val prefs = requireContext().getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
         prefs.edit().putBoolean(PREF_KEY_HAS_SEEN_NUDGE, true).apply()
-        Log.d(TAG, "Saju Guide nudge marked as seen")
-    }
-
-    private fun setWalkthroughFlag() {
-        val prefs = requireContext().getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("start_saju_walkthrough", true).apply()
-        Log.d(TAG, "Walkthrough flag set")
+        Log.d(TAG, "Element Collection nudge marked as seen")
     }
 
     private fun dismissOverlay() {
@@ -122,7 +119,7 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
         }
     }
 
-    private fun navigateToSajuGuide() {
+    private fun navigateToAR() {
         val mainActivity = requireActivity() as? MainActivity
 
         // Dismiss overlay first
@@ -142,15 +139,17 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
                     fragmentManager.executePendingTransactions()
                 }
 
-                // Navigate to Saju Guide tab using NavController
-                val navHostFragment = mainActivity?.supportFragmentManager
-                    ?.findFragmentById(R.id.nav_host_fragment) as? androidx.navigation.fragment.NavHostFragment
-                navHostFragment?.navController?.navigate(R.id.sajuGuideFragment)
+                // Navigate to AR screen using Intent (same as TutorialOverlayFragment)
+                val intent = Intent(requireContext(), MainActivity::class.java).apply {
+                    putExtra("navigate_to_ar", true)
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                mainActivity?.startActivity(intent)
 
-                Log.d(TAG, "Navigated to Saju Guide")
+                Log.d(TAG, "Navigated to AR screen")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error navigating to Saju Guide: ${e.message}", e)
+            Log.e(TAG, "Error navigating to AR: ${e.message}", e)
         }
     }
 
@@ -160,22 +159,37 @@ class SajuGuideNudgeOverlayFragment : Fragment() {
     }
 
     companion object {
-        const val TAG = "SajuGuideNudgeOverlay"
-        const val PREF_KEY_HAS_SEEN_NUDGE = "has_seen_saju_guide_nudge"
+        const val TAG = "ElementCollectionNudge"
+        const val PREF_KEY_HAS_SEEN_NUDGE = "has_seen_element_collection_nudge"
 
-        fun newInstance(): SajuGuideNudgeOverlayFragment {
-            return SajuGuideNudgeOverlayFragment()
+        fun newInstance(): ElementCollectionNudgeOverlayFragment {
+            return ElementCollectionNudgeOverlayFragment()
         }
 
         /**
-         * Check if the nudge should be shown
+         * Check if the element collection nudge should be shown
          * @param context Context to access SharedPreferences
-         * @return true if nudge should be shown (first time after onboarding)
+         * @return true if nudge should be shown (after seeing Saju Guide nudge)
          */
         fun shouldShowNudge(context: Context): Boolean {
             val prefs = context.getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
-            val hasSeenNudge = prefs.getBoolean(PREF_KEY_HAS_SEEN_NUDGE, false)
-            return !hasSeenNudge
+            val hasSeenElementNudge = prefs.getBoolean(PREF_KEY_HAS_SEEN_NUDGE, false)
+            val hasSeenSajuGuideNudge = prefs.getBoolean(SajuGuideNudgeOverlayFragment.PREF_KEY_HAS_SEEN_NUDGE, false)
+            val wentToSajuGuide = prefs.getBoolean(PREF_KEY_WENT_TO_SAJU_GUIDE, false)
+
+            // Show if: saw saju guide nudge AND went to saju guide AND hasn't seen element nudge
+            return hasSeenSajuGuideNudge && wentToSajuGuide && !hasSeenElementNudge
+        }
+
+        // Flag to track if user actually went to Saju Guide (clicked "가이드 보기")
+        const val PREF_KEY_WENT_TO_SAJU_GUIDE = "went_to_saju_guide_from_nudge"
+
+        /**
+         * Mark that user went to Saju Guide from the nudge
+         */
+        fun markWentToSajuGuide(context: Context) {
+            val prefs = context.getSharedPreferences("fortuna_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean(PREF_KEY_WENT_TO_SAJU_GUIDE, true).apply()
         }
     }
 }
