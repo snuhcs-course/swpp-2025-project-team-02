@@ -69,6 +69,11 @@ class ARFragment(
     private var localCollectedCount: Int = 0  // Track local collection count during AR session
     private var questCompletionShown: Boolean = false  // Track if completion notification was already shown
 
+    // FortuneViewModel for cache invalidation when quest completes
+    private val fortuneViewModel: FortuneViewModel by lazy {
+        androidx.lifecycle.ViewModelProvider(requireActivity())[FortuneViewModel::class.java]
+    }
+
     // ARCore session manager - managed by this fragment
     private lateinit var sessionManager: ARSessionManager
 
@@ -1017,6 +1022,12 @@ class ARFragment(
         questCompletionShown = true
 
         Log.i(TAG, "Daily energy quest completed!")
+
+        // Invalidate fortune cache to refresh image on home screen
+        // Backend generates new fortune_image_url when quest is completed
+        fortuneViewModel.refreshFortuneData(requireContext())
+        Log.d(TAG, "Fortune cache invalidated - will fetch new fortune_image_url")
+
         showQuestCompletionOverlay()
     }
 
