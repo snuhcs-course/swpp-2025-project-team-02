@@ -280,6 +280,16 @@
                     android:background="@android:drawable/edit_text"
                     android:maxLength="6" />
 
+                <TextView
+                    android:id="@+id/nickname_error_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="닉네임은 최대 6자까지 입력 가능합니다"
+                    android:textColor="#FF5252"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
         </LinearLayout>

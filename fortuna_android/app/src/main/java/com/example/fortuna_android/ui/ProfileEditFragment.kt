@@ -3,6 +3,8 @@ package com.example.fortuna_android.ui
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -72,7 +74,27 @@ class ProfileEditFragment : Fragment() {
 
         setupSpinners()
         setupClickListeners()
+        setupNicknameValidation()
         loadUserProfile()
+    }
+
+    private fun setupNicknameValidation() {
+        val binding = _binding ?: return
+
+        binding.nicknameEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val length = s?.length ?: 0
+                if (length >= 6) {
+                    binding.nicknameErrorText.visibility = View.VISIBLE
+                } else {
+                    binding.nicknameErrorText.visibility = View.GONE
+                }
+            }
+        })
     }
 
     private fun setupSpinners() {
