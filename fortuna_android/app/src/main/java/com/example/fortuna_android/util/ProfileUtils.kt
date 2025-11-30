@@ -1,5 +1,6 @@
 package com.example.fortuna_android.util
 
+import com.example.fortuna_android.api.UpdatedUserData
 import com.example.fortuna_android.api.UserProfile
 
 /**
@@ -37,6 +38,30 @@ object ProfileUtils {
                !profile.solarOrLunar.isNullOrEmpty() &&
                !profile.birthTimeUnits.isNullOrEmpty() &&
                !profile.gender.isNullOrEmpty()
+    }
+
+    /**
+     * UpdatedUserData 타입의 프로필이 완성되었는지 확인합니다.
+     *
+     * @param profile 확인할 업데이트된 사용자 데이터
+     * @return 프로필이 완성되었으면 true, 아니면 false
+     */
+    fun isProfileComplete(profile: UpdatedUserData?): Boolean {
+        // 프로필이 null이면 미완성
+        if (profile == null) {
+            return false
+        }
+
+        // 생년월일이 하나라도 있는지 확인
+        val hasBirthDate = profile.birthDateLunar.isNotEmpty() ||
+                          profile.birthDateSolar.isNotEmpty()
+
+        // 모든 필수 필드가 채워져 있는지 확인
+        return profile.nickname.isNotEmpty() &&
+               hasBirthDate &&
+               profile.solarOrLunar.isNotEmpty() &&
+               profile.birthTimeUnits.isNotEmpty() &&
+               profile.gender.isNotEmpty()
     }
 
     /**

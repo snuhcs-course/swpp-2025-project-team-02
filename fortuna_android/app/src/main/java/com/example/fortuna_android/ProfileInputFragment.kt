@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import com.example.fortuna_android.util.CustomToast
+import com.example.fortuna_android.util.ProfileUtils
 import com.example.fortuna_android.databinding.FragmentProfileInputBinding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -271,12 +272,24 @@ class ProfileInputFragment : Fragment() {
                 val response = RetrofitClient.instance.updateUserProfile(request)
 
                 if (response.isSuccessful) {
-                    val updatedProfile = response.body()
-                    Log.d(TAG, "프로필 업데이트 성공: $updatedProfile")
+                    val updateResponse = response.body()
+                    Log.d(TAG, "프로필 업데이트 성공: $updateResponse")
+
+                    // ✅ 버그 #3 수정: 응답받은 프로필이 실제로 완성되었는지 검증
+                    val updatedUser = updateResponse?.user
+                    if (!ProfileUtils.isProfileComplete(updatedUser)) {
+                        Log.e(TAG, "서버 응답은 성공했지만 프로필이 여전히 불완전합니다.")
+                        if (isAdded) {
+                            CustomToast.show(requireContext(), "프로필 업데이트에 문제가 발생했습니다. 다시 시도해주세요.")
+                        }
+                        return@launch
+                    }
+
                     if (isAdded) {
                         CustomToast.show(requireContext(), "프로필이 성공적으로 업데이트되었습니다!")
                     }
 
+                    // ✅ 버그 #1 수정: 프로필 업데이트 완료 플래그를 전달
                     navigateToMain()
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -296,6 +309,12 @@ class ProfileInputFragment : Fragment() {
 
     private fun navigateToMain() {
         if (!isAdded) return
+
+        // 프로필 업데이트 직후 타임스탬프 저장 (타이밍 이슈 방지)
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putLong(KEY_PROFILE_UPDATED_TIME, System.currentTimeMillis()).apply()
+        Log.d(TAG, "Profile Updated Timestamp Stored.")
+
         val intent = Intent(requireContext(), MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
@@ -315,5 +334,6 @@ class ProfileInputFragment : Fragment() {
         private const val TAG = "ProfileInputFragment"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"
+        private const val KEY_PROFILE_UPDATED_TIME = "profile_updated_time"
     }
 }
