@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.fortuna_android.TutorialOverlayFragment
+import com.example.fortuna_android.SajuGuideNudgeOverlayFragment
 import com.example.fortuna_android.databinding.FragmentTodayFortuneBinding
 
 class TodayFortuneFragment : Fragment() {
@@ -17,6 +18,9 @@ class TodayFortuneFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var fortuneViewModel: FortuneViewModel
+
+    // Flag to prevent showing nudge multiple times in the same session
+    private var hasShownNudgeThisSession = false
 
     companion object {
         private const val TAG = "TodayFortuneFragment"
@@ -180,6 +184,48 @@ class TodayFortuneFragment : Fragment() {
                 )
             }
         }
+
+        // Observe generating message for Saju Guide nudge
+        // Show nudge only when fortune is being generated (AI processing)
+        fortuneViewModel.generatingMessage.observe(viewLifecycleOwner) { generatingMessage ->
+            if (generatingMessage != null && !hasShownNudgeThisSession) {
+                // Fortune is being generated - check if we should show the nudge
+                if (SajuGuideNudgeOverlayFragment.shouldShowNudge(requireContext())) {
+                    Log.d(TAG, "Fortune generating, showing Saju Guide nudge")
+                    hasShownNudgeThisSession = true
+                    showSajuGuideNudge()
+                }
+            }
+        }
+    }
+
+    /**
+     * Show Saju Guide nudge overlay during fortune generation
+     * This nudge guides first-time users to explore the Saju Guide while waiting
+     */
+    private fun showSajuGuideNudge() {
+        // Check if fragment is still attached
+        if (!isAdded || requireActivity().isFinishing) {
+            Log.w(TAG, "Cannot show nudge - fragment not attached or activity finishing")
+            return
+        }
+
+        // Check if nudge overlay is already showing
+        val existingNudge = requireActivity().supportFragmentManager
+            .findFragmentByTag(SajuGuideNudgeOverlayFragment.TAG)
+        if (existingNudge != null) {
+            Log.d(TAG, "Nudge overlay already showing, skipping")
+            return
+        }
+
+        val nudgeFragment = SajuGuideNudgeOverlayFragment.newInstance()
+
+        requireActivity().supportFragmentManager.beginTransaction()
+            .add(android.R.id.content, nudgeFragment, SajuGuideNudgeOverlayFragment.TAG)
+            .addToBackStack(SajuGuideNudgeOverlayFragment.TAG)
+            .commit()
+
+        Log.d(TAG, "Saju Guide nudge overlay shown")
     }
 
     /**

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Dim overlay (80% dark) -->
+    <View
+        android:id="@+id/dimOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Close button (top-left) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:text="닫기"
+        android:textColor="#000000"
+        android:textSize="14sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        app:backgroundTint="#FFFFFF"
+        app:cornerRadius="8dp"
+        app:elevation="4dp"
+        android:contentDescription="Close nudge" />
+
+    <!-- Mascot (bottom-left) -->
+    <FrameLayout
+        android:id="@+id/mascotContainer"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="220dp">
+
+        <com.example.fortuna_android.ui.SimpleMascotView
+            android:id="@+id/ivMascot"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="Fortuna Mascot" />
+    </FrameLayout>
+
+    <!-- Dialogue box (bottom-center) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/dialogueBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="40dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="#FFFFFF"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Dialogue text -->
+            <TextView
+                android:id="@+id/tvDialogue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="운세가 생성되는 동안\n사주 가이드를 둘러보세요!"
+                android:textColor="#000000"
+                android:textSize="18sp"
+                android:lineSpacingMultiplier="1.3"
+                android:fontFamily="sans-serif-medium" />
+
+            <!-- Arrow indicator (hidden on last dialogue) -->
+            <TextView
+                android:id="@+id/tvArrow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:text="▼"
+                android:textColor="#9C27B0"
+                android:textSize="20sp"
+                android:visibility="visible" />
+
+            <!-- Action buttons container (visible only on last dialogue) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="16dp"
+                android:gravity="end">
+
+                <!-- "Later" button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLater"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="나중에"
+                    android:textColor="#666666"
+                    android:textSize="14sp"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:visibility="gone" />
+
+                <!-- "Go to Guide" button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGoToGuide"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="가이드 보기"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:layout_marginStart="8dp"
+                    app:backgroundTint="#9C27B0"
+                    app:cornerRadius="8dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</FrameLayout>
