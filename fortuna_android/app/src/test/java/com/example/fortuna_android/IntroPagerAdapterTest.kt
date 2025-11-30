@@ -31,12 +31,12 @@ class IntroPagerAdapterTest {
     // ========== getItemCount Tests ==========
 
     @Test
-    fun `test getItemCount returns 5`() {
+    fun `test getItemCount returns 6`() {
         // Act
         val count = adapter.itemCount
 
         // Assert
-        assertEquals("Item count should be 5 for 5 intro pages", 5, count)
+        assertEquals("Item count should be 6 for 6 intro pages", 6, count)
     }
 
     // ========== getItemViewType Tests ==========
@@ -60,21 +60,21 @@ class IntroPagerAdapterTest {
     }
 
     @Test
-    fun `test getItemViewType for position 2 returns 4`() {
+    fun `test getItemViewType for position 2 returns 3`() {
         // Act
         val viewType = adapter.getItemViewType(2)
 
         // Assert
-        assertEquals("Position 2 should map to view type 4 (오행)", 4, viewType)
+        assertEquals("Position 2 should map to view type 3", 3, viewType)
     }
 
     @Test
-    fun `test getItemViewType for position 3 returns 3`() {
+    fun `test getItemViewType for position 3 returns 4`() {
         // Act
         val viewType = adapter.getItemViewType(3)
 
         // Assert
-        assertEquals("Position 3 should map to view type 3 (일주)", 3, viewType)
+        assertEquals("Position 3 should map to view type 4", 4, viewType)
     }
 
     @Test
@@ -83,19 +83,16 @@ class IntroPagerAdapterTest {
         val viewType = adapter.getItemViewType(4)
 
         // Assert
-        assertEquals("Position 4 should map to view type 5 (음양)", 5, viewType)
+        assertEquals("Position 4 should map to view type 5", 5, viewType)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `test getItemViewType with invalid position throws exception`() {
+    @Test
+    fun `test getItemViewType for position 5 returns 6`() {
         // Act
-        adapter.getItemViewType(5)  // Invalid position (now only 0-4 are valid)
-    }
+        val viewType = adapter.getItemViewType(5)
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `test getItemViewType with negative position throws exception`() {
-        // Act
-        adapter.getItemViewType(-1)  // Negative position
+        // Assert
+        assertEquals("Position 5 should map to view type 6", 6, viewType)
     }
 
     // ========== onCreateViewHolder Tests ==========
@@ -155,6 +152,17 @@ class IntroPagerAdapterTest {
             viewHolder is IntroPagerAdapter.IntroPage5ViewHolder)
     }
 
+    @Test
+    fun `test onCreateViewHolder for view type 6 creates IntroPage6ViewHolder`() {
+        // Act
+        val viewHolder = adapter.onCreateViewHolder(parent, 6)
+
+        // Assert
+        assertNotNull("ViewHolder should not be null", viewHolder)
+        assertTrue("Should be IntroPage6ViewHolder",
+            viewHolder is IntroPagerAdapter.IntroPage6ViewHolder)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `test onCreateViewHolder with invalid view type throws exception`() {
         // Act
@@ -209,13 +217,14 @@ class IntroPagerAdapterTest {
 
     @Test
     fun `test view type mapping is consistent`() {
-        // Arrange - Expected mappings (now only 5 pages)
+        // Arrange - Expected mappings (6 pages, viewType = position + 1)
         val expectedMappings = mapOf(
-            0 to 1,  // 구조
-            1 to 2,  // 천간지지
-            2 to 4,  // 오행
-            3 to 3,  // 일주
-            4 to 5   // 음양
+            0 to 1,
+            1 to 2,
+            2 to 3,
+            3 to 4,
+            4 to 5,
+            5 to 6
         )
 
         // Act & Assert
@@ -227,15 +236,15 @@ class IntroPagerAdapterTest {
     }
 
     @Test
-    fun `test adapter can create all 5 view holders`() {
-        // Act - Create view holders for all view types (1, 2, 3, 4, 5)
-        val viewTypes = listOf(1, 2, 3, 4, 5)
+    fun `test adapter can create all 6 view holders`() {
+        // Act - Create view holders for all view types (1, 2, 3, 4, 5, 6)
+        val viewTypes = listOf(1, 2, 3, 4, 5, 6)
         val viewHolders = viewTypes.map { viewType ->
             adapter.onCreateViewHolder(parent, viewType)
         }
 
         // Assert
-        assertEquals("Should create 5 different view holders", 5, viewHolders.size)
+        assertEquals("Should create 6 different view holders", 6, viewHolders.size)
         viewHolders.forEach { viewHolder ->
             assertNotNull("Each view holder should not be null", viewHolder)
         }

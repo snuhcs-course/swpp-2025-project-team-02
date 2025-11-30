@@ -113,8 +113,9 @@ class ARRendererTest {
 
     @Test
     fun `test ARLabeledAnchor equality with same values`() {
-        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD)
-        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD)
+        // Explicitly specify distance and animationType for equality comparison
+        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD, 1.5f, ARRenderer.AnimationType.JUMPING)
+        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD, 1.5f, ARRenderer.AnimationType.JUMPING)
         assertEquals(anchor1, anchor2)
     }
 
@@ -156,8 +157,9 @@ class ARRendererTest {
 
     @Test
     fun `test ARLabeledAnchor hashCode consistency`() {
-        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD)
-        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD)
+        // Explicitly specify distance and animationType for hash code comparison
+        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD, 1.5f, ARRenderer.AnimationType.JUMPING)
+        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD, 1.5f, ARRenderer.AnimationType.JUMPING)
         assertEquals(anchor1.hashCode(), anchor2.hashCode())
     }
 
@@ -203,8 +205,9 @@ class ARRendererTest {
 
     @Test
     fun `test ARLabeledAnchor symmetric equality`() {
-        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.FIRE)
-        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.FIRE)
+        // Explicitly specify all fields for equality comparison
+        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.FIRE, 1.5f, ARRenderer.AnimationType.ROTATING)
+        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.FIRE, 1.5f, ARRenderer.AnimationType.ROTATING)
         assertEquals(anchor1, anchor2)
         assertEquals(anchor2, anchor1)
         assertTrue(anchor1.equals(anchor2))
@@ -213,9 +216,10 @@ class ARRendererTest {
 
     @Test
     fun `test ARLabeledAnchor transitive equality`() {
-        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.EARTH)
-        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.EARTH)
-        val anchor3 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.EARTH)
+        // Explicitly specify all fields for equality comparison
+        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.EARTH, 1.5f, ARRenderer.AnimationType.JUMPING)
+        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.EARTH, 1.5f, ARRenderer.AnimationType.JUMPING)
+        val anchor3 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.EARTH, 1.5f, ARRenderer.AnimationType.JUMPING)
         assertEquals(anchor1, anchor2)
         assertEquals(anchor2, anchor3)
         assertEquals(anchor1, anchor3)
@@ -236,9 +240,10 @@ class ARRendererTest {
 
     @Test
     fun `test ARLabeledAnchor in set operations`() {
-        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD)
-        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD) // duplicate
-        val anchor3 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.FIRE)
+        // Explicitly specify all fields for equality comparison
+        val anchor1 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD, 1.5f, ARRenderer.AnimationType.JUMPING)
+        val anchor2 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.WOOD, 1.5f, ARRenderer.AnimationType.JUMPING) // duplicate
+        val anchor3 = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.FIRE, 1.5f, ARRenderer.AnimationType.ROTATING)
 
         val set = setOf(anchor1, anchor2, anchor3)
         assertEquals(2, set.size) // anchor1 and anchor2 are equal, so only 2 unique items
@@ -262,7 +267,8 @@ class ARRendererTest {
 
     @Test
     fun `test ARLabeledAnchor copy preserves equality`() {
-        val original = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.OTHERS)
+        // Explicitly specify all fields so original has deterministic values
+        val original = ARRenderer.ARLabeledAnchor(mockAnchor, ElementMapper.Element.OTHERS, 1.5f, ARRenderer.AnimationType.JUMPING)
         val copied = original.copy()
 
         assertEquals(original, copied)

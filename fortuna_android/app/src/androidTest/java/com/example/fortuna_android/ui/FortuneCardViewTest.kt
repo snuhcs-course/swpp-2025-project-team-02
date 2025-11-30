@@ -2,23 +2,20 @@ package com.example.fortuna_android.ui
 
 import android.content.Context
 import android.graphics.Color
-import android.view.View
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.fortuna_android.api.*
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowLooper
 import java.lang.reflect.Method
 
 /**
- * Comprehensive unit tests for FortuneCardView
+ * Instrumented tests for FortuneCardView
+ * Moved from unit tests due to View inflation requirements
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
+@RunWith(AndroidJUnit4::class)
 class FortuneCardViewTest {
 
     private lateinit var context: Context
@@ -33,18 +30,18 @@ class FortuneCardViewTest {
     // ========== View Initialization Tests ==========
 
     @Test
-    fun `test FortuneCardView initialization`() {
+    fun test_FortuneCardView_initialization() {
         assertNotNull("FortuneCardView should not be null", fortuneCardView)
     }
 
     @Test
-    fun `test FortuneCardView has black background`() {
+    fun test_FortuneCardView_has_black_background() {
         val cardBackgroundColor = fortuneCardView.cardBackgroundColor
         assertNotNull("Card background color should be set", cardBackgroundColor)
     }
 
     @Test
-    fun `test FortuneCardView initialization with attributes`() {
+    fun test_FortuneCardView_initialization_with_attributes() {
         val view = FortuneCardView(context, null, 0)
         assertNotNull(view)
     }
@@ -52,7 +49,7 @@ class FortuneCardViewTest {
     // ========== Data Model Tests ==========
 
     @Test
-    fun `test sample fortune data creation`() {
+    fun test_sample_fortune_data_creation() {
         val fortuneData = createSampleFortuneData()
 
         assertNotNull(fortuneData)
@@ -61,10 +58,9 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test fortune data structure`() {
+    fun test_fortune_data_structure() {
         val fortuneData = createSampleFortuneData()
 
-        // Test TodayFortune fields
         assertNotNull("todayDailyGuidance should not be null", fortuneData.fortune.todayDailyGuidance)
         assertNotNull("todayElementBalanceDescription should not be null", fortuneData.fortune.todayElementBalanceDescription)
         assertTrue("todayDailyGuidance should not be empty", fortuneData.fortune.todayDailyGuidance.isNotEmpty())
@@ -72,7 +68,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test fortune score elements`() {
+    fun test_fortune_score_elements() {
         val fortuneData = createSampleFortuneData()
 
         assertEquals(85.0, fortuneData.fortuneScore.entropyScore, 0.01)
@@ -86,7 +82,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test element distribution`() {
+    fun test_element_distribution() {
         val fortuneData = createSampleFortuneData()
 
         assertTrue(fortuneData.fortuneScore.elementDistribution.containsKey("목"))
@@ -98,35 +94,35 @@ class FortuneCardViewTest {
     // ========== setFortuneData() Tests ==========
 
     @Test
-    fun `test setFortuneData with valid data`() {
+    fun test_setFortuneData_with_valid_data() {
         val fortuneData = createSampleFortuneData()
         fortuneCardView.setFortuneData(fortuneData)
         assertNotNull(fortuneCardView)
     }
 
     @Test
-    fun `test setFortuneData with null forDate`() {
+    fun test_setFortuneData_with_null_forDate() {
         val fortuneData = createSampleFortuneData().copy(forDate = null)
         fortuneCardView.setFortuneData(fortuneData)
         assertNotNull(fortuneCardView)
     }
 
     @Test
-    fun `test setFortuneData with invalid date format`() {
+    fun test_setFortuneData_with_invalid_date_format() {
         val fortuneData = createSampleFortuneData().copy(forDate = "invalid-date")
         fortuneCardView.setFortuneData(fortuneData)
         assertNotNull(fortuneCardView)
     }
 
     @Test
-    fun `test setFortuneData with date parse exception`() {
+    fun test_setFortuneData_with_date_parse_exception() {
         val fortuneData = createSampleFortuneData().copy(forDate = "2025-13-45")
         fortuneCardView.setFortuneData(fortuneData)
         assertNotNull(fortuneCardView)
     }
 
     @Test
-    fun `test setFortuneData with various date formats`() {
+    fun test_setFortuneData_with_various_date_formats() {
         val dateFormats = listOf(
             "2025-10-23",
             "2025-01-01",
@@ -142,7 +138,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with no day pillar`() {
+    fun test_setFortuneData_with_no_day_pillar() {
         val fortuneData = createSampleFortuneData().copy(
             fortuneScore = FortuneScore(
                 entropyScore = 0.75,
@@ -157,7 +153,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with different guidance text`() {
+    fun test_setFortuneData_with_different_guidance_text() {
         val fortuneData = createSampleFortuneData().copy(
             fortune = TodayFortune(
                 todayFortuneSummary = "다른 요약",
@@ -171,7 +167,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with all five elements`() {
+    fun test_setFortuneData_with_all_five_elements() {
         val elements = listOf("wood", "fire", "earth", "metal", "water")
 
         elements.forEach { element ->
@@ -182,7 +178,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with Korean element names`() {
+    fun test_setFortuneData_with_Korean_element_names() {
         val koreanElements = listOf("목", "화", "토", "금", "수")
 
         koreanElements.forEach { element ->
@@ -193,7 +189,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with alternative Korean element names`() {
+    fun test_setFortuneData_with_alternative_Korean_element_names() {
         val alternativeNames = listOf("나무", "불", "흙", "쇠", "물")
 
         alternativeNames.forEach { element ->
@@ -204,7 +200,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setFortuneData with unknown element`() {
+    fun test_setFortuneData_with_unknown_element() {
         val fortuneData = createSampleFortuneDataWithElement("unknown")
         fortuneCardView.setFortuneData(fortuneData)
         assertNotNull(fortuneCardView)
@@ -213,7 +209,7 @@ class FortuneCardViewTest {
     // ========== Click Listener Tests ==========
 
     @Test
-    fun `test setOnRefreshFortuneClickListener`() {
+    fun test_setOnRefreshFortuneClickListener() {
         var clicked = false
 
         fortuneCardView.setOnRefreshFortuneClickListener {
@@ -225,7 +221,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test setOnRefreshFortuneClickListener can be called multiple times`() {
+    fun test_setOnRefreshFortuneClickListener_can_be_called_multiple_times() {
         var counter = 0
 
         fortuneCardView.setOnRefreshFortuneClickListener {
@@ -239,12 +235,10 @@ class FortuneCardViewTest {
         assertNotNull("FortuneCardView should handle listener replacement", fortuneCardView)
     }
 
-    // Removed: setOnWhyDeficientClickListener tests - function no longer exists in FortuneCardView
-
     // ========== Private Method Tests (via reflection) ==========
 
     @Test
-    fun `test getElementEmoji for all element types`() {
+    fun test_getElementEmoji_for_all_element_types() {
         val method = getPrivateMethod("getElementEmoji", String::class.java)
 
         val testCases = mapOf(
@@ -273,7 +267,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test getElementCharacter for all element types`() {
+    fun test_getElementCharacter_for_all_element_types() {
         val method = getPrivateMethod("getElementCharacter", String::class.java)
 
         val testCases = mapOf(
@@ -302,7 +296,7 @@ class FortuneCardViewTest {
     }
 
     @Test
-    fun `test getElementColorFromString for all element types`() {
+    fun test_getElementColorFromString_for_all_element_types() {
         val method = getPrivateMethod("getElementColorFromString", String::class.java)
 
         val testCases = mapOf(
@@ -330,36 +324,15 @@ class FortuneCardViewTest {
         }
     }
 
-    // Removed: getChakraEmoji tests - chakraReadings field no longer exists in TodayFortune
-
-    // Removed: getElementMessage tests - function no longer exists in FortuneCardView
-    // Removed: getDeficientElementMessage tests - function no longer exists in FortuneCardView
-    // Removed: getWhyDeficientButtonText tests - function no longer exists in FortuneCardView
-
-    // Removed: All chakra-related tests - chakraReadings field no longer exists in TodayFortune
-    // Tests removed:
-    // - getChakraName
-    // - getChakraColor
-    // - createChakraReadingView
-    // - displayChakraReadings
-
     @Test
-    fun `test fetchAndDisplayNeededElement is called during setFortuneData`() {
+    fun test_fetchAndDisplayNeededElement_is_called_during_setFortuneData() {
         val fortuneData = createSampleFortuneData()
-
-        // This triggers fetchAndDisplayNeededElement internally
         fortuneCardView.setFortuneData(fortuneData)
-
-        // Note: Removed ShadowLooper.runUiThreadTasksIncludingDelayedTasks() as it causes
-        // infinite hang due to network calls on Dispatchers.IO that cannot complete in test environment
-
         assertNotNull(fortuneCardView)
     }
 
-    // Removed: chakra readings combination tests - field no longer exists
-
     @Test
-    fun `test case insensitivity for all element names`() {
+    fun test_case_insensitivity_for_all_element_names() {
         val elementVariations = listOf(
             "WOOD", "Wood", "wood",
             "FIRE", "Fire", "fire",

@@ -77,11 +77,8 @@ class ARFragmentNetworkTest {
         // These methods should not crash even without a view
         try {
             fragment.onObjectDetectionCompleted(0, 0)
-            fragment.onSphereCollected(1)
-            fragment.onVLMAnalysisStarted()
-            fragment.updateVLMDescription("test")
-            fragment.onVLMAnalysisCompleted()
-            fragment.clearVLMDescription()
+            fragment.setScanningActive(true)
+            fragment.setScanningActive(false)
         } catch (e: Exception) {
             // Expected - methods require view/context
         }
@@ -132,8 +129,6 @@ class ARFragmentNetworkTest {
             Thread.sleep(50)
             fragment.onObjectDetectionCompleted(5, 3)
             Thread.sleep(50)
-            fragment.onSphereCollected(1)
-            Thread.sleep(50)
             fragment.setScanningActive(false)
         } catch (e: Exception) {
             // Expected without view
@@ -149,49 +144,8 @@ class ARFragmentNetworkTest {
         try {
             // Simulate state changes that would normally trigger network calls
             fragment.setScanningActive(true)
-            fragment.onVLMAnalysisStarted()
-            fragment.updateVLMDescription("Analyzing...")
-            fragment.onVLMAnalysisCompleted()
+            fragment.onObjectDetectionCompleted(3, 2)
             fragment.setScanningActive(false)
-        } catch (e: Exception) {
-            // Expected without view
-        }
-
-        assert(true)
-    }
-
-    @Test
-    fun testFragmentCollectionWorkflowWithoutServer() {
-        val fragment = ARFragment()
-
-        try {
-            // Simulate collecting objects without server sync
-            for (i in 1..5) {
-                fragment.onSphereCollected(i)
-                Thread.sleep(10)
-            }
-        } catch (e: Exception) {
-            // Expected without view
-        }
-
-        assert(true)
-    }
-
-    @Test
-    fun testFragmentVLMWorkflowOffline() {
-        val fragment = ARFragment()
-
-        try {
-            // Simulate VLM workflow without network
-            fragment.onVLMAnalysisStarted()
-
-            val tokens = listOf("Metal", " ", "element", " ", "detected")
-            for (token in tokens) {
-                fragment.updateVLMDescription(token)
-                Thread.sleep(10)
-            }
-
-            fragment.onVLMAnalysisCompleted()
         } catch (e: Exception) {
             // Expected without view
         }

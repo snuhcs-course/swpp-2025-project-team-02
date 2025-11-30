@@ -133,11 +133,6 @@ class ARFragmentTestableTest {
             fragment.setScanningActive(true)
             fragment.setScanningActive(false)
             fragment.onObjectDetectionCompleted(5, 3)
-            fragment.onVLMAnalysisStarted()
-            fragment.updateVLMDescription("test token")
-            fragment.onVLMAnalysisCompleted()
-            fragment.clearVLMDescription()
-            fragment.onSphereCollected(1)
         } catch (e: Exception) {
             // Expected without view - but methods are accessible
         }

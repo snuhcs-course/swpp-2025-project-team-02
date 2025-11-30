@@ -24,8 +24,6 @@ class ARFragmentRobolectricTest {
 
         // Test public methods that don't require Android framework
         fragment.onObjectDetectionCompleted(3, 2)
-        fragment.onVLMAnalysisCompleted()
-        fragment.onSphereCollected(1)
 
         // Test passes if fragment creation and method calls succeed
         assert(true)
@@ -38,8 +36,6 @@ class ARFragmentRobolectricTest {
 
         // Test public interface methods work
         fragment.onObjectDetectionCompleted(0, 0)
-        fragment.onVLMAnalysisStarted()
-        fragment.clearVLMDescription()
 
         // Test passes if instantiation and method calls succeed
         assert(true)

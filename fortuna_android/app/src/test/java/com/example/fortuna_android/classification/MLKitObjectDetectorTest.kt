@@ -126,13 +126,9 @@ class MLKitObjectDetectorTest {
 
     @Test
     fun `test MLKitObjectDetector has custom model configured`() {
-        assertTrue("Should have custom model", mlKitObjectDetector.hasCustomModel())
-    }
-
-    @Test
-    fun `test hasCustomModel returns true for custom detector options`() {
-        val result = mlKitObjectDetector.hasCustomModel()
-        assertTrue("hasCustomModel should return true", result)
+        // Verify through builder type check
+        assertTrue("Builder should be CustomObjectDetectorOptions.Builder instance",
+            mlKitObjectDetector.builder is CustomObjectDetectorOptions.Builder)
     }
 
     @Test
@@ -146,9 +142,9 @@ class MLKitObjectDetectorTest {
     @Test
     fun `test custom object detector options are configured correctly`() {
         // The options are configured in the class initialization
-        // We verify through hasCustomModel which checks the builder type
+        // We verify through builder type
         assertTrue("Should be using custom model configuration",
-            mlKitObjectDetector.hasCustomModel())
+            mlKitObjectDetector.builder is CustomObjectDetectorOptions.Builder)
     }
 
     @Test

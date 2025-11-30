@@ -293,7 +293,9 @@ class ObjectDetectionAnchorIntegrationTest {
             val testResult = DetectedObjectResult(
                 label = "test_object",
                 confidence = 0.85f,
-                centerCoordinate = Pair(100, 200)
+                centerCoordinate = Pair(100, 200),
+                width = 50,
+                height = 60
             )
 
             resultStructureValid = (testResult.label == "test_object" &&

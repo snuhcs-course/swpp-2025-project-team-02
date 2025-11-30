@@ -14,7 +14,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.95f,
             label = "cat",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
 
         assertEquals(0.95f, result.confidence, 0.001f)
@@ -28,7 +30,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.0f,
             label = "unknown",
-            centerCoordinate = 0 to 0
+            centerCoordinate = 0 to 0,
+            width = 50,
+            height = 50
         )
 
         assertEquals(0.0f, result.confidence, 0.001f)
@@ -42,7 +46,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 1.0f,
             label = "person",
-            centerCoordinate = 500 to 500
+            centerCoordinate = 500 to 500,
+            width = 50,
+            height = 50
         )
 
         assertEquals(1.0f, result.confidence, 0.001f)
@@ -54,7 +60,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.5f,
             label = "",
-            centerCoordinate = 50 to 50
+            centerCoordinate = 50 to 50,
+            width = 50,
+            height = 50
         )
 
         assertEquals(0.5f, result.confidence, 0.001f)
@@ -67,7 +75,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.85f,
             label = longLabel,
-            centerCoordinate = 300 to 400
+            centerCoordinate = 300 to 400,
+            width = 50,
+            height = 50
         )
 
         assertEquals(longLabel, result.label)
@@ -78,7 +88,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.75f,
             label = "cat-dog_123!@#",
-            centerCoordinate = 150 to 250
+            centerCoordinate = 150 to 250,
+            width = 50,
+            height = 50
         )
 
         assertEquals("cat-dog_123!@#", result.label)
@@ -89,7 +101,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.6f,
             label = "object",
-            centerCoordinate = -10 to -20
+            centerCoordinate = -10 to -20,
+            width = 50,
+            height = 50
         )
 
         assertEquals(-10, result.centerCoordinate.first)
@@ -101,7 +115,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.9f,
             label = "building",
-            centerCoordinate = 10000 to 10000
+            centerCoordinate = 10000 to 10000,
+            width = 50,
+            height = 50
         )
 
         assertEquals(10000, result.centerCoordinate.first)
@@ -114,12 +130,16 @@ class DetectedObjectResultTest {
         val result1 = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val result2 = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
 
         assertEquals(result1, result2)
@@ -131,12 +151,16 @@ class DetectedObjectResultTest {
         val result1 = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val result2 = DetectedObjectResult(
             confidence = 0.7f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
 
         assertNotEquals(result1, result2)
@@ -147,12 +171,16 @@ class DetectedObjectResultTest {
         val result1 = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val result2 = DetectedObjectResult(
             confidence = 0.8f,
             label = "truck",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
 
         assertNotEquals(result1, result2)
@@ -163,12 +191,16 @@ class DetectedObjectResultTest {
         val result1 = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val result2 = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 101 to 200
+            centerCoordinate = 101 to 200,
+            width = 50,
+            height = 50
         )
 
         assertNotEquals(result1, result2)
@@ -179,7 +211,9 @@ class DetectedObjectResultTest {
         val original = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val copy = original.copy()
 
@@ -192,7 +226,9 @@ class DetectedObjectResultTest {
         val original = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val modified = original.copy(confidence = 0.9f)
 
@@ -207,7 +243,9 @@ class DetectedObjectResultTest {
         val original = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val modified = original.copy(label = "truck")
 
@@ -221,7 +259,9 @@ class DetectedObjectResultTest {
         val original = DetectedObjectResult(
             confidence = 0.8f,
             label = "car",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val modified = original.copy(centerCoordinate = 300 to 400)
 
@@ -236,7 +276,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.75f,
             label = "dog",
-            centerCoordinate = 150 to 250
+            centerCoordinate = 150 to 250,
+            width = 50,
+            height = 50
         )
         val toString = result.toString()
 
@@ -250,7 +292,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.95f,
             label = "cat",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val (confidence) = result
 
@@ -262,7 +306,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.95f,
             label = "cat",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val (_, label) = result
 
@@ -274,7 +320,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.95f,
             label = "cat",
-            centerCoordinate = 100 to 200
+            centerCoordinate = 100 to 200,
+            width = 50,
+            height = 50
         )
         val (_, _, centerCoordinate) = result
 
@@ -286,7 +334,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.85f,
             label = "person",
-            centerCoordinate = 500 to 600
+            centerCoordinate = 500 to 600,
+            width = 50,
+            height = 50
         )
         val (confidence, label, centerCoordinate) = result
 
@@ -302,7 +352,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.001f,
             label = "uncertain",
-            centerCoordinate = 10 to 10
+            centerCoordinate = 10 to 10,
+            width = 50,
+            height = 50
         )
 
         assertEquals(0.001f, result.confidence, 0.0001f)
@@ -313,7 +365,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.999f,
             label = "certain",
-            centerCoordinate = 10 to 10
+            centerCoordinate = 10 to 10,
+            width = 50,
+            height = 50
         )
 
         assertEquals(0.999f, result.confidence, 0.0001f)
@@ -325,7 +379,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = -0.5f,
             label = "invalid",
-            centerCoordinate = 0 to 0
+            centerCoordinate = 0 to 0,
+            width = 50,
+            height = 50
         )
 
         assertEquals(-0.5f, result.confidence, 0.001f)
@@ -337,7 +393,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 1.5f,
             label = "invalid",
-            centerCoordinate = 0 to 0
+            centerCoordinate = 0 to 0,
+            width = 50,
+            height = 50
         )
 
         assertEquals(1.5f, result.confidence, 0.001f)
@@ -349,7 +407,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.7f,
             label = "12345",
-            centerCoordinate = 50 to 50
+            centerCoordinate = 50 to 50,
+            width = 50,
+            height = 50
         )
 
         assertEquals("12345", result.label)
@@ -360,7 +420,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.7f,
             label = "고양이",
-            centerCoordinate = 50 to 50
+            centerCoordinate = 50 to 50,
+            width = 50,
+            height = 50
         )
 
         assertEquals("고양이", result.label)
@@ -371,7 +433,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.7f,
             label = "  cat  ",
-            centerCoordinate = 50 to 50
+            centerCoordinate = 50 to 50,
+            width = 50,
+            height = 50
         )
 
         assertEquals("  cat  ", result.label)
@@ -383,7 +447,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.5f,
             label = "origin",
-            centerCoordinate = 0 to 0
+            centerCoordinate = 0 to 0,
+            width = 50,
+            height = 50
         )
 
         assertEquals(0, result.centerCoordinate.first)
@@ -395,7 +461,9 @@ class DetectedObjectResultTest {
         val result = DetectedObjectResult(
             confidence = 0.5f,
             label = "object",
-            centerCoordinate = 1000 to 1
+            centerCoordinate = 1000 to 1,
+            width = 50,
+            height = 50
         )
 
         assertEquals(1000, result.centerCoordinate.first)
@@ -405,9 +473,9 @@ class DetectedObjectResultTest {
     @Test
     fun `test multiple DetectedObjectResults in a list`() {
         val results = listOf(
-            DetectedObjectResult(0.9f, "cat", 100 to 100),
-            DetectedObjectResult(0.8f, "dog", 200 to 200),
-            DetectedObjectResult(0.7f, "bird", 300 to 300)
+            DetectedObjectResult(0.9f, "cat", 100 to 100, 50, 50),
+            DetectedObjectResult(0.8f, "dog", 200 to 200, 50, 50),
+            DetectedObjectResult(0.7f, "bird", 300 to 300, 50, 50)
         )
 
         assertEquals(3, results.size)
@@ -418,8 +486,8 @@ class DetectedObjectResultTest {
 
     @Test
     fun `test DetectedObjectResult as map key`() {
-        val result1 = DetectedObjectResult(0.8f, "car", 100 to 200)
-        val result2 = DetectedObjectResult(0.8f, "car", 100 to 200)
+        val result1 = DetectedObjectResult(0.8f, "car", 100 to 200, 50, 50)
+        val result2 = DetectedObjectResult(0.8f, "car", 100 to 200, 50, 50)
 
         val map = mutableMapOf<DetectedObjectResult, String>()
         map[result1] = "first"

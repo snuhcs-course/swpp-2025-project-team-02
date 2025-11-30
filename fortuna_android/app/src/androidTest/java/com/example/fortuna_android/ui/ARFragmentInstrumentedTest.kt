@@ -78,36 +78,6 @@ class ARFragmentInstrumentedTest {
             // Expected without view - method exists
         }
 
-        try {
-            fragment.onVLMAnalysisStarted()
-        } catch (e: Exception) {
-            // Expected without view - method exists
-        }
-
-        try {
-            fragment.updateVLMDescription("test")
-        } catch (e: Exception) {
-            // Expected without view - method exists
-        }
-
-        try {
-            fragment.clearVLMDescription()
-        } catch (e: Exception) {
-            // Expected without view - method exists
-        }
-
-        try {
-            fragment.onVLMAnalysisCompleted()
-        } catch (e: Exception) {
-            // Expected without view - method exists
-        }
-
-        try {
-            fragment.onSphereCollected(1)
-        } catch (e: Exception) {
-            // Expected without view - method exists
-        }
-
         // Test passes if all methods are accessible
         assertTrue(true)
     }
@@ -179,108 +149,6 @@ class ARFragmentInstrumentedTest {
     }
 
     @Test
-    fun testFragmentPublicMethodCallSequence() {
-        val fragment = ARFragment()
-
-        // Test a typical sequence of method calls
-        try {
-            // Start scanning
-            fragment.setScanningActive(true)
-
-            // Start VLM analysis
-            fragment.onVLMAnalysisStarted()
-
-            // Update description
-            fragment.updateVLMDescription("Test token 1")
-            fragment.updateVLMDescription("Test token 2")
-
-            // Complete VLM analysis
-            fragment.onVLMAnalysisCompleted()
-
-            // Stop scanning
-            fragment.setScanningActive(false)
-
-            // Handle object detection
-            fragment.onObjectDetectionCompleted(5, 3)
-
-            // Collect spheres
-            fragment.onSphereCollected(1)
-            fragment.onSphereCollected(2)
-            fragment.onSphereCollected(3)
-
-            // Clear description
-            fragment.clearVLMDescription()
-        } catch (e: Exception) {
-            // Expected without view - but sequence is valid
-        }
-
-        assertTrue(true)
-    }
-
-    @Test
-    fun testFragmentMethodsWithEdgeCaseInputs() {
-        val fragment = ARFragment()
-
-        try {
-            // Test with zero values
-            fragment.onObjectDetectionCompleted(0, 0)
-            fragment.onSphereCollected(0)
-
-            // Test with negative values (shouldn't crash)
-            fragment.onObjectDetectionCompleted(-1, -1)
-            fragment.onSphereCollected(-1)
-
-            // Test with large values
-            fragment.onObjectDetectionCompleted(1000, 1000)
-            fragment.onSphereCollected(9999)
-
-            // Test with empty string
-            fragment.updateVLMDescription("")
-
-            // Test with long string
-            fragment.updateVLMDescription("A".repeat(1000))
-
-            // Test multiple state toggles
-            fragment.setScanningActive(true)
-            fragment.setScanningActive(true)
-            fragment.setScanningActive(false)
-            fragment.setScanningActive(false)
-        } catch (e: Exception) {
-            // Expected without view
-        }
-
-        assertTrue(true)
-    }
-
-    @Test
-    fun testFragmentVLMWorkflow() {
-        val fragment = ARFragment()
-
-        try {
-            // Simulate complete VLM workflow
-            fragment.onVLMAnalysisStarted()
-
-            // Simulate streaming tokens
-            val tokens = listOf("The", " ", "quick", " ", "brown", " ", "fox")
-            for (token in tokens) {
-                fragment.updateVLMDescription(token)
-            }
-
-            fragment.onVLMAnalysisCompleted()
-
-            // Clear and restart
-            fragment.clearVLMDescription()
-            fragment.onVLMAnalysisStarted()
-            fragment.updateVLMDescription("New description")
-            fragment.onVLMAnalysisCompleted()
-        } catch (e: Exception) {
-            // Expected without view
-        }
-
-        assertTrue(true)
-    }
-
-    @Test
     fun testFragmentScanningWorkflow() {
         val fragment = ARFragment()
 
@@ -304,15 +172,24 @@ class ARFragmentInstrumentedTest {
     }
 
     @Test
-    fun testFragmentSphereCollectionWorkflow() {
+    fun testFragmentMethodsWithEdgeCaseInputs() {
         val fragment = ARFragment()
 
         try {
-            // Simulate collecting spheres one by one
-            for (i in 1..10) {
-                fragment.onSphereCollected(i)
-                Thread.sleep(10)
-            }
+            // Test with zero values
+            fragment.onObjectDetectionCompleted(0, 0)
+
+            // Test with negative values (shouldn't crash)
+            fragment.onObjectDetectionCompleted(-1, -1)
+
+            // Test with large values
+            fragment.onObjectDetectionCompleted(1000, 1000)
+
+            // Test multiple state toggles
+            fragment.setScanningActive(true)
+            fragment.setScanningActive(true)
+            fragment.setScanningActive(false)
+            fragment.setScanningActive(false)
         } catch (e: Exception) {
             // Expected without view
         }

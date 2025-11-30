@@ -93,8 +93,8 @@ private open class TestableObjectDetector(context: Context) : ObjectDetector(con
 
         return if (shouldReturnResults) {
             listOf(
-                DetectedObjectResult(0.9f, "test_object", centerCoordinate = 100 to 200),
-                DetectedObjectResult(0.85f, "another_object", centerCoordinate = 300 to 400)
+                DetectedObjectResult(0.9f, "test_object", centerCoordinate = 100 to 200, width = 50, height = 50),
+                DetectedObjectResult(0.85f, "another_object", centerCoordinate = 300 to 400, width = 50, height = 50)
             )
         } else {
             emptyList()

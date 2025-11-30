@@ -25,6 +25,7 @@ import org.junit.runner.RunWith
  * 4. After completion, run: ./gradlew jacocoTestReport
  * 5. Check coverage report for improved onDrawFrame metrics
  */
+@org.junit.Ignore("E2E test requires manual interaction and real AR device - run manually")
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class ARRendererE2ECoverageTest {

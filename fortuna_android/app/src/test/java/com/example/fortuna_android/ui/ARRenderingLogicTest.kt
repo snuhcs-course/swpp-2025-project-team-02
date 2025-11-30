@@ -74,7 +74,7 @@ class ARRenderingLogicTest {
             hasValidFrame = true,
             pendingTap = Pair(100f, 200f),
             frameCount = 30,
-            detectedObjects = listOf(DetectedObjectResult(0.8f, "bottle", Pair(150, 250)))
+            detectedObjects = listOf(DetectedObjectResult(0.8f, "bottle", Pair(150, 250), 50, 50))
         )
 
         val decision = renderingLogic.determineRenderingActions(frameState)
@@ -112,8 +112,8 @@ class ARRenderingLogicTest {
     @Test
     fun testTapProcessingHit() {
         val detectedObjects = listOf(
-            DetectedObjectResult(0.8f, "bottle", Pair(100, 200)),
-            DetectedObjectResult(0.7f, "cup", Pair(300, 400))
+            DetectedObjectResult(0.8f, "bottle", Pair(100, 200), 50, 50),
+            DetectedObjectResult(0.7f, "cup", Pair(300, 400), 50, 50)
         )
 
         // Tap near first object (within tolerance)
@@ -127,7 +127,7 @@ class ARRenderingLogicTest {
     @Test
     fun testTapProcessingMiss() {
         val detectedObjects = listOf(
-            DetectedObjectResult(0.8f, "bottle", Pair(100, 200))
+            DetectedObjectResult(0.8f, "bottle", Pair(100, 200), 50, 50)
         )
 
         // Tap far from object
@@ -150,9 +150,9 @@ class ARRenderingLogicTest {
     @Test
     fun testObjectFilteringByElement() {
         val detectedObjects = listOf(
-            DetectedObjectResult(0.8f, "bottle", Pair(100, 200)),
-            DetectedObjectResult(0.7f, "plant", Pair(300, 400)),
-            DetectedObjectResult(0.6f, "cup", Pair(500, 600))
+            DetectedObjectResult(0.8f, "bottle", Pair(100, 200), 50, 50),
+            DetectedObjectResult(0.7f, "plant", Pair(300, 400), 50, 50),
+            DetectedObjectResult(0.6f, "cup", Pair(500, 600), 50, 50)
         )
 
         // Mock element mapping
@@ -176,8 +176,8 @@ class ARRenderingLogicTest {
     @Test
     fun testObjectFilteringNoFilter() {
         val detectedObjects = listOf(
-            DetectedObjectResult(0.8f, "bottle", Pair(100, 200)),
-            DetectedObjectResult(0.7f, "plant", Pair(300, 400))
+            DetectedObjectResult(0.8f, "bottle", Pair(100, 200), 50, 50),
+            DetectedObjectResult(0.7f, "plant", Pair(300, 400), 50, 50)
         )
 
         // No filter (null needed element)
@@ -246,8 +246,8 @@ class ARRenderingLogicTest {
             pendingTap = Pair(150f, 250f),
             frameCount = 60, // Should trigger both object detection and VLM analysis
             detectedObjects = listOf(
-                DetectedObjectResult(0.9f, "bottle", Pair(145, 245)),
-                DetectedObjectResult(0.8f, "plant", Pair(300, 400))
+                DetectedObjectResult(0.9f, "bottle", Pair(145, 245), 50, 50),
+                DetectedObjectResult(0.8f, "plant", Pair(300, 400), 50, 50)
             ),
             neededElement = ElementMapper.Element.WATER,
             collectedCount = 4

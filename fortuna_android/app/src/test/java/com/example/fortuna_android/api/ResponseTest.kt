@@ -446,7 +446,8 @@ class ResponseTest {
         )
         val response = UpdateProfileResponse(
             message = "Profile updated successfully",
-            user = userData
+            user = userData,
+            fortuneReset = false
         )
 
         assertEquals("Profile updated successfully", response.message)

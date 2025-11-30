@@ -169,7 +169,7 @@ class ProfileFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val profileButton = view.findViewById<View>(R.id.profile_button)
+            val profileButton = view.findViewById<View>(R.id.btn_edit_profile)
 
             // Button exists but may be visible (repurposed as settings button)
             assertNotNull("Profile button should exist", profileButton)
@@ -186,7 +186,7 @@ class ProfileFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val headerButton = view.findViewById<ImageButton>(R.id.profile_button)
+            val headerButton = view.findViewById<ImageButton>(R.id.btn_edit_profile)
 
             assertNotNull("Header button should exist", headerButton)
             assertEquals("Content description should be '설정'", "설정", headerButton.contentDescription)
@@ -205,7 +205,7 @@ class ProfileFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val settingsButton = view.findViewById<View>(R.id.profile_button)
+            val settingsButton = view.findViewById<View>(R.id.btn_edit_profile)
 
             // Verify the button exists and has click listener set
             // (Don't actually click to avoid NavController requirement)
@@ -1556,7 +1556,7 @@ class ProfileFragmentInstrumentedTest {
 
         scenario.onFragment { fragment ->
             val view = fragment.view!!
-            val settingsButton = view.findViewById<View>(R.id.profile_button)
+            val settingsButton = view.findViewById<View>(R.id.btn_edit_profile)
 
             // Click the settings button
             settingsButton.performClick()

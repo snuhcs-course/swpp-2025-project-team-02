@@ -89,9 +89,10 @@ class ResponseDataClassTest {
 
     @Test
     fun testCollectElementRequest_Instantiation() {
-        val request = CollectElementRequest("fire")
+        val request = CollectElementRequest("fire", "2025-11-30")
 
         assertEquals("fire", request.chakraType)
+        assertEquals("2025-11-30", request.date)
     }
 
     @Test

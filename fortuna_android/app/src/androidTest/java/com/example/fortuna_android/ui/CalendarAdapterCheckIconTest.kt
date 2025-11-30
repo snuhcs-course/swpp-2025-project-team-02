@@ -23,7 +23,7 @@ class CalendarAdapterCheckIconTest {
 
     @Before
     fun setUp() {
-        adapter = CalendarAdapter()
+        adapter = CalendarAdapter(emptyList())
     }
 
     // ========== Adapter Creation Tests ==========
@@ -224,16 +224,11 @@ class CalendarAdapterCheckIconTest {
     }
 
     @Test
-    fun testAtomIconDeleted() {
+    fun testAtomIconReplaced() {
+        // ic_atom has been replaced by ic_calendar
+        // This test verifies that ic_calendar exists and is usable
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-
-        // ic_atom should no longer exist (replaced by ic_calendar)
-        try {
-            val drawable = context.getDrawable(R.drawable.ic_atom)
-            // If this succeeds, the icon wasn't deleted (might be okay if not committed yet)
-        } catch (e: android.content.res.Resources.NotFoundException) {
-            // Expected: icon should be deleted
-            assertTrue("ic_atom should be deleted", true)
-        }
+        val drawable = context.getDrawable(R.drawable.ic_calendar)
+        assertNotNull("ic_calendar should exist as replacement for ic_atom", drawable)
     }
 }
