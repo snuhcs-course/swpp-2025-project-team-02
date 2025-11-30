@@ -34,7 +34,8 @@ RUN mkdir -p /app/media /app/logs
 EXPOSE 8000
 
 # Run server
-CMD python manage.py migrate --noinput && \
+CMD python manage.py collectstatic --noinput && \
+    python manage.py migrate --noinput && \
     uvicorn fortuna_api.asgi:application \
     --host 0.0.0.0 \
     --port 8000 \
