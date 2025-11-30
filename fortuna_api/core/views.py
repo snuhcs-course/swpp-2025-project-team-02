@@ -883,14 +883,41 @@ class FortuneViewSet(viewsets.GenericViewSet):
         user = request.user
         logger.info(f"Fortune today request - user: {user}, is_authenticated: {user.is_authenticated}, type: {type(user)}")
 
+        # Development mode: try to get user from X-Test-User-Id header
         if not user.is_authenticated:
-            return Response({
-                'status': 'error',
-                'error': {
-                    'code': 'authentication_required',
-                    'message': 'User not authenticated. Please provide X-Test-User-Id header in development mode.'
-                }
-            }, status=status.HTTP_401_UNAUTHORIZED)
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                test_user_id = request.META.get('HTTP_X_TEST_USER_ID')
+                if test_user_id:
+                    try:
+                        from django.contrib.auth import get_user_model
+                        User = get_user_model()
+                        user = User.objects.get(id=int(test_user_id))
+                        logger.info(f"Development mode: Using test user {user.id}")
+                    except (User.DoesNotExist, ValueError) as e:
+                        logger.warning(f"Development mode: Failed to get test user: {e}")
+                        return Response({
+                            'status': 'error',
+                            'error': {
+                                'code': 'authentication_required',
+                                'message': 'User not authenticated. Please provide valid X-Test-User-Id header in development mode.'
+                            }
+                        }, status=status.HTTP_401_UNAUTHORIZED)
+                else:
+                    return Response({
+                        'status': 'error',
+                        'error': {
+                            'code': 'authentication_required',
+                            'message': 'User not authenticated. Please provide X-Test-User-Id header in development mode.'
+                        }
+                    }, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                return Response({
+                    'status': 'error',
+                    'error': {
+                        'code': 'authentication_required',
+                        'message': 'User not authenticated.'
+                    }
+                }, status=status.HTTP_401_UNAUTHORIZED)
 
         # Get date parameter (optional) - defaults to server's today
         date_param = request.query_params.get('date')
