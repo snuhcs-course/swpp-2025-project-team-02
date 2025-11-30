@@ -9,13 +9,23 @@ class AuthContainerActivity : AppCompatActivity() {
     private var _binding: ActivityAuthContainerBinding? = null
     private val binding get() = _binding!!
 
+    companion object {
+        const val EXTRA_SHOW_PROFILE_INPUT = "show_profile_input"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityAuthContainerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         if (savedInstanceState == null) {
-            showSignInFragment()
+            // check
+            val showProfileInput = intent.getBooleanExtra(EXTRA_SHOW_PROFILE_INPUT, false)
+            if (showProfileInput) {
+                showProfileInputFragment()
+            } else {
+                showSignInFragment()
+            }
         }
     }
 

@@ -17,6 +17,7 @@ import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
 import com.example.fortuna_android.util.CustomToast
+import com.example.fortuna_android.util.ProfileUtils
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -194,6 +195,9 @@ class SignInFragment : Fragment() {
                         val backendToken = loginResponse.accessToken
                         val refreshToken = loginResponse.refreshToken
                         val username = loginResponse.name
+                        val isNewUser = loginResponse.isNewUser
+                        val needsAdditionalInfo = loginResponse.needsAdditionalInfo
+
                         if (!isAdded) return@launch
                         val prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                         prefs.edit().putString(KEY_TOKEN, backendToken).apply()
@@ -202,8 +206,16 @@ class SignInFragment : Fragment() {
                             CustomToast.show(requireContext(), "'$username'님, 서버 로그인 성공!")
                         }
                         Log.d(TAG, "토큰이 SharedPreferences에 저장되었습니다: $backendToken")
+                        Log.d(TAG, "신규 사용자: $isNewUser, 추가 정보 필요: $needsAdditionalInfo")
 
-                        verifyTokenWithServer()
+                        // LoginResponse의 플래그를 활용하여 빠르게 판단
+                        if (isNewUser || needsAdditionalInfo) {
+                            Log.d(TAG, "Profile Incomplete, move to profileInput")
+                            navigateToProfileInput()
+                        } else {
+                            // 기존 사용자는 프로필 완성도 체크
+                            verifyTokenWithServer()
+                        }
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
@@ -282,16 +294,12 @@ class SignInFragment : Fragment() {
                     val userProfile = response.body()
                     Log.d(TAG, "User Profile Response: $userProfile")
 
-                    if (userProfile != null) {
-                        if (isProfileComplete(userProfile)) {
-                            Log.d(TAG, "프로필 정보가 완성되었습니다. ProfileActivity로 이동합니다.")
-                            navigateToMain()
-                        } else {
-                            Log.d(TAG, "프로필 정보가 불완전합니다. ProfileInputFragment로 이동합니다.")
-                            navigateToProfileInput()
-                        }
+                    // ProfileUtils를 사용하여 프로필 완성도 체크
+                    if (ProfileUtils.isProfileComplete(userProfile)) {
+                        Log.d(TAG, "프로필 정보가 완성되었습니다. MainActivity로 이동합니다.")
+                        navigateToMain()
                     } else {
-                        Log.e(TAG, "프로필 데이터가 null입니다.")
+                        Log.d(TAG, "프로필 정보가 불완전합니다. ProfileInputFragment로 이동합니다.")
                         navigateToProfileInput()
                     }
                 } else {
@@ -308,15 +316,6 @@ class SignInFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun isProfileComplete(profile: UserProfile): Boolean {
-        val hasBirthDate = !profile.birthDateLunar.isNullOrEmpty() || !profile.birthDateSolar.isNullOrEmpty()
-        return !profile.nickname.isNullOrEmpty() &&
-                hasBirthDate &&
-                !profile.solarOrLunar.isNullOrEmpty() &&
-                !profile.birthTimeUnits.isNullOrEmpty() &&
-                !profile.gender.isNullOrEmpty()
     }
 
     private fun navigateToProfileInput() {

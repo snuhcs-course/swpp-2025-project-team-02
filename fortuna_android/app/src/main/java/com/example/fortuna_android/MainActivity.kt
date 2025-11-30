@@ -22,6 +22,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.example.fortuna_android.util.CustomToast
+import com.example.fortuna_android.util.ProfileUtils
 import com.example.fortuna_android.api.RefreshTokenRequest
 import com.example.fortuna_android.ui.ARCoreSessionLifecycleHelper
 import kotlinx.coroutines.launch
@@ -176,8 +177,16 @@ class MainActivity : AppCompatActivity() {
             val profileResponse = RetrofitClient.instance.getUserProfile()
 
             if (profileResponse.isSuccessful) {
+                val userProfile = profileResponse.body()
                 Log.d(TAG, "Token is valid, user is logged in")
-                // Token is valid, user can continue
+                Log.d(TAG, "User Profile: $userProfile")
+
+                // 프로필 체크
+                if (!ProfileUtils.isProfileComplete(userProfile)) {
+                    navigateToProfileInput()
+                } else {
+                    Log.d(TAG, "User can continue due to completeness of profile.")
+                }
             } else if (profileResponse.code() == 401) {
                 Log.d(TAG, "Token expired, attempting to refresh")
                 // Token expired, try to refresh
@@ -220,6 +229,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun navigateToSignIn() {
         val intent = Intent(this, AuthContainerActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
+    private fun navigateToProfileInput() {
+        val intent = Intent(this, AuthContainerActivity::class.java)
+        intent.putExtra(AuthContainerActivity.EXTRA_SHOW_PROFILE_INPUT, true)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
