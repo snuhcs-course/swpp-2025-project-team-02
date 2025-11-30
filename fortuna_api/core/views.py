@@ -37,6 +37,7 @@ from .serializers import (
 )
 from .services.image import ImageService
 from .services.fortune import FortuneService
+from .utils.saju_concepts import TenStems
 
 
 # Initialize services
@@ -70,6 +71,39 @@ def get_absolute_image_url(request, image_field):
     if image_url.startswith('http://') or image_url.startswith('https://'):
         return image_url
     return request.build_absolute_uri(image_url)
+
+
+def get_user_element_en(user):
+    """
+    사용자의 일간(日干)에서 오행을 영어로 반환합니다.
+
+    Args:
+        user: User 객체
+
+    Returns:
+        str: 'wood', 'fire', 'earth', 'metal', 'water' 중 하나
+        None: daily_ganji가 없는 경우
+    """
+    if not user.daily_ganji:
+        return None
+
+    try:
+        # 일간의 첫 글자 (천간)
+        daily_stem_char = user.daily_ganji[0]
+        # 천간 찾기
+        stem = TenStems.find_by_name(daily_stem_char)
+        # 오행 매핑
+        element_mapping = {
+            '목': 'wood',
+            '화': 'fire',
+            '토': 'earth',
+            '금': 'metal',
+            '수': 'water'
+        }
+        return element_mapping.get(stem.element.chinese)
+    except Exception as e:
+        logger.error(f"Failed to extract user element: {e}")
+        return None
 
 
 @extend_schema_view(
@@ -849,14 +883,41 @@ class FortuneViewSet(viewsets.GenericViewSet):
         user = request.user
         logger.info(f"Fortune today request - user: {user}, is_authenticated: {user.is_authenticated}, type: {type(user)}")
 
+        # Development mode: try to get user from X-Test-User-Id header
         if not user.is_authenticated:
-            return Response({
-                'status': 'error',
-                'error': {
-                    'code': 'authentication_required',
-                    'message': 'User not authenticated. Please provide X-Test-User-Id header in development mode.'
-                }
-            }, status=status.HTTP_401_UNAUTHORIZED)
+            if getattr(settings, 'DEVELOPMENT_MODE', False):
+                test_user_id = request.META.get('HTTP_X_TEST_USER_ID')
+                if test_user_id:
+                    try:
+                        from django.contrib.auth import get_user_model
+                        User = get_user_model()
+                        user = User.objects.get(id=int(test_user_id))
+                        logger.info(f"Development mode: Using test user {user.id}")
+                    except (User.DoesNotExist, ValueError) as e:
+                        logger.warning(f"Development mode: Failed to get test user: {e}")
+                        return Response({
+                            'status': 'error',
+                            'error': {
+                                'code': 'authentication_required',
+                                'message': 'User not authenticated. Please provide valid X-Test-User-Id header in development mode.'
+                            }
+                        }, status=status.HTTP_401_UNAUTHORIZED)
+                else:
+                    return Response({
+                        'status': 'error',
+                        'error': {
+                            'code': 'authentication_required',
+                            'message': 'User not authenticated. Please provide X-Test-User-Id header in development mode.'
+                        }
+                    }, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                return Response({
+                    'status': 'error',
+                    'error': {
+                        'code': 'authentication_required',
+                        'message': 'User not authenticated.'
+                    }
+                }, status=status.HTTP_401_UNAUTHORIZED)
 
         # Get date parameter (optional) - defaults to server's today
         date_param = request.query_params.get('date')
@@ -920,7 +981,39 @@ class FortuneViewSet(viewsets.GenericViewSet):
                     user=user,
                     for_date=today_date
                 )
-                fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
+
+                # Check if user collected 5+ needed elements today
+                if fortune_result.fortune_score and 'needed_element' in fortune_result.fortune_score:
+                    needed_element_kr = fortune_result.fortune_score['needed_element']
+                    needed_element_en = element_kr_to_en(needed_element_kr)
+
+                    # Count today's collection
+                    collected_count = ChakraImage.objects.filter(
+                        user=user,
+                        date=today_date,
+                        chakra_type=needed_element_en
+                    ).count()
+
+                    # If completed (5+), return complete image
+                    if collected_count >= 5:
+                        user_element_en = get_user_element_en(user)
+                        if user_element_en:
+                            # Build complete image path
+                            complete_image_path = f'complete/result_{user_element_en}_{needed_element_en}.png'
+                            complete_image_url = request.build_absolute_uri(
+                                settings.STATIC_URL + complete_image_path
+                            )
+                            fortune_image_url = complete_image_url
+                        else:
+                            # Fallback to regular image
+                            fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
+                    else:
+                        # Not completed, use regular fortune image
+                        fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
+                else:
+                    # No fortune_score, use regular image
+                    fortune_image_url = get_absolute_image_url(request, fortune_result.fortune_image)
+
             except FortuneResult.DoesNotExist:
                 fortune_image_url = None
 
