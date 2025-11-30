@@ -34,12 +34,18 @@ class MainActivity : AppCompatActivity() {
 
     // ARCore session lifecycle helper - moved to ARFragment for better lifecycle control
     var arCoreSessionHelper: ARCoreSessionLifecycleHelper? = null
+
+    // 중복 체크 방지를 위한 플래그
+    private var hasValidatedOnResume = false
+
     companion object {
         private const val TAG = "MainActivity"
         private const val PREFS_NAME = "fortuna_prefs"
         private const val KEY_TOKEN = "jwt_token"
         private const val REFRESH_TOKEN = "refresh_token"
+        private const val KEY_PROFILE_UPDATED_TIME = "profile_updated_time"
         private const val PERMISSION_REQUEST_CODE = 1001
+        private const val PROFILE_UPDATE_GRACE_PERIOD_MS = 5000L // 5초
         private val REQUIRED_PERMISSIONS = arrayOf(
             Manifest.permission.CAMERA
         )
@@ -129,6 +135,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        // onCreate에서 이미 체크했으면 스킵
+        if (hasValidatedOnResume) {
+            Log.d(TAG, "Already validated in onCreate, skipping onResume check")
+            return
+        }
+
+        Log.d(TAG, "onResume: Validating tokens")
+        hasValidatedOnResume = true
+
         // 다른 앱 방문 후 되돌아 올 때 로그인 풀리며 프로필 정보 불러오지 못하는 버그 수정.
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val accessToken = prefs.getString(KEY_TOKEN, null)
@@ -143,6 +159,12 @@ class MainActivity : AppCompatActivity() {
                 validateAndRefreshToken(accessToken, refreshToken)
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // onPause 시 플래그 리셋 (다음 onResume에서 체크하도록)
+        hasValidatedOnResume = false
     }
 
 
@@ -173,6 +195,19 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun validateAndRefreshToken(accessToken: String, refreshToken: String) {
         try {
+            // 프로필 업데이트 직후인지 확인 (타이밍 이슈 방지)
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val profileUpdatedTime = prefs.getLong(KEY_PROFILE_UPDATED_TIME, 0L)
+            val currentTime = System.currentTimeMillis()
+            val timeSinceUpdate = currentTime - profileUpdatedTime
+
+            if (profileUpdatedTime > 0 && timeSinceUpdate < PROFILE_UPDATE_GRACE_PERIOD_MS) {
+                Log.d(TAG, "Profile was just updated ${timeSinceUpdate}ms ago, skipping profile check to avoid timing issues")
+                // Clear Timestamp
+                prefs.edit().remove(KEY_PROFILE_UPDATED_TIME).apply()
+                return
+            }
+
             // Try to validate token by getting profile
             val profileResponse = RetrofitClient.instance.getUserProfile()
 
@@ -183,6 +218,7 @@ class MainActivity : AppCompatActivity() {
 
                 // 프로필 체크
                 if (!ProfileUtils.isProfileComplete(userProfile)) {
+                    Log.w(TAG, "Profile is incomplete, redirecting to ProfileInputFragment")
                     navigateToProfileInput()
                 } else {
                     Log.d(TAG, "User can continue due to completeness of profile.")
