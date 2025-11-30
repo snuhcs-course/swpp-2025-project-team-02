@@ -4,8 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.text.InputFilter
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -48,21 +47,32 @@ class ProfileInputFragment : Fragment() {
 
     private fun setupNicknameValidation() {
         val binding = _binding ?: return
+        val maxLength = 6
 
-        binding.nicknameEditText.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-
-            override fun afterTextChanged(s: Editable?) {
-                val length = s?.length ?: 0
-                if (length >= 6) {
-                    binding.nicknameErrorText.visibility = View.VISIBLE
-                } else {
+        // Custom InputFilter to show error only when user tries to exceed limit
+        val lengthFilter = InputFilter { source, start, end, dest, dstart, dend ->
+            val keep = maxLength - (dest.length - (dend - dstart))
+            if (keep <= 0) {
+                // No room at all - show error and reject all
+                binding.nicknameErrorText.visibility = View.VISIBLE
+                binding.nicknameErrorText.postDelayed({
                     binding.nicknameErrorText.visibility = View.GONE
-                }
+                }, 2000)
+                return@InputFilter ""
+            } else if (keep >= end - start) {
+                // Room for all new input
+                return@InputFilter null
+            } else {
+                // Partial room - keep what fits, show error for overflow
+                binding.nicknameErrorText.visibility = View.VISIBLE
+                binding.nicknameErrorText.postDelayed({
+                    binding.nicknameErrorText.visibility = View.GONE
+                }, 2000)
+                return@InputFilter source.subSequence(start, start + keep)
             }
-        })
+        }
+
+        binding.nicknameEditText.filters = arrayOf(lengthFilter)
     }
 
     private fun setupSpinners() {
@@ -73,21 +83,27 @@ class ProfileInputFragment : Fragment() {
 
         // 년도 (1900-2025)
         val years = (1900..2025).map { it.toString() }
-        binding.birthYearSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, years).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.birthYearSpinner.adapter = ArrayAdapter(context, R.layout.spinner_item_dark, years).apply {
+            setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
         }
         binding.birthYearSpinner.setSelection(years.size - 1)
 
         // 월 (1-12)
         val months = (1..12).map { it.toString() + "월" }
-        binding.birthMonthSpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, months).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.birthMonthSpinner.adapter = ArrayAdapter(context, R.layout.spinner_item_dark, months).apply {
+            setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
         }
 
         // 일 (1-31)
         val days = (1..31).map { it.toString() + "일" }
-        binding.birthDaySpinner.adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, days).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.birthDaySpinner.adapter = ArrayAdapter(context, R.layout.spinner_item_dark, days).apply {
+            setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
+        }
+
+        // 태어난 시간 - also update to dark theme
+        val birthTimes = resources.getStringArray(R.array.birth_time_units)
+        binding.birthTimeSpinner.adapter = ArrayAdapter(context, R.layout.spinner_item_dark, birthTimes).apply {
+            setDropDownViewResource(R.layout.spinner_dropdown_item_dark)
         }
     }
 

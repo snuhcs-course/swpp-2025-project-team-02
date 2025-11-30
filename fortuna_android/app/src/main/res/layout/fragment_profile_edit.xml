@@ -62,15 +62,15 @@
             <EditText
                 android:id="@+id/nickname_edit_text"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="8dp"
-                android:background="@android:drawable/edit_text"
+                android:background="@drawable/edit_text_dark_background"
                 android:hint="닉네임을 입력해주세요"
                 android:inputType="text"
-                android:maxLength="6"
-                android:padding="16dp"
-                android:textColor="#000000"
-                android:textColorHint="#666666"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
                 android:textSize="16sp" />
 
             <TextView
@@ -102,28 +102,31 @@
                 <Spinner
                     android:id="@+id/birth_year_spinner"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="56dp"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:background="@android:drawable/edit_text"
-                    android:padding="12dp" />
+                    android:background="@drawable/edit_text_dark_background"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
 
                 <Spinner
                     android:id="@+id/birth_month_spinner"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="56dp"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:background="@android:drawable/edit_text"
-                    android:padding="12dp" />
+                    android:background="@drawable/edit_text_dark_background"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
 
                 <Spinner
                     android:id="@+id/birth_day_spinner"
                     android:layout_width="0dp"
-                    android:layout_height="48dp"
+                    android:layout_height="56dp"
                     android:layout_weight="1"
-                    android:background="@android:drawable/edit_text"
-                    android:padding="12dp" />
+                    android:background="@drawable/edit_text_dark_background"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
 
             </LinearLayout>
 
@@ -177,10 +180,11 @@
             <Spinner
                 android:id="@+id/birth_time_spinner"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="56dp"
                 android:layout_marginTop="8dp"
-                android:background="@android:drawable/edit_text"
-                android:padding="12dp"
+                android:background="@drawable/edit_text_dark_background"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:entries="@array/birth_time_units" />
 
             <!-- 성별 -->
