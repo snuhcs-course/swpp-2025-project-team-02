@@ -263,6 +263,8 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         chakra_type = param_serializer.validated_data['chakra_type']
+        # Get date from request or use server's today
+        request_date = param_serializer.validated_data.get('date')
 
         # For development: use test user if not authenticated
         if request.user.is_authenticated:
@@ -284,6 +286,8 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
         now = timezone.now()
+        # Use request date if provided, otherwise use server's current date
+        collection_date = request_date if request_date else now.date()
 
         # Create ChakraImage without image (PoC mode)
         try:
@@ -291,7 +295,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                 user=user,
                 image=None,
                 chakra_type=chakra_type,
-                date=now.date(),
+                date=collection_date,
                 timestamp=now,
                 latitude=None,
                 longitude=None,
@@ -327,7 +331,16 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Get Chakra Collection Status",
-        description="Get total count of collected chakras by type (cumulative)",
+        description="Get total count of collected chakras by type (cumulative or for specific date)",
+        parameters=[
+            OpenApiParameter(
+                name='date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Date to filter collection (YYYY-MM-DD). If not provided, returns cumulative count.',
+                required=False
+            )
+        ],
         responses={
             200: ChakraCollectionStatusSerializer,
             400: APIResponseSerializer
@@ -336,8 +349,9 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='collection-status')
     def collection_status(self, request):
         """
-        Get cumulative chakra collection status for the current user.
-        Returns count by chakra type across all time.
+        Get chakra collection status for the current user.
+        If date is provided, returns count for that specific date.
+        Otherwise, returns cumulative count across all time.
         """
         # For development: use test user if not authenticated
         if request.user.is_authenticated:
@@ -358,10 +372,25 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Authentication required'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
+        # Get date parameter (optional)
+        date_param = request.query_params.get('date')
+        filter_date = None
+        if date_param:
+            try:
+                filter_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Build query - filter by date if provided
+        queryset = ChakraImage.objects.filter(user=user)
+        if filter_date:
+            queryset = queryset.filter(date=filter_date)
+
         # Get counts grouped by chakra_type
-        collections = ChakraImage.objects.filter(
-            user=user
-        ).values('chakra_type').annotate(
+        collections = queryset.values('chakra_type').annotate(
             count=Count('id')
         ).order_by('chakra_type')
 
@@ -445,7 +474,16 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Get Today's Collection Progress",
-        description="Get today's chakra collection progress (needed element and count)",
+        description="Get chakra collection progress for a specific date (needed element and count)",
+        parameters=[
+            OpenApiParameter(
+                name='date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Date for progress (YYYY-MM-DD). Defaults to server today if not provided.',
+                required=False
+            )
+        ],
         responses={
             200: TodayProgressResponseSerializer,
             400: APIResponseSerializer
@@ -454,8 +492,9 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='today-progress')
     def today_progress(self, request):
         """
-        Get today's chakra collection progress.
+        Get chakra collection progress for a specific date.
         Returns the needed element from FortuneResult and current collection count.
+        If date is provided, uses that date; otherwise uses server's today.
         """
         # For development: use test user if not authenticated
         if request.user.is_authenticated:
@@ -476,18 +515,29 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
                     'message': 'Authentication required'
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-        today = timezone.now().date()
+        # Get date parameter (optional) - defaults to server's today
+        date_param = request.query_params.get('date')
+        if date_param:
+            try:
+                target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'status': 'error',
+                    'message': 'Invalid date format. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            target_date = timezone.now().date()
 
-        # Get today's FortuneResult
+        # Get FortuneResult for target date
         try:
             fortune_result = FortuneResult.objects.get(
                 user=user,
-                for_date=today
+                for_date=target_date
             )
         except FortuneResult.DoesNotExist:
             return Response({
                 'status': 'error',
-                'message': f'Fortune not generated for today ({today}). Please call /fortune/today first.'
+                'message': f'Fortune not generated for {target_date}. Please call /fortune/today first.'
             }, status=status.HTTP_404_NOT_FOUND)
 
         # Extract needed element from fortune_score
@@ -500,10 +550,10 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         needed_element_kr = fortune_result.fortune_score['needed_element']
         needed_element_en = element_kr_to_en(needed_element_kr)
 
-        # Count collected chakras of target element today
+        # Count collected chakras of target element for target date
         current_count = ChakraImage.objects.filter(
             user=user,
-            date=today,
+            date=target_date,
             chakra_type=needed_element_en
         ).count()
 
@@ -515,7 +565,7 @@ class ChakraImageViewSet(viewsets.ModelViewSet):
         return Response({
             'status': 'success',
             'data': {
-                'date': today.isoformat(),
+                'date': target_date.isoformat(),
                 'needed_element': needed_element_kr,
                 'needed_element_en': needed_element_en,
                 'current_count': current_count,
@@ -781,12 +831,21 @@ class FortuneViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         summary="Get Today's Fortune",
-        description="Get personalized Saju fortune for today with five elements balance score (DB cached)",
+        description="Get personalized Saju fortune for a specific date with five elements balance score (DB cached)",
+        parameters=[
+            OpenApiParameter(
+                name='date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Date for fortune (YYYY-MM-DD). Defaults to server today if not provided.',
+                required=False
+            )
+        ],
         responses={200: FortuneResponseSerializer}
     )
     @action(detail=False, methods=['get'])
     def today(self, request):
-        """Get today's fortune with balance score (DB cached, with race condition protection)."""
+        """Get fortune with balance score (DB cached, with race condition protection)."""
         user = request.user
         logger.info(f"Fortune today request - user: {user}, is_authenticated: {user.is_authenticated}, type: {type(user)}")
 
@@ -799,7 +858,21 @@ class FortuneViewSet(viewsets.GenericViewSet):
                 }
             }, status=status.HTTP_401_UNAUTHORIZED)
 
-        today_date = timezone.now().date()
+        # Get date parameter (optional) - defaults to server's today
+        date_param = request.query_params.get('date')
+        if date_param:
+            try:
+                today_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'status': 'error',
+                    'error': {
+                        'code': 'invalid_date',
+                        'message': 'Invalid date format. Use YYYY-MM-DD'
+                    }
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            today_date = timezone.now().date()
 
         # Helper functions to convert GanJi/Saju objects
         def ganji_to_dict(ganji):

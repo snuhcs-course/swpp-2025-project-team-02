@@ -313,7 +313,8 @@ class FortuneCardView @JvmOverloads constructor(
     private fun fetchTodayProgressAndDisplay() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitClient.instance.getTodayProgress()
+                val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val response = RetrofitClient.instance.getTodayProgress(todayDate)
                 if (response.isSuccessful && response.body() != null) {
                     val progressData = response.body()!!.data
                     val neededElementKorean = progressData.neededElement

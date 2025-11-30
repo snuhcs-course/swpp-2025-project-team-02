@@ -47,6 +47,9 @@ import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationExceptio
 import android.hardware.camera2.CameraAccessException
 import com.example.fortuna_android.classification.DetectedObjectResult
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ARFragment(
     private val sessionManagerFactory: ((Activity) -> ARSessionManager)? = null
@@ -780,7 +783,8 @@ class ARFragment(
     private fun fetchTodayProgress() {
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.getTodayProgress()
+                val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val response = RetrofitClient.instance.getTodayProgress(todayDate)
                 if (response.isSuccessful && response.body() != null) {
                     val progressData = response.body()!!.data
 
@@ -1110,7 +1114,11 @@ class ARFragment(
 
                 lifecycleScope.launch {
                     try {
-                        val request = com.example.fortuna_android.api.CollectElementRequest(chakraType = elementEnglish)
+                        val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val request = com.example.fortuna_android.api.CollectElementRequest(
+                            chakraType = elementEnglish,
+                            date = todayDate
+                        )
                         val response = RetrofitClient.instance.collectElement(request)
 
                         if (response.isSuccessful && response.body() != null) {
