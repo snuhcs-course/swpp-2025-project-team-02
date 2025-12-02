@@ -135,9 +135,11 @@ class FortuneViewModel : ViewModel() {
                     // Check if AI is generating (special message)
                     val isAiGenerating = fortune.todayElementBalanceDescription?.contains(AI_GENERATING_MESSAGE) == true
 
-                    if (!fortune.todayDailyGuidance.isNullOrEmpty() && !isAiGenerating) {
-                        // Fortune is complete - stop polling
-                        Log.d(TAG, "Fortune generation completed!")
+                    if (!fortune.todayDailyGuidance.isNullOrEmpty() &&
+                        !isAiGenerating &&
+                        !fortuneResponse.data.fortuneImageUrl.isNullOrBlank()) {
+                        // Fortune is complete including image - stop polling
+                        Log.d(TAG, "Fortune generation completed with image!")
                         stopPolling()
 
                         // Update success state
@@ -315,9 +317,11 @@ class FortuneViewModel : ViewModel() {
                         // Check if AI is still generating
                         val isAiGenerating = fortune.todayElementBalanceDescription?.contains(AI_GENERATING_MESSAGE) == true
 
-                        if (!fortune.todayDailyGuidance.isNullOrEmpty() && !isAiGenerating) {
-                            // Fortune is complete!
-                            Log.d(TAG, "Fortune generation completed during polling!")
+                        if (!fortune.todayDailyGuidance.isNullOrEmpty() &&
+                            !isAiGenerating &&
+                            !fortuneResponse.data.fortuneImageUrl.isNullOrBlank()) {
+                            // Fortune is complete including image!
+                            Log.d(TAG, "Fortune generation completed during polling with image!")
 
                             // Update success state
                             val fortuneScore = (fortuneResponse.data.fortuneScore.entropyScore / 100.0).toInt()
