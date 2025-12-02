@@ -58,7 +58,7 @@ class User(AbstractUser):
     hourly_ganji = models.CharField(max_length=2, null=True, blank=True, help_text="시주")
 
     # 앱 설정
-    nickname = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    nickname = models.CharField(max_length=20, null=True, blank=True)
     is_profile_complete = models.BooleanField(default=False)
     
     # 타임스탬프

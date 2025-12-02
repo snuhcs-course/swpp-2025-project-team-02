@@ -32,16 +32,11 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         """
         닉네임 유효성 검증
 
-        1. 길이 검증: 2-20자
-        2. 중복 검증: 다른 사용자의 닉네임과 중복 불가
+        길이 검증: 2-20자
         """
         # 닉네임 길이 검증
         if len(value) < 2 or len(value) > 20:
             raise serializers.ValidationError("닉네임은 2-20자 사이여야 합니다.")
-
-        # 현재 사용자를 제외한 다른 사용자와 중복 검사
-        if User.objects.exclude(pk=self.instance.pk).filter(nickname=value).exists():
-            raise serializers.ValidationError("이미 사용 중인 닉네임입니다.")
 
         return value
 
