@@ -307,6 +307,58 @@ class ARFragment(
                 }
             }
         }
+
+        // Show/hide collecting guide banner
+        if (active) {
+            showCollectingGuide()
+        } else {
+            hideCollectingGuide()
+        }
+    }
+
+    /**
+     * Show collecting guide banner with bounce animation
+     */
+    private fun showCollectingGuide() {
+        val binding = _binding ?: return
+
+        binding.collectingGuideBanner.apply {
+            visibility = View.VISIBLE
+            alpha = 0f
+            scaleX = 0.8f
+            scaleY = 0.8f
+
+            // Bounce in animation
+            animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(400)
+                .setInterpolator(OvershootInterpolator(1.5f))
+                .start()
+        }
+
+        Log.d(TAG, "Collecting guide banner shown")
+    }
+
+    /**
+     * Hide collecting guide banner with fade out animation
+     */
+    private fun hideCollectingGuide() {
+        val binding = _binding ?: return
+
+        binding.collectingGuideBanner.animate()
+            .alpha(0f)
+            .scaleX(0.9f)
+            .scaleY(0.9f)
+            .setDuration(250)
+            .setInterpolator(AccelerateDecelerateInterpolator())
+            .withEndAction {
+                binding.collectingGuideBanner.visibility = View.GONE
+            }
+            .start()
+
+        Log.d(TAG, "Collecting guide banner hidden")
     }
 
     /**

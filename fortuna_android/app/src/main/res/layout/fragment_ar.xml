@@ -70,6 +70,55 @@
 
     </LinearLayout>
 
+    <!-- Collecting Guide Banner (Top) - Game style friendly guide -->
+    <LinearLayout
+        android:id="@+id/collectingGuideBanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="85dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/ar_collecting_guide_background"
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="24dp"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📸"
+                android:textSize="18sp"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="화면을 고정하세요!"
+                android:textSize="15sp"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="움직이면 몬스터가 도망가요"
+            android:textSize="12sp"
+            android:textColor="#E8F5E9"
+            android:gravity="center" />
+
+    </LinearLayout>
+
     <!-- Celebration Overlay -->
     <FrameLayout
         android:id="@+id/celebrationOverlay"
