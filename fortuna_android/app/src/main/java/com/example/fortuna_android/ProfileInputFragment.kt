@@ -18,6 +18,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UpdateProfileRequest
 import kotlinx.coroutines.launch
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 class ProfileInputFragment : Fragment() {
     private var _binding: FragmentProfileInputBinding? = null
@@ -38,6 +40,19 @@ class ProfileInputFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Handle window insets to avoid overlap with system navigation bar
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Apply bottom padding to ensure next button is not hidden by system navigation bar
+            v.setPadding(
+                v.paddingLeft,
+                v.paddingTop,
+                v.paddingRight,
+                systemBars.bottom
+            )
+            insets
+        }
 
         setupSpinners()
         setupClickListeners()
