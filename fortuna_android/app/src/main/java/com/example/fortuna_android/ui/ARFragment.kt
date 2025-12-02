@@ -1077,7 +1077,8 @@ class ARFragment(
         showCelebrationAnimation(tappedAnchor.element)
 
         // Trigger haptic feedback for sphere interaction
-        triggerHapticFeedback(wasNeededElement)
+        val shouldUseShortVibration = wasNeededElement && localCollectedCount >= AppConstants.TARGET_COLLECTION_COUNT
+        triggerHapticFeedback(wasNeededElement && !shouldUseShortVibration)
 
         if (wasNeededElement && localCollectedCount < AppConstants.TARGET_COLLECTION_COUNT) {
             // Needed element: Normal collection behavior, but only if under target
@@ -1096,7 +1097,15 @@ class ARFragment(
         } else if (wasNeededElement && localCollectedCount >= AppConstants.TARGET_COLLECTION_COUNT) {
             // Needed element but target already reached
             if (isAdded) {
-                CustomToast.show(requireContext(), "목표 달성 완료! (${AppConstants.TARGET_COLLECTION_COUNT}/${AppConstants.TARGET_COLLECTION_COUNT})")
+                val elementName = when (neededElement) {
+                    ElementMapper.Element.FIRE -> "불은"
+                    ElementMapper.Element.WATER -> "물은"
+                    ElementMapper.Element.WOOD -> "나무는"
+                    ElementMapper.Element.METAL -> "금속은"
+                    ElementMapper.Element.EARTH -> "땅은"
+                    else -> "${neededElement?.displayName ?: "해당 원소"}는"
+                }
+                CustomToast.show(requireContext(), "$elementName 더 이상 필요하지 않아요")
             }
         } else {
             // Non-needed element: Show different feedback, no progress update
