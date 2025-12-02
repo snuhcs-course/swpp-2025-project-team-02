@@ -15,6 +15,13 @@ class AuthContainerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Hide only the status bar, keep navigation bar visible
+        window.decorView.systemUiVisibility = (
+            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
+            android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        )
+
         _binding = ActivityAuthContainerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
