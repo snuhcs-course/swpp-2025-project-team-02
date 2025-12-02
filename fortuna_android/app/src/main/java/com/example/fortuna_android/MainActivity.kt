@@ -15,6 +15,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
+import com.example.fortuna_android.ui.FortuneViewModel
 import com.example.fortuna_android.api.LogoutRequest
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.databinding.ActivityMainBinding
@@ -433,6 +435,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation(navController: androidx.navigation.NavController) {
+        // Get FortuneViewModel to check fortune generation status
+        val fortuneViewModel = ViewModelProvider(this).get(FortuneViewModel::class.java)
+
         // Set up click listeners for each navigation tab
         binding.navHome.setOnClickListener {
             navController.navigate(R.id.homeFragment)
@@ -443,6 +448,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.navAr.setOnClickListener {
+            // Check if fortune is still generating
+            val isGenerating = fortuneViewModel.generatingMessage.value != null
+            if (isGenerating) {
+                Log.w(TAG, "Fortune is still generating, cannot navigate to AR")
+                CustomToast.show(this, "운세 생성이 완료되면 이용 가능합니다.")
+                return@setOnClickListener
+            }
+
             navController.navigate(R.id.arFragment)
         }
 
