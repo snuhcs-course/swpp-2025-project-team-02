@@ -298,7 +298,7 @@ class TestImageAPIEndpoints(APITestCase):
         self.assertIn('date', response.data['data'])
         self.assertIn('needed_element', response.data['data'])
         # Should use today's date
-        today = datetime.now().date()
+        today = timezone.now().date()
         self.assertEqual(response.data['data']['date'], today.isoformat())
         self.assertEqual(response.data['data']['needed_element'], '금')
 
