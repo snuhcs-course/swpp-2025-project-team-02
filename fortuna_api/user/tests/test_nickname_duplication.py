@@ -22,7 +22,7 @@ class NicknameDuplicationTests(TestCase):
         self.user1 = User.objects.create_user(
             email='test1@example.com',
             first_name='Test User 1',
-            nickname='sameNickname',
+            nickname='같은닉',
             birth_date_solar=date(1990, 1, 15),
             birth_time_units='묘시',
             gender='M',
@@ -35,7 +35,7 @@ class NicknameDuplicationTests(TestCase):
         user2 = User.objects.create_user(
             email='test2@example.com',
             first_name='Test User 2',
-            nickname='sameNickname',  # 첫 번째 사용자와 동일한 닉네임
+            nickname='같은닉',  # 첫 번째 사용자와 동일한 닉네임
             birth_date_solar=date(1991, 2, 20),
             birth_time_units='오시',
             gender='F',
@@ -47,7 +47,7 @@ class NicknameDuplicationTests(TestCase):
 
         # 두 사용자의 닉네임이 동일한지 확인
         self.assertEqual(self.user1.nickname, user2.nickname)
-        self.assertEqual(user2.nickname, 'sameNickname')
+        self.assertEqual(user2.nickname, '같은닉')
 
     def test_update_nickname_to_duplicate_via_api(self):
         """API를 통해 닉네임을 중복된 값으로 변경 테스트"""
@@ -55,7 +55,7 @@ class NicknameDuplicationTests(TestCase):
         user2 = User.objects.create_user(
             email='test3@example.com',
             first_name='Test User 3',
-            nickname='differentNickname',
+            nickname='다른닉',
             birth_date_solar=date(1992, 3, 25),
             birth_time_units='신시',
             gender='M',
@@ -67,7 +67,7 @@ class NicknameDuplicationTests(TestCase):
 
         # 첫 번째 사용자와 동일한 닉네임으로 변경 시도
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'sameNickname'  # user1과 동일한 닉네임
+            'nickname': '같은닉'  # user1과 동일한 닉네임
         }, format='json')
 
         # 성공적으로 업데이트되어야 함
@@ -75,7 +75,7 @@ class NicknameDuplicationTests(TestCase):
 
         # 닉네임이 변경되었는지 확인
         user2.refresh_from_db()
-        self.assertEqual(user2.nickname, 'sameNickname')
+        self.assertEqual(user2.nickname, '같은닉')
 
         # 두 사용자의 닉네임이 동일한지 확인
         self.assertEqual(self.user1.nickname, user2.nickname)
@@ -87,7 +87,7 @@ class NicknameDuplicationTests(TestCase):
             User.objects.create_user(
                 email=f'test{i}@example.com',
                 first_name=f'Test User {i}',
-                nickname='sameNickname',  # 모두 동일한 닉네임
+                nickname='같은닉',  # 모두 동일한 닉네임
                 birth_date_solar=date(1990 + i, i, 10),
                 birth_time_units='자시',
                 gender='M',
@@ -100,7 +100,7 @@ class NicknameDuplicationTests(TestCase):
         # 모든 사용자가 동일한 닉네임을 가지고 있는지 확인
         all_users = User.objects.all()
         for user in all_users:
-            self.assertEqual(user.nickname, 'sameNickname')
+            self.assertEqual(user.nickname, '같은닉')
 
     def test_nickname_length_validation_still_works(self):
         """닉네임 길이 검증은 여전히 작동하는지 테스트"""
