@@ -18,7 +18,7 @@ class UserModelDeletionTests(TestCase):
         self.user = User.objects.create_user(
             email='test@example.com',
             first_name='Test User',
-            nickname='testuser'
+            nickname='테스트'
         )
 
     def test_soft_delete_sets_deleted_at(self):
@@ -77,7 +77,7 @@ class UserManagerDeletionTests(TestCase):
         self.deleted_user = User.objects.create_user(
             email='deleted@example.com',
             first_name='Deleted User',
-            nickname='deleted'
+            nickname='탈퇴자'
         )
         self.deleted_user.soft_delete()
         self.deleted_user.save()
@@ -135,7 +135,7 @@ class UserReRegistrationTests(TestCase):
         original_user = User.objects.create_user(
             email='reuse@example.com',
             first_name='Original User',
-            nickname='original'
+            nickname='원래자'
         )
         original_user.soft_delete()
         original_user.save()
@@ -150,7 +150,7 @@ class UserReRegistrationTests(TestCase):
         new_user = User.objects.create_user(
             email='reuse@example.com',
             first_name='New User',
-            nickname='newuser'
+            nickname='새사용'
         )
 
         self.assertNotEqual(original_user.id, new_user.id)

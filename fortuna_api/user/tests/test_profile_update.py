@@ -24,7 +24,7 @@ class ProfileUpdateFortuneInvalidationTests(TestCase):
         self.user = User.objects.create_user(
             email='test@example.com',
             first_name='Test User',
-            nickname='testuser',
+            nickname='테스트',
             birth_date_solar=date(1990, 1, 15),
             birth_time_units='묘시',
             gender='M',
@@ -136,7 +136,7 @@ class ProfileUpdateFortuneInvalidationTests(TestCase):
 
         # 닉네임만 변경
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'newtestuser'
+            'nickname': '새닉네임'
         }, format='json')
 
         # 응답 확인
@@ -152,7 +152,7 @@ class ProfileUpdateFortuneInvalidationTests(TestCase):
 
         # 닉네임과 기타 필드 변경 (사주 관련 없는 필드)
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'updated_nickname'
+            'nickname': '업데이트'
         }, format='json')
 
         # 응답 확인
@@ -247,7 +247,7 @@ class ProfileUpdateResponseFormatTests(TestCase):
     def test_response_includes_fortune_reset_field(self):
         """응답에 fortune_reset 필드가 포함되는지 테스트"""
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'updated'
+            'nickname': '수정됨'
         }, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -257,7 +257,7 @@ class ProfileUpdateResponseFormatTests(TestCase):
     def test_response_includes_standard_fields(self):
         """응답에 표준 필드들이 포함되는지 테스트"""
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'updated'
+            'nickname': '수정완'
         }, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
