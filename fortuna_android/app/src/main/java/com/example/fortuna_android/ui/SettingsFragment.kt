@@ -1,6 +1,7 @@
 package com.example.fortuna_android.ui
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -10,11 +11,16 @@ import com.example.fortuna_android.util.CustomToast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.example.fortuna_android.AuthContainerActivity
+import com.example.fortuna_android.BuildConfig
 import com.example.fortuna_android.MainActivity
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.RetrofitClient
 import com.example.fortuna_android.api.UserProfile
 import com.example.fortuna_android.databinding.FragmentSettingsBinding
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlinx.coroutines.launch
 
 class SettingsFragment : Fragment() {
@@ -22,6 +28,7 @@ class SettingsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var currentProfile: UserProfile? = null
+    private lateinit var mGoogleSignInClient: GoogleSignInClient
 
     companion object {
         private const val TAG = "SettingsFragment"
@@ -41,8 +48,18 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupGoogleSignIn()
         setupClickListeners()
         loadUserProfile()
+    }
+
+    private fun setupGoogleSignIn() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(BuildConfig.GOOGLE_CLIENT_ID)
+            .requestEmail()
+            .build()
+
+        mGoogleSignInClient = GoogleSignIn.getClient(requireContext(), gso)
     }
 
     private fun setupClickListeners() {
@@ -103,17 +120,27 @@ class SettingsFragment : Fragment() {
                 val response = RetrofitClient.instance.deleteAccount()
 
                 if (response.isSuccessful) {
+                    Log.d(TAG, "회원 탈퇴 성공")
                     if (isAdded) {
-                        // Clear tokens first
+                        CustomToast.show(requireContext(), "회원 탈퇴가 완료되었습니다.")
+                    }
+
+                    // Google Sign Out first
+                    mGoogleSignInClient.signOut().addOnCompleteListener {
+                        if (!isAdded) return@addOnCompleteListener
+
+                        // Clear local data
                         prefs.edit().clear().apply()
 
-                        // Show toast and logout after a short delay to avoid system UI error
-                        CustomToast.show(requireContext(), "회원 탈퇴가 완료되었습니다.")
+                        Log.d(TAG, "로컬 로그아웃 완료 - Google SignOut 및 토큰 제거됨")
 
-                        // Delay logout to ensure toast is displayed
-                        view?.postDelayed({
-                            (activity as? MainActivity)?.logout()
-                        }, 500)
+                        // Finish activity first to prevent onResume from being called
+                        activity?.finish()
+
+                        // Then navigate to sign in activity
+                        val intent = Intent(requireContext(), AuthContainerActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
                     }
                 } else {
                     Log.e(TAG, "Account deletion failed: ${response.code()}")
