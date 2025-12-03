@@ -32,11 +32,11 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
         """
         닉네임 유효성 검증
 
-        길이 검증: 2-20자
+        길이 검증: 2-6자
         """
         # 닉네임 길이 검증
-        if len(value) < 2 or len(value) > 20:
-            raise serializers.ValidationError("닉네임은 2-20자 사이여야 합니다.")
+        if len(value) < 2 or len(value) > 6:
+            raise serializers.ValidationError("닉네임은 2-6자 사이여야 합니다.")
 
         return value
 

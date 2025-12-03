@@ -58,7 +58,7 @@ class User(AbstractUser):
     hourly_ganji = models.CharField(max_length=2, null=True, blank=True, help_text="시주")
 
     # 앱 설정
-    nickname = models.CharField(max_length=20, null=True, blank=True)
+    nickname = models.CharField(max_length=6, null=True, blank=True)
     is_profile_complete = models.BooleanField(default=False)
     
     # 타임스탬프
@@ -144,7 +144,7 @@ class User(AbstractUser):
             return False
 
         nickname_length = len(self.nickname.strip())
-        return 2 <= nickname_length <= 20
+        return 2 <= nickname_length <= 6
 
     def set_birth_date_and_calculate_saju(self, birth_date, calendar_type, time_units):
         """

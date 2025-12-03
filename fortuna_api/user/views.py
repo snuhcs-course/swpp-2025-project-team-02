@@ -784,7 +784,7 @@ class UserProfileView(APIView):
                             }
                         },
                         'example': {
-                            'nickname': ['닉네임은 2-20자 사이여야 합니다.'],
+                            'nickname': ['닉네임은 2-6자 사이여야 합니다.'],
                             'birth_date': ['유효한 날짜를 입력해주세요.']
                         }
                     }

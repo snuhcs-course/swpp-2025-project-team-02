@@ -113,15 +113,21 @@ class NicknameDuplicationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('nickname', response.data)
 
-        # 21자 닉네임 (너무 김)
+        # 7자 닉네임 (너무 김)
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'a' * 21
+            'nickname': '테스트테스트다'  # 7자
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('nickname', response.data)
 
-        # 정상 범위 (2-20자)
+        # 정상 범위 (2-6자)
         response = self.client.patch('/api/user/profile/', {
-            'nickname': 'validNickname'
+            'nickname': '테스트테'  # 4자
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # 6자 정확히 (경계값 테스트)
+        response = self.client.patch('/api/user/profile/', {
+            'nickname': '테스트테스트'  # 6자
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
