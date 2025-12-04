@@ -76,7 +76,8 @@ data class RenderContext(
     val projectionMatrix: FloatArray,
     val viewProjectionMatrix: FloatArray,
     val frame: Frame? = null,
-    val arLabeledAnchors: List<ARRenderer.ARLabeledAnchor> = emptyList()
+    val arLabeledAnchors: List<ARRenderer.ARLabeledAnchor> = emptyList(),
+    val allAnchors: List<ARRenderer.ARLabeledAnchor> = emptyList()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

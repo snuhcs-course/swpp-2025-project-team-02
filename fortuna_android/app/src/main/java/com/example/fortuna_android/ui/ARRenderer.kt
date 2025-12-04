@@ -29,6 +29,7 @@ import com.example.fortuna_android.render.BackgroundRendererComponent
 import com.example.fortuna_android.render.PointCloudRendererComponent
 import com.example.fortuna_android.render.ObjectRendererComponent
 import com.example.fortuna_android.render.RenderContext
+import com.example.fortuna_android.render.FrustumCuller
 import com.google.ar.core.exceptions.CameraNotAvailableException
 import com.google.ar.core.exceptions.NotYetAvailableException
 import com.google.ar.core.exceptions.SessionPausedException
@@ -101,6 +102,9 @@ class ARRenderer(private val fragment: ARFragment) :
 
     // Animation timing
     private var lastFrameTime = 0L
+
+    // Frustum culling
+    private val frustumCuller = FrustumCuller()
 
     enum class AnimationType {
         JUMPING, ROTATING
@@ -184,6 +188,22 @@ class ARRenderer(private val fragment: ARFragment) :
      * Get the current crop size ratio for bounding box display
      */
     fun getCurrentCropSizeRatio(): Float = cropSizeRatio
+
+    /**
+     * Get frustum culling statistics for performance monitoring
+     * @return Pair(totalTests, culledObjects)
+     */
+    fun getFrustumCullingStats(): Pair<Int, Int> = frustumCuller.getCullingStats()
+
+    /**
+     * Reset frustum culling statistics
+     */
+    fun resetFrustumCullingStats() = frustumCuller.resetStats()
+
+    /**
+     * Get debug information about frustum planes (for visualization)
+     */
+    fun getFrustumDebugInfo(): List<String> = frustumCuller.getFrustumPlanesDebugInfo()
 
     /**
      * Queue a tap to be processed on the next render frame
@@ -522,12 +542,17 @@ class ARRenderer(private val fragment: ARFragment) :
             arLabeledAnchors.toList()
         }
 
+        // Frustum Culling: Extract frustum planes and filter visible anchors
+        frustumCuller.extractFrustumPlanes(viewProjectionMatrix)
+        val visibleAnchors = performFrustumCulling(anchorsCopy)
+
         val renderContext = RenderContext(
             viewMatrix = viewMatrix,
             projectionMatrix = projectionMatrix,
             viewProjectionMatrix = viewProjectionMatrix,
             frame = frame,
-            arLabeledAnchors = anchorsCopy
+            arLabeledAnchors = visibleAnchors,
+            allAnchors = anchorsCopy
         )
 
         // Single unified call - treats all components uniformly
@@ -626,6 +651,58 @@ class ARRenderer(private val fragment: ARFragment) :
 
             Log.i(TAG, "Stored ${pendingClassifications.size} anchors for VLM classification")
         }
+    }
+
+    /**
+     * Perform frustum culling on AR anchors to improve rendering performance
+     *
+     * @param anchors List of all AR anchors to test
+     * @return List of anchors that are visible within the camera frustum
+     */
+    private fun performFrustumCulling(anchors: List<ARLabeledAnchor>): List<ARLabeledAnchor> {
+        if (anchors.isEmpty()) return anchors
+
+        val visibleAnchors = anchors.filter { labeledAnchor ->
+            val anchor = labeledAnchor.anchor
+
+            // Skip anchors that aren't tracking properly
+            if (anchor.trackingState != TrackingState.TRACKING) {
+                return@filter false
+            }
+
+            val pose = anchor.pose
+            val position = pose.translation
+
+            // Calculate sphere radius for culling test
+            // Use same scaling logic as ObjectRender for consistent culling
+            val distanceScale = kotlin.math.max(1.0f, labeledAnchor.distance / 1.5f) // REFERENCE_DISTANCE
+            val baseScale = 0.1f * distanceScale // OBJECT_SCALE
+            val effectiveScale = kotlin.math.max(0.08f, baseScale) // MIN_VISUAL_SCALE
+
+            // Add some margin to prevent objects from popping in/out at frustum edges
+            val sphereRadius = effectiveScale + 0.05f // Add 5cm margin
+
+            // Test if sphere is within camera frustum
+            frustumCuller.isSphereInFrustum(
+                position[0],
+                position[1],
+                position[2],
+                sphereRadius
+            )
+        }
+
+        // Log culling statistics periodically
+        val cullRate = if (anchors.isNotEmpty()) {
+            ((anchors.size - visibleAnchors.size).toFloat() / anchors.size * 100).toInt()
+        } else {
+            0
+        }
+
+        if (kotlin.random.Random.nextDouble() < 0.02) { // Log 2% of frames
+            Log.d(TAG, "Frustum Culling: ${anchors.size} total → ${visibleAnchors.size} visible ($cullRate% culled)")
+        }
+
+        return visibleAnchors
     }
 
     // Temporary arrays to prevent allocations in createAnchor
