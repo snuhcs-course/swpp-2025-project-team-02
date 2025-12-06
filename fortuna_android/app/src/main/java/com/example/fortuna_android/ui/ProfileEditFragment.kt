@@ -242,9 +242,17 @@ class ProfileEditFragment : Fragment() {
         // 닉네임
         binding.nicknameEditText.setText(profile.nickname ?: "")
 
-        // 생년월일 파싱 (양력 우선, 없으면 음력)
-        val birthDate = profile.birthDateSolar ?: profile.birthDateLunar
-        if (!birthDate.isNullOrEmpty()) {
+        // 생년월일 파싱
+
+        var birthDate: String
+        if (profile.solarOrLunar == "solar") {
+            birthDate = profile.birthDateSolar ?: "미설정"
+        } else if (profile.solarOrLunar == "lunar") {
+            birthDate = profile.birthDateLunar ?: "미설정"
+        } else {
+            birthDate = "미설정"
+        }
+        if (!birthDate.isNullOrEmpty() || birthDate != "미설정") {
             val parts = birthDate.split("-")
             if (parts.size == 3) {
                 val year = parts[0]
