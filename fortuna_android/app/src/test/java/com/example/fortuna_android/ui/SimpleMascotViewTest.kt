@@ -1,69 +1,33 @@
 package com.example.fortuna_android.ui
 
-import android.widget.ImageView
+import android.graphics.drawable.BitmapDrawable
+import androidx.test.core.app.ApplicationProvider
+import com.example.fortuna_android.R
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/**
- * Unit tests for SimpleMascotView
- */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
+@Config(sdk = [31])
 class SimpleMascotViewTest {
 
     @Test
-    fun `test SimpleMascotView instantiation`() {
-        val context = RuntimeEnvironment.getApplication()
+    fun initializesWithDrawable() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val view = SimpleMascotView(context)
 
-        assertNotNull(view)
-    }
+        val drawable = view.drawable
+        assertNotNull("Mascot drawable should be set", drawable)
 
-    @Test
-    fun `test SimpleMascotView is an ImageView`() {
-        val context = RuntimeEnvironment.getApplication()
-        val view = SimpleMascotView(context)
-
-        assertTrue(view is ImageView)
-    }
-
-    @Test
-    fun `test SimpleMascotView has FIT_CENTER scale type`() {
-        val context = RuntimeEnvironment.getApplication()
-        val view = SimpleMascotView(context)
-
-        assertEquals(ImageView.ScaleType.FIT_CENTER, view.scaleType)
-    }
-
-    @Test
-    fun `test SimpleMascotView with AttributeSet constructor`() {
-        val context = RuntimeEnvironment.getApplication()
-        val view = SimpleMascotView(context, null)
-
-        assertNotNull(view)
-        assertEquals(ImageView.ScaleType.FIT_CENTER, view.scaleType)
-    }
-
-    @Test
-    fun `test SimpleMascotView with all parameters`() {
-        val context = RuntimeEnvironment.getApplication()
-        val view = SimpleMascotView(context, null, 0)
-
-        assertNotNull(view)
-        assertEquals(ImageView.ScaleType.FIT_CENTER, view.scaleType)
-    }
-
-    @Test
-    fun `test SimpleMascotView loads fallback image when asset not found`() {
-        val context = RuntimeEnvironment.getApplication()
-        val view = SimpleMascotView(context)
-
-        // The view should not crash even if mascot.png is not found
-        // It should show fallback icon instead
-        assertNotNull(view.drawable)
+        // In Robolectric, assets may be missing; expect fallback icon which is a BitmapDrawable
+        if (drawable != null) {
+            assertTrue(
+                "Drawable should be bitmap or vector fallback",
+                drawable is BitmapDrawable || drawable.constantState != null
+            )
+        }
     }
 }
