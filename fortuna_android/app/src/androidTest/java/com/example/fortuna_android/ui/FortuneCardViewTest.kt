@@ -2,8 +2,10 @@ package com.example.fortuna_android.ui
 
 import android.content.Context
 import android.graphics.Color
+import android.view.ContextThemeWrapper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.fortuna_android.R
 import com.example.fortuna_android.api.*
 import org.junit.Assert.*
 import org.junit.Before
@@ -23,7 +25,8 @@ class FortuneCardViewTest {
 
     @Before
     fun setUp() {
-        context = ApplicationProvider.getApplicationContext()
+        val baseContext = ApplicationProvider.getApplicationContext<Context>()
+        context = ContextThemeWrapper(baseContext, R.style.Theme_Fortuna_android)
         fortuneCardView = FortuneCardView(context)
     }
 
