@@ -76,7 +76,7 @@ class SajuGuideFragmentInstrumentedTest {
     }
 
     @Test
-    fun testViewPagerHasFivePages() {
+    fun testViewPagerHasSixPages() {
         scenario = launchFragmentInContainer<SajuGuideFragment>(
             themeResId = R.style.Theme_Fortuna_android
         )
@@ -87,7 +87,7 @@ class SajuGuideFragmentInstrumentedTest {
 
             val adapter = viewPager?.adapter
             assertNotNull("ViewPager adapter should exist", adapter)
-            assertEquals("ViewPager should have 5 pages", 5, adapter?.itemCount)
+            assertEquals("ViewPager should have 6 pages", 6, adapter?.itemCount)
         }
     }
 
@@ -119,7 +119,7 @@ class SajuGuideFragmentInstrumentedTest {
     }
 
     @Test
-    fun testDotsIndicatorHasFiveDots() {
+    fun testDotsIndicatorHasSixDots() {
         scenario = launchFragmentInContainer<SajuGuideFragment>(
             themeResId = R.style.Theme_Fortuna_android
         )
@@ -131,7 +131,7 @@ class SajuGuideFragmentInstrumentedTest {
             // Wait a bit for dots to be created
             Thread.sleep(500)
 
-            assertEquals("Should have 5 dots", 5, dotsIndicator?.childCount)
+            assertEquals("Should have 6 dots", 6, dotsIndicator?.childCount)
         }
     }
 

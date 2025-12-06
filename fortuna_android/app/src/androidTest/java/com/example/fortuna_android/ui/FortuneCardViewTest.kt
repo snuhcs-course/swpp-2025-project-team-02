@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.fortuna_android.R
 import com.example.fortuna_android.api.*
+import com.example.fortuna_android.common.AppColors
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -303,22 +304,22 @@ class FortuneCardViewTest {
         val method = getPrivateMethod("getElementColorFromString", String::class.java)
 
         val testCases = mapOf(
-            "wood" to Color.parseColor("#0BEFA0"),
-            "나무" to Color.parseColor("#0BEFA0"),
-            "목" to Color.parseColor("#0BEFA0"),
-            "fire" to Color.parseColor("#F93E3E"),
-            "불" to Color.parseColor("#F93E3E"),
-            "화" to Color.parseColor("#F93E3E"),
-            "earth" to Color.parseColor("#FF9500"),
-            "흙" to Color.parseColor("#FF9500"),
-            "토" to Color.parseColor("#FF9500"),
-            "metal" to Color.parseColor("#C0C0C0"),
-            "쇠" to Color.parseColor("#C0C0C0"),
-            "금" to Color.parseColor("#C0C0C0"),
-            "water" to Color.parseColor("#2BB3FC"),
-            "물" to Color.parseColor("#2BB3FC"),
-            "수" to Color.parseColor("#2BB3FC"),
-            "unknown" to Color.parseColor("#FFFFFF")
+            "wood" to Color.parseColor(AppColors.ELEMENT_WOOD),
+            "나무" to Color.parseColor(AppColors.ELEMENT_WOOD),
+            "목" to Color.parseColor(AppColors.ELEMENT_WOOD),
+            "fire" to Color.parseColor(AppColors.ELEMENT_FIRE),
+            "불" to Color.parseColor(AppColors.ELEMENT_FIRE),
+            "화" to Color.parseColor(AppColors.ELEMENT_FIRE),
+            "earth" to Color.parseColor(AppColors.ELEMENT_EARTH),
+            "흙" to Color.parseColor(AppColors.ELEMENT_EARTH),
+            "토" to Color.parseColor(AppColors.ELEMENT_EARTH),
+            "metal" to Color.parseColor(AppColors.ELEMENT_METAL),
+            "쇠" to Color.parseColor(AppColors.ELEMENT_METAL),
+            "금" to Color.parseColor(AppColors.ELEMENT_METAL),
+            "water" to Color.parseColor(AppColors.ELEMENT_WATER),
+            "물" to Color.parseColor(AppColors.ELEMENT_WATER),
+            "수" to Color.parseColor(AppColors.ELEMENT_WATER),
+            "unknown" to Color.parseColor(AppColors.COLOR_WHITE)
         )
 
         testCases.forEach { (input, expected) ->
