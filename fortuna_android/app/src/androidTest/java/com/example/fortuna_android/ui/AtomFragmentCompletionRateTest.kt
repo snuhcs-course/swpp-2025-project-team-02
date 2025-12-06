@@ -167,10 +167,10 @@ class AtomFragmentCompletionRateTest {
             val tvCompletedDays = fragment.view?.findViewById<android.widget.TextView>(R.id.tvCompletedDays)
             assertNotNull("Completed days should exist", tvCompletedDays)
 
-            // Completed days should be in format "X / Y"
+            // Completed days format is "X 일"
             val daysText = tvCompletedDays?.text?.toString()
             if (daysText != null && daysText.isNotEmpty()) {
-                assertTrue("Completed days should contain /", daysText.contains("/"))
+                assertTrue("Completed days should contain '일'", daysText.contains("일"))
             }
         }
     }

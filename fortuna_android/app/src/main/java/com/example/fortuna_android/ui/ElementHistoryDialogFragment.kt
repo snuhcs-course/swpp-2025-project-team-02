@@ -161,7 +161,10 @@ class ElementHistoryDialogFragment : DialogFragment() {
         if (isAdded) {
             CustomToast.show(requireContext(), message)
         }
-        dismiss()
+        // Avoid state loss crash if fragment is already destroyed
+        if (isAdded && !parentFragmentManager.isStateSaved) {
+            dismiss()
+        }
     }
 
     override fun onStart() {
