@@ -174,7 +174,7 @@ class FortuneViewModel : ViewModel() {
                         _fortuneResult.postValue(null)
                         _fortuneData.postValue(null)
                         _isLoading.postValue(false)
-                        _errorMessage.postValue("Your fortune is still being generated. Please wait until it's ready.")
+                        _errorMessage.postValue("현재 API 사용량 관리를 위해 모든 계정에 대한 일일 자동 사주운세 및 이미지 생성을 제한해 두었습니다.\n프로필 변경시 사주운세가 다시 제공됩니다.")
                         _generatingMessage.postValue(null)
                     }
 
