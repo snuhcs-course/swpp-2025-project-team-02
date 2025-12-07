@@ -215,12 +215,53 @@ def generate_fortune_sync(user_id: int, date_str: str, generate_image: bool = Tr
 
             if image_bytes:
                 image_filename = f"fortune_{user_id}_{date.strftime('%Y%m%d')}.png"
-                fortune_result.fortune_image.save(
-                    image_filename,
-                    ContentFile(image_bytes),
-                    save=True
-                )
-                logger.info(f"Fortune image saved for user {user_id} on {date}")
+
+                # Workaround for "cannot schedule new futures after interpreter shutdown"
+                # when using ThreadPoolExecutor in batch commands + S3 uploads
+                from django.core.files.storage import default_storage
+                from boto3.s3.transfer import TransferConfig
+
+                if hasattr(default_storage, 'bucket'):
+                    # S3 storage: Configure to use single-threaded uploads
+                    # This prevents boto3 from spawning its own thread pool
+                    config = TransferConfig(
+                        use_threads=False,  # Disable multipart threading
+                        max_concurrency=1
+                    )
+
+                    # Upload directly to S3 with custom config
+                    try:
+                        s3_client = default_storage.connection.meta.client
+                        s3_key = default_storage.location + '/' + image_filename if default_storage.location else image_filename
+
+                        # Set Content-Type so browser displays image instead of downloading
+                        s3_client.upload_fileobj(
+                            ContentFile(image_bytes),
+                            default_storage.bucket_name,
+                            s3_key,
+                            Config=config,
+                            ExtraArgs={
+                                'ContentType': 'image/png',
+                                'ContentDisposition': 'inline'  # Display in browser, not download
+                            }
+                        )
+
+                        # Update the field without triggering another save
+                        fortune_result.fortune_image.name = s3_key
+                        fortune_result.save(update_fields=['fortune_image'])
+
+                        logger.info(f"Fortune image saved for user {user_id} on {date}")
+                    except Exception as e:
+                        logger.error(f"Failed to upload image to S3: {e}")
+                        raise
+                else:
+                    # Local storage: No threading issues
+                    fortune_result.fortune_image.save(
+                        image_filename,
+                        ContentFile(image_bytes),
+                        save=True
+                    )
+                    logger.info(f"Fortune image saved for user {user_id} on {date}")
             else:
                 logger.warning(f"No image generated for user {user_id} on {date}")
         else:
