@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.VisibleForTesting
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.example.fortuna_android.databinding.FragmentSajuGuideNudgeOverlayBinding
@@ -20,8 +21,11 @@ class ElementCollectionNudgeOverlayFragment : Fragment() {
     private var _binding: FragmentSajuGuideNudgeOverlayBinding? = null
     private val binding get() = _binding!!
 
-    private var currentDialogueIndex = 0
-    private val dialogues = listOf(
+    @VisibleForTesting
+    internal var currentDialogueIndex = 0
+
+    @VisibleForTesting
+    internal val dialogues = listOf(
         "운세가 준비되었어요!",
         "오늘의 기운이 부족하네요.\n개운을 위해 기운을 보충해볼까요?",
         "AR 카메라로 주변에서\n부족한 오행을 찾아보세요!"
@@ -77,24 +81,74 @@ class ElementCollectionNudgeOverlayFragment : Fragment() {
     }
 
     private fun advanceDialogue() {
-        currentDialogueIndex++
-
-        if (currentDialogueIndex < dialogues.size) {
+        val result = calculateDialogueAdvance(currentDialogueIndex, dialogues.size)
+        if (result.shouldAdvance) {
+            currentDialogueIndex = result.nextIndex
             updateDialogue()
         }
         // On last dialogue, buttons are visible - user must click a button
     }
 
+    /**
+     * Pure function to calculate dialogue advance state - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun calculateDialogueAdvance(currentIndex: Int, totalDialogues: Int): DialogueAdvanceResult {
+        val nextIndex = currentIndex + 1
+        return if (nextIndex < totalDialogues) {
+            DialogueAdvanceResult(shouldAdvance = true, nextIndex = nextIndex)
+        } else {
+            DialogueAdvanceResult(shouldAdvance = false, nextIndex = currentIndex)
+        }
+    }
+
+    /**
+     * Data class for dialogue advance calculation result
+     */
+    @VisibleForTesting
+    internal data class DialogueAdvanceResult(
+        val shouldAdvance: Boolean,
+        val nextIndex: Int
+    )
+
     private fun updateDialogue() {
         binding.tvDialogue.text = dialogues[currentDialogueIndex]
 
-        // Show arrow indicator except on last dialogue (where buttons are shown)
-        val isLastDialogue = currentDialogueIndex == dialogues.size - 1
-        binding.tvArrow.visibility = if (isLastDialogue) View.GONE else View.VISIBLE
+        val uiState = calculateDialogueUIState(currentDialogueIndex, dialogues.size)
+        binding.tvArrow.visibility = if (uiState.showArrow) View.VISIBLE else View.GONE
+        binding.btnLater.visibility = if (uiState.showButtons) View.VISIBLE else View.GONE
+        binding.btnGoToGuide.visibility = if (uiState.showButtons) View.VISIBLE else View.GONE
+    }
 
-        // Show action buttons only on last dialogue
-        binding.btnLater.visibility = if (isLastDialogue) View.VISIBLE else View.GONE
-        binding.btnGoToGuide.visibility = if (isLastDialogue) View.VISIBLE else View.GONE
+    /**
+     * Pure function to calculate UI state for dialogue - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun calculateDialogueUIState(currentIndex: Int, totalDialogues: Int): DialogueUIState {
+        val isLastDialogue = currentIndex == totalDialogues - 1
+        return DialogueUIState(
+            isLastDialogue = isLastDialogue,
+            showArrow = !isLastDialogue,
+            showButtons = isLastDialogue
+        )
+    }
+
+    /**
+     * Data class for dialogue UI state
+     */
+    @VisibleForTesting
+    internal data class DialogueUIState(
+        val isLastDialogue: Boolean,
+        val showArrow: Boolean,
+        val showButtons: Boolean
+    )
+
+    /**
+     * Get the dialogue text for a given index - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun getDialogueForIndex(index: Int): String? {
+        return if (index in dialogues.indices) dialogues[index] else null
     }
 
     private fun markNudgeAsSeen() {

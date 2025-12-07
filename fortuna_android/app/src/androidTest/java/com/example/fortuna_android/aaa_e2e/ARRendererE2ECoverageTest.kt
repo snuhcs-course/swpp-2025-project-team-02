@@ -25,7 +25,8 @@ import org.junit.runner.RunWith
  * 4. After completion, run: ./gradlew jacocoTestReport
  * 5. Check coverage report for improved onDrawFrame metrics
  */
-@org.junit.Ignore("E2E test requires manual interaction and real AR device - run manually")
+// @org.junit.Ignore("E2E test requires manual interaction and real AR device - run manually")
+// ENABLED FOR MANUAL EXECUTION
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class ARRendererE2ECoverageTest {
@@ -99,10 +100,11 @@ class ARRendererE2ECoverageTest {
                 - Move camera around CONSTANTLY
                 - Tap on visible spheres REPEATEDLY
                 - Collect spheres AGGRESSIVELY
-                - Test object detection ACTIVELY
-                - Use VLM features if available
+                - Use press-and-hold scanning ACTIVELY (VLM detection)
+                - Try different scan sizes by holding scan button
                 - Try different camera angles
                 - Get close and far from objects
+                - Use frustum culling by moving objects in/out of view
 
                 Maximum onDrawFrame calls for coverage!
                 ========================================
@@ -152,10 +154,14 @@ class ARRendererE2ECoverageTest {
                 If you actively used AR features intensively,
                 this should achieve maximum possible coverage for:
                 - onDrawFrame method (through intensive AR usage)
-                - Element handling (single element type)
-                - Object detection pipeline
-                - Tap handling via manual interaction
-                - Anchor management via SharedPreferences flags
+                - VLM-based object detection with custom crop sizes
+                - Composite rendering pattern (background, point cloud, objects)
+                - Frustum culling for performance optimization
+                - Element handling and five-element mapping
+                - Tap handling and sphere collection via manual interaction
+                - Press-and-hold scan button with dynamic sizing
+                - Background music and sound effect management
+                - Anchor management with distance-based scaling
 
                 Next steps:
                 1. Run: ./gradlew jacocoTestReport
@@ -173,12 +179,13 @@ class ARRendererE2ECoverageTest {
 
     private fun setupAllElementsDisplay() {
         try {
-            // Set up AR to show all elements without filtering
+            // Set up AR to show all elements without filtering - updated for current ARRenderer
             val prefs = context.getSharedPreferences("ar_test_calls", Context.MODE_PRIVATE)
             prefs.edit().apply {
                 putBoolean("show_all_elements", true)
                 putBoolean("disable_element_filtering", true)
                 putString("test_mode", "comprehensive")
+                putBoolean("test_setNeededElement", true) // Trigger setNeededElement(null) for showing all
                 apply()
             }
             android.util.Log.d("ARE2ECoverage", "🌈 Set up to show ALL 5 elements together")

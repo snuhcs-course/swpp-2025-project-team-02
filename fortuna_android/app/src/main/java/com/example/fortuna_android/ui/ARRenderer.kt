@@ -17,7 +17,6 @@ import com.example.fortuna_android.classification.ConfigurableDetectorFactory
 import com.example.fortuna_android.classification.ElementMapper
 import com.example.fortuna_android.common.AppConstants
 import com.example.fortuna_android.common.helpers.DisplayRotationHelper
-import com.example.fortuna_android.common.helpers.ImageUtils
 import com.example.fortuna_android.vlm.SmolVLMManager
 import com.example.fortuna_android.common.samplerender.SampleRender
 import com.example.fortuna_android.common.samplerender.arcore.BackgroundRenderer
