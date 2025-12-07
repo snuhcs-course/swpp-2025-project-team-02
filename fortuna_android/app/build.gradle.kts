@@ -144,7 +144,6 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.navigation:navigation-testing:2.7.6")
-    testImplementation("androidx.fragment:fragment-testing:1.6.2")
     debugImplementation("androidx.fragment:fragment-testing:1.6.2")
     androidTestImplementation("org.mockito:mockito-android:5.7.0")
     androidTestImplementation("io.mockk:mockk-android:1.13.12")

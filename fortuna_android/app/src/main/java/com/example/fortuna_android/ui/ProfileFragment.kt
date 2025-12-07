@@ -3,11 +3,13 @@ package com.example.fortuna_android.ui
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.StyleSpan
+import android.text.style.UnderlineSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -89,7 +91,7 @@ class ProfileFragment : Fragment() {
         val deleteText = binding.btnDeleteAccount.text.toString()
         val spannableString = SpannableString(deleteText)
         spannableString.setSpan(
-            android.text.style.UnderlineSpan(),
+            UnderlineSpan(),
             0,
             deleteText.length,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -235,7 +237,14 @@ class ProfileFragment : Fragment() {
         }
 
         // 생년월일과 시간 통합 표시
-        val birthDate = profile.birthDateSolar ?: profile.birthDateLunar ?: "미설정"
+        var birthDate: String
+        if (solarOrLunar == "solar") {
+            birthDate = profile.birthDateSolar ?: "미설정"
+        } else if (solarOrLunar == "lunar") {
+            birthDate = profile.birthDateLunar ?: "미설정"
+        } else {
+            birthDate = "미설정"
+        }
         val birthTime = profile.birthTimeUnits ?: "미설정"
         binding.profileBirthInfo.text = "$birthDate, $birthTime"
 
@@ -257,7 +266,7 @@ class ProfileFragment : Fragment() {
             val elementStart = fullText.indexOf(element)
             if (elementStart >= 0) {
                 spannable.setSpan(
-                    StyleSpan(android.graphics.Typeface.BOLD),
+                    StyleSpan(Typeface.BOLD),
                     elementStart,
                     elementStart + element.length,
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
