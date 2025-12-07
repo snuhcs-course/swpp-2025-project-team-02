@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.VisibleForTesting
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.viewpager2.widget.ViewPager2
@@ -21,11 +22,15 @@ class SajuGuideWalkthroughOverlayFragment : Fragment() {
     private var _binding: FragmentSajuGuideNudgeOverlayBinding? = null
     private val binding get() = _binding!!
 
-    private var currentPageIndex = 0
-    private val totalPages = 6
+    @VisibleForTesting
+    internal var currentPageIndex = 0
+
+    @VisibleForTesting
+    internal val totalPages = 6
 
     // Dialogues for each page of the Saju Guide
-    private val dialogues = listOf(
+    @VisibleForTesting
+    internal val dialogues = listOf(
         "사주는 태어난 연, 월, 일, 시를\n2행 4열로 나타낸 것이에요.",           // Page 1
         "일주(日柱)가 바로 '나'를 나타내요.\n일간이 나의 속성을 결정해요!",        // Page 2
         "천간 10개와 지지 12개가\n조합되어 60갑자가 만들어져요.",             // Page 3
@@ -133,42 +138,97 @@ class SajuGuideWalkthroughOverlayFragment : Fragment() {
     }
 
     private fun advanceToNextPage() {
-        if (currentPageIndex < totalPages - 1) {
-            // Move to next page
-            currentPageIndex++
+        val result = calculateNextPageState(currentPageIndex, totalPages)
+        if (result.shouldAdvance) {
+            currentPageIndex = result.nextPageIndex
             viewPager?.setCurrentItem(currentPageIndex, true)
             updateDialogue()
         } else {
-            // Last page - show action buttons or complete walkthrough
             showCompletionButtons()
         }
     }
+
+    /**
+     * Pure function to calculate next page state - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun calculateNextPageState(currentIndex: Int, total: Int): PageAdvanceResult {
+        return if (currentIndex < total - 1) {
+            PageAdvanceResult(shouldAdvance = true, nextPageIndex = currentIndex + 1)
+        } else {
+            PageAdvanceResult(shouldAdvance = false, nextPageIndex = currentIndex)
+        }
+    }
+
+    /**
+     * Data class for page advance calculation result
+     */
+    @VisibleForTesting
+    internal data class PageAdvanceResult(
+        val shouldAdvance: Boolean,
+        val nextPageIndex: Int
+    )
 
     private fun updateDialogue() {
         if (currentPageIndex < dialogues.size) {
             binding.tvDialogue.text = dialogues[currentPageIndex]
         }
 
-        // Show arrow indicator except on last page
-        val isLastPage = currentPageIndex == totalPages - 1
-        binding.tvArrow.visibility = if (isLastPage) View.GONE else View.VISIBLE
+        val uiState = calculateDialogueUIState(currentPageIndex, totalPages)
+        binding.tvArrow.visibility = if (uiState.showArrow) View.VISIBLE else View.GONE
 
-        // Hide buttons until last page
-        if (!isLastPage) {
+        if (!uiState.isLastPage) {
             binding.btnLater.visibility = View.GONE
             binding.btnGoToGuide.visibility = View.GONE
         }
     }
 
+    /**
+     * Pure function to calculate UI state for dialogue - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun calculateDialogueUIState(currentIndex: Int, total: Int): DialogueUIState {
+        val isLastPage = currentIndex == total - 1
+        return DialogueUIState(
+            isLastPage = isLastPage,
+            showArrow = !isLastPage
+        )
+    }
+
+    /**
+     * Data class for dialogue UI state
+     */
+    @VisibleForTesting
+    internal data class DialogueUIState(
+        val isLastPage: Boolean,
+        val showArrow: Boolean
+    )
+
     private fun showCompletionButtons() {
         // Change dialogue to completion message - guide user to use button on home screen
-        binding.tvDialogue.text = "사주 가이드를 모두 둘러봤어요!\n운세가 준비되면, 홈에서\n'오늘의 기운 보충하러 가기' 버튼을\n눌러 개운을 시작해보세요!"
+        binding.tvDialogue.text = getCompletionMessage()
 
         // Show only confirm button (hide "나중에" button)
         binding.tvArrow.visibility = View.GONE
         binding.btnLater.visibility = View.GONE
         binding.btnGoToGuide.visibility = View.VISIBLE
         binding.btnGoToGuide.text = "확인"
+    }
+
+    /**
+     * Get completion message text - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun getCompletionMessage(): String {
+        return "사주 가이드를 모두 둘러봤어요!\n운세가 준비되면, 홈에서\n'오늘의 기운 보충하러 가기' 버튼을\n눌러 개운을 시작해보세요!"
+    }
+
+    /**
+     * Get the dialogue text for a given page index - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun getDialogueForPage(pageIndex: Int): String? {
+        return if (pageIndex in dialogues.indices) dialogues[pageIndex] else null
     }
 
     private fun markWalkthroughAsSeen() {

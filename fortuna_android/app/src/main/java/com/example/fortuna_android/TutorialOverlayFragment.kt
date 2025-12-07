@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.VisibleForTesting
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.example.fortuna_android.databinding.FragmentTutorialOverlayBinding
@@ -20,8 +21,11 @@ class TutorialOverlayFragment : Fragment() {
     private var _binding: FragmentTutorialOverlayBinding? = null
     private val binding get() = _binding!!
 
-    private var currentDialogueIndex = 0
-    private val dialogues = listOf(
+    @VisibleForTesting
+    internal var currentDialogueIndex = 0
+
+    @VisibleForTesting
+    internal val dialogues = listOf(
         "모든 것은 오행이요,\n오행의 조화가 복을 의미합니다.",
         "가장 먼저 보이는 오행은\n오늘 당신에게 부족한 기운을 의미합니다!",
         "오늘의 운세 점수입니다\n부족한 기운을 수집해 점수를 올려보세요!",
@@ -62,16 +66,36 @@ class TutorialOverlayFragment : Fragment() {
     }
 
     private fun advanceDialogue() {
-        currentDialogueIndex++
-
-        if (currentDialogueIndex < dialogues.size) {
-            // Show next dialogue
+        val result = calculateDialogueAdvance(currentDialogueIndex, dialogues.size)
+        if (result.shouldAdvance) {
+            currentDialogueIndex = result.nextIndex
             updateDialogue()
         } else {
-            // All dialogues completed - navigate to AR screen
             navigateToARScreen()
         }
     }
+
+    /**
+     * Pure function to calculate dialogue advance state - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun calculateDialogueAdvance(currentIndex: Int, totalDialogues: Int): DialogueAdvanceResult {
+        val nextIndex = currentIndex + 1
+        return if (nextIndex < totalDialogues) {
+            DialogueAdvanceResult(shouldAdvance = true, nextIndex = nextIndex)
+        } else {
+            DialogueAdvanceResult(shouldAdvance = false, nextIndex = currentIndex)
+        }
+    }
+
+    /**
+     * Data class for dialogue advance calculation result
+     */
+    @VisibleForTesting
+    internal data class DialogueAdvanceResult(
+        val shouldAdvance: Boolean,
+        val nextIndex: Int
+    )
 
     private fun updateDialogue() {
         binding.tvDialogue.text = dialogues[currentDialogueIndex]
@@ -80,24 +104,45 @@ class TutorialOverlayFragment : Fragment() {
         binding.tvArrow.visibility = View.VISIBLE
 
         // Enable spotlight based on dialogue index
-        when (currentDialogueIndex) {
-            1 -> {
-                // 2nd dialogue: Highlight fortune card element
-                highlightFortuneCardElement()
-            }
-            2 -> {
-                // 3rd dialogue: Highlight fortune score
-                highlightFortuneScore()
-            }
-            3 -> {
-                // 4th dialogue: Highlight element balance section
-                highlightElementBalance()
-            }
-            else -> {
-                // Clear spotlight for other dialogues
-                binding.spotlightOverlay.clearSpotlight()
-            }
+        val spotlightTarget = getSpotlightTarget(currentDialogueIndex)
+        when (spotlightTarget) {
+            SpotlightTarget.FORTUNE_CARD_ELEMENT -> highlightFortuneCardElement()
+            SpotlightTarget.FORTUNE_SCORE -> highlightFortuneScore()
+            SpotlightTarget.ELEMENT_BALANCE -> highlightElementBalance()
+            SpotlightTarget.NONE -> binding.spotlightOverlay.clearSpotlight()
         }
+    }
+
+    /**
+     * Pure function to determine which spotlight target to show - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun getSpotlightTarget(dialogueIndex: Int): SpotlightTarget {
+        return when (dialogueIndex) {
+            1 -> SpotlightTarget.FORTUNE_CARD_ELEMENT
+            2 -> SpotlightTarget.FORTUNE_SCORE
+            3 -> SpotlightTarget.ELEMENT_BALANCE
+            else -> SpotlightTarget.NONE
+        }
+    }
+
+    /**
+     * Enum for spotlight target types
+     */
+    @VisibleForTesting
+    internal enum class SpotlightTarget {
+        NONE,
+        FORTUNE_CARD_ELEMENT,
+        FORTUNE_SCORE,
+        ELEMENT_BALANCE
+    }
+
+    /**
+     * Get the dialogue text for a given index - testable without Android dependencies
+     */
+    @VisibleForTesting
+    internal fun getDialogueForIndex(index: Int): String? {
+        return if (index in dialogues.indices) dialogues[index] else null
     }
 
     /**

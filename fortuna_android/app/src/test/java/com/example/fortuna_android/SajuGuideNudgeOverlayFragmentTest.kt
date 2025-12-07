@@ -365,4 +365,174 @@ class SajuGuideNudgeOverlayFragmentTest {
         // Assert
         assertTrue("Should return true when preference doesn't exist (default false)", shouldShow)
     }
+
+    // ========== Pure Function Tests - calculateDialogueAdvance ==========
+
+    @Test
+    fun `test calculateDialogueAdvance advances when not at last dialogue`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueAdvance(0, 3)
+
+        // Assert
+        assertTrue("Should advance", result.shouldAdvance)
+        assertEquals("Next index should be 1", 1, result.nextIndex)
+    }
+
+    @Test
+    fun `test calculateDialogueAdvance through all dialogues`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+        val totalDialogues = fragment.dialogues.size
+
+        // Act & Assert
+        for (i in 0 until totalDialogues - 1) {
+            val result = fragment.calculateDialogueAdvance(i, totalDialogues)
+            assertTrue("Should advance from dialogue $i", result.shouldAdvance)
+            assertEquals("Next index should be ${i + 1}", i + 1, result.nextIndex)
+        }
+    }
+
+    @Test
+    fun `test calculateDialogueAdvance does not advance at last dialogue`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+        val totalDialogues = fragment.dialogues.size
+
+        // Act
+        val result = fragment.calculateDialogueAdvance(totalDialogues - 1, totalDialogues)
+
+        // Assert
+        assertFalse("Should not advance at last dialogue", result.shouldAdvance)
+        assertEquals("Index should remain at last", totalDialogues - 1, result.nextIndex)
+    }
+
+    // ========== Pure Function Tests - calculateDialogueUIState ==========
+
+    @Test
+    fun `test calculateDialogueUIState for first dialogue`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueUIState(0, 3)
+
+        // Assert
+        assertFalse("Should not be last dialogue", result.isLastDialogue)
+        assertTrue("Should show arrow", result.showArrow)
+        assertFalse("Should not show buttons", result.showButtons)
+    }
+
+    @Test
+    fun `test calculateDialogueUIState for middle dialogues`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueUIState(1, 3)
+
+        // Assert
+        assertFalse("Should not be last dialogue", result.isLastDialogue)
+        assertTrue("Should show arrow", result.showArrow)
+        assertFalse("Should not show buttons", result.showButtons)
+    }
+
+    @Test
+    fun `test calculateDialogueUIState for last dialogue`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueUIState(2, 3)
+
+        // Assert
+        assertTrue("Should be last dialogue", result.isLastDialogue)
+        assertFalse("Should not show arrow", result.showArrow)
+        assertTrue("Should show buttons", result.showButtons)
+    }
+
+    // ========== Pure Function Tests - getDialogueForIndex ==========
+
+    @Test
+    fun `test getDialogueForIndex returns correct dialogue`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act & Assert
+        for (i in fragment.dialogues.indices) {
+            val dialogue = fragment.getDialogueForIndex(i)
+            assertNotNull("Dialogue at index $i should not be null", dialogue)
+            assertEquals("Dialogue should match", fragment.dialogues[i], dialogue)
+        }
+    }
+
+    @Test
+    fun `test getDialogueForIndex returns null for invalid index`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act & Assert
+        assertNull("Dialogue at -1 should be null", fragment.getDialogueForIndex(-1))
+        assertNull("Dialogue beyond size should be null", fragment.getDialogueForIndex(100))
+    }
+
+    // ========== Data Class Tests ==========
+
+    @Test
+    fun `test DialogueAdvanceResult data class`() {
+        // Act
+        val result1 = SajuGuideNudgeOverlayFragment.DialogueAdvanceResult(true, 1)
+        val result2 = SajuGuideNudgeOverlayFragment.DialogueAdvanceResult(true, 1)
+        val result3 = SajuGuideNudgeOverlayFragment.DialogueAdvanceResult(false, 0)
+
+        // Assert
+        assertEquals("Equal results should be equal", result1, result2)
+        assertNotEquals("Different results should not be equal", result1, result3)
+    }
+
+    @Test
+    fun `test DialogueUIState data class`() {
+        // Act
+        val state1 = SajuGuideNudgeOverlayFragment.DialogueUIState(false, true, false)
+        val state2 = SajuGuideNudgeOverlayFragment.DialogueUIState(false, true, false)
+        val state3 = SajuGuideNudgeOverlayFragment.DialogueUIState(true, false, true)
+
+        // Assert
+        assertEquals("Equal states should be equal", state1, state2)
+        assertNotEquals("Different states should not be equal", state1, state3)
+    }
+
+    // ========== Internal Fields Tests ==========
+
+    @Test
+    fun `test dialogues list has correct count`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Assert
+        assertEquals("Dialogues should have 3 items", 3, fragment.dialogues.size)
+    }
+
+    @Test
+    fun `test currentDialogueIndex initial value`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Assert
+        assertEquals("Initial dialogue index should be 0", 0, fragment.currentDialogueIndex)
+    }
+
+    @Test
+    fun `test currentDialogueIndex can be modified`() {
+        // Arrange
+        val fragment = SajuGuideNudgeOverlayFragment()
+
+        // Act
+        fragment.currentDialogueIndex = 2
+
+        // Assert
+        assertEquals("Dialogue index should be 2", 2, fragment.currentDialogueIndex)
+    }
 }

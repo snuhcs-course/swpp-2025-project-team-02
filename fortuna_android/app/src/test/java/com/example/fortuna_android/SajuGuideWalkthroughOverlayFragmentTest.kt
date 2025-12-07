@@ -505,4 +505,215 @@ class SajuGuideWalkthroughOverlayFragmentTest {
         SajuGuideWalkthroughOverlayFragment.clearElementNudgeFlag(context)
         assertTrue("clearElementNudgeFlag accessible", true)
     }
+
+    // ========== Pure Function Tests - calculateNextPageState ==========
+
+    @Test
+    fun `test calculateNextPageState advances when not at last page`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val result = fragment.calculateNextPageState(0, 6)
+
+        // Assert
+        assertTrue("Should advance", result.shouldAdvance)
+        assertEquals("Next page should be 1", 1, result.nextPageIndex)
+    }
+
+    @Test
+    fun `test calculateNextPageState advances through middle pages`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act & Assert
+        for (i in 0 until 5) {
+            val result = fragment.calculateNextPageState(i, 6)
+            assertTrue("Should advance from page $i", result.shouldAdvance)
+            assertEquals("Next page should be ${i + 1}", i + 1, result.nextPageIndex)
+        }
+    }
+
+    @Test
+    fun `test calculateNextPageState does not advance at last page`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val result = fragment.calculateNextPageState(5, 6)
+
+        // Assert
+        assertFalse("Should not advance at last page", result.shouldAdvance)
+        assertEquals("Page index should remain 5", 5, result.nextPageIndex)
+    }
+
+    @Test
+    fun `test calculateNextPageState with single page`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val result = fragment.calculateNextPageState(0, 1)
+
+        // Assert
+        assertFalse("Should not advance with single page", result.shouldAdvance)
+        assertEquals("Page index should remain 0", 0, result.nextPageIndex)
+    }
+
+    // ========== Pure Function Tests - calculateDialogueUIState ==========
+
+    @Test
+    fun `test calculateDialogueUIState for first page`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueUIState(0, 6)
+
+        // Assert
+        assertFalse("Should not be last page", result.isLastPage)
+        assertTrue("Should show arrow", result.showArrow)
+    }
+
+    @Test
+    fun `test calculateDialogueUIState for middle pages`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act & Assert
+        for (i in 1 until 5) {
+            val result = fragment.calculateDialogueUIState(i, 6)
+            assertFalse("Should not be last page at index $i", result.isLastPage)
+            assertTrue("Should show arrow at index $i", result.showArrow)
+        }
+    }
+
+    @Test
+    fun `test calculateDialogueUIState for last page`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueUIState(5, 6)
+
+        // Assert
+        assertTrue("Should be last page", result.isLastPage)
+        assertFalse("Should not show arrow on last page", result.showArrow)
+    }
+
+    // ========== Pure Function Tests - getDialogueForPage ==========
+
+    @Test
+    fun `test getDialogueForPage returns correct dialogue`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act & Assert
+        for (i in fragment.dialogues.indices) {
+            val dialogue = fragment.getDialogueForPage(i)
+            assertNotNull("Dialogue at index $i should not be null", dialogue)
+            assertEquals("Dialogue should match", fragment.dialogues[i], dialogue)
+        }
+    }
+
+    @Test
+    fun `test getDialogueForPage returns null for invalid index`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act & Assert
+        assertNull("Dialogue at -1 should be null", fragment.getDialogueForPage(-1))
+        assertNull("Dialogue beyond size should be null", fragment.getDialogueForPage(100))
+    }
+
+    // ========== Pure Function Tests - getCompletionMessage ==========
+
+    @Test
+    fun `test getCompletionMessage returns non-empty message`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val message = fragment.getCompletionMessage()
+
+        // Assert
+        assertNotNull("Completion message should not be null", message)
+        assertTrue("Completion message should not be empty", message.isNotEmpty())
+    }
+
+    @Test
+    fun `test getCompletionMessage contains expected content`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        val message = fragment.getCompletionMessage()
+
+        // Assert
+        assertTrue("Should mention completion", message.contains("모두 둘러봤어요"))
+        assertTrue("Should mention home button", message.contains("오늘의 기운 보충하러 가기"))
+    }
+
+    // ========== Data Class Tests ==========
+
+    @Test
+    fun `test PageAdvanceResult data class`() {
+        // Act
+        val result1 = SajuGuideWalkthroughOverlayFragment.PageAdvanceResult(true, 1)
+        val result2 = SajuGuideWalkthroughOverlayFragment.PageAdvanceResult(true, 1)
+        val result3 = SajuGuideWalkthroughOverlayFragment.PageAdvanceResult(false, 0)
+
+        // Assert
+        assertEquals("Equal results should be equal", result1, result2)
+        assertNotEquals("Different results should not be equal", result1, result3)
+        assertTrue("shouldAdvance should be true", result1.shouldAdvance)
+        assertEquals("nextPageIndex should be 1", 1, result1.nextPageIndex)
+    }
+
+    @Test
+    fun `test DialogueUIState data class`() {
+        // Act
+        val state1 = SajuGuideWalkthroughOverlayFragment.DialogueUIState(false, true)
+        val state2 = SajuGuideWalkthroughOverlayFragment.DialogueUIState(false, true)
+        val state3 = SajuGuideWalkthroughOverlayFragment.DialogueUIState(true, false)
+
+        // Assert
+        assertEquals("Equal states should be equal", state1, state2)
+        assertNotEquals("Different states should not be equal", state1, state3)
+        assertFalse("isLastPage should be false", state1.isLastPage)
+        assertTrue("showArrow should be true", state1.showArrow)
+    }
+
+    // ========== Internal Fields Tests ==========
+
+    @Test
+    fun `test dialogues list has correct count`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Assert
+        assertEquals("Dialogues should have 6 items", 6, fragment.dialogues.size)
+        assertEquals("totalPages should match dialogues count", fragment.dialogues.size, fragment.totalPages)
+    }
+
+    @Test
+    fun `test currentPageIndex initial value`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Assert
+        assertEquals("Initial page index should be 0", 0, fragment.currentPageIndex)
+    }
+
+    @Test
+    fun `test currentPageIndex can be modified`() {
+        // Arrange
+        val fragment = SajuGuideWalkthroughOverlayFragment()
+
+        // Act
+        fragment.currentPageIndex = 3
+
+        // Assert
+        assertEquals("Page index should be 3", 3, fragment.currentPageIndex)
+    }
 }
