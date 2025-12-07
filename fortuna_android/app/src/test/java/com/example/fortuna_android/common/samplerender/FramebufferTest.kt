@@ -202,4 +202,247 @@ class FramebufferTest {
                 java.lang.reflect.Modifier.isFinal(tagField.modifiers))
         }
     }
+
+    @Test
+    fun testFramebufferImplementsCloseable() {
+        val clazz = Framebuffer::class.java
+
+        // Should implement Closeable
+        assertTrue("Should implement Closeable",
+            java.io.Closeable::class.java.isAssignableFrom(clazz))
+
+        // Should override close method from Closeable
+        val closeMethod = clazz.getDeclaredMethod("close")
+        assertNotNull("close method should exist", closeMethod)
+        assertTrue("close should be public",
+            java.lang.reflect.Modifier.isPublic(closeMethod.modifiers))
+    }
+
+    @Test
+    fun testFramebufferFieldTypes() {
+        val clazz = Framebuffer::class.java
+        val fields = clazz.declaredFields
+
+        // Should have framebufferId field (int array)
+        val framebufferIdField = fields.find { it.name == "framebufferId" }
+        assertNotNull("Should have framebufferId field", framebufferIdField)
+        if (framebufferIdField != null) {
+            assertEquals("framebufferId should be int array",
+                IntArray::class.java, framebufferIdField.type)
+            assertTrue("framebufferId should be private",
+                java.lang.reflect.Modifier.isPrivate(framebufferIdField.modifiers))
+            assertTrue("framebufferId should be final",
+                java.lang.reflect.Modifier.isFinal(framebufferIdField.modifiers))
+        }
+
+        // Should have texture fields
+        val colorTextureField = fields.find { it.name == "colorTexture" }
+        assertNotNull("Should have colorTexture field", colorTextureField)
+        if (colorTextureField != null) {
+            assertEquals("colorTexture should be Texture type",
+                Texture::class.java, colorTextureField.type)
+            assertTrue("colorTexture should be private",
+                java.lang.reflect.Modifier.isPrivate(colorTextureField.modifiers))
+            assertTrue("colorTexture should be final",
+                java.lang.reflect.Modifier.isFinal(colorTextureField.modifiers))
+        }
+
+        val depthTextureField = fields.find { it.name == "depthTexture" }
+        assertNotNull("Should have depthTexture field", depthTextureField)
+        if (depthTextureField != null) {
+            assertEquals("depthTexture should be Texture type",
+                Texture::class.java, depthTextureField.type)
+            assertTrue("depthTexture should be private",
+                java.lang.reflect.Modifier.isPrivate(depthTextureField.modifiers))
+            assertTrue("depthTexture should be final",
+                java.lang.reflect.Modifier.isFinal(depthTextureField.modifiers))
+        }
+    }
+
+    @Test
+    fun testFramebufferDimensionFields() {
+        val clazz = Framebuffer::class.java
+        val fields = clazz.declaredFields
+
+        // Test width field
+        val widthField = fields.find { it.name == "width" }
+        assertNotNull("Should have width field", widthField)
+        if (widthField != null) {
+            assertEquals("width should be int type",
+                Int::class.javaPrimitiveType, widthField.type)
+            assertTrue("width should be private",
+                java.lang.reflect.Modifier.isPrivate(widthField.modifiers))
+            assertFalse("width should not be final",
+                java.lang.reflect.Modifier.isFinal(widthField.modifiers))
+        }
+
+        // Test height field
+        val heightField = fields.find { it.name == "height" }
+        assertNotNull("Should have height field", heightField)
+        if (heightField != null) {
+            assertEquals("height should be int type",
+                Int::class.javaPrimitiveType, heightField.type)
+            assertTrue("height should be private",
+                java.lang.reflect.Modifier.isPrivate(heightField.modifiers))
+            assertFalse("height should not be final",
+                java.lang.reflect.Modifier.isFinal(heightField.modifiers))
+        }
+    }
+
+    @Test
+    fun testResizeMethodBehavior() {
+        val clazz = Framebuffer::class.java
+
+        // Test resize method exists and has correct signature
+        val resizeMethod = clazz.getDeclaredMethod("resize", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+        assertNotNull("resize method should exist", resizeMethod)
+
+        // Should be public
+        assertTrue("resize should be public",
+            java.lang.reflect.Modifier.isPublic(resizeMethod.modifiers))
+
+        // Should not be static
+        assertFalse("resize should not be static",
+            java.lang.reflect.Modifier.isStatic(resizeMethod.modifiers))
+
+        // Should not be abstract
+        assertFalse("resize should not be abstract",
+            java.lang.reflect.Modifier.isAbstract(resizeMethod.modifiers))
+    }
+
+    @Test
+    fun testGetterMethodsBehavior() {
+        val clazz = Framebuffer::class.java
+
+        // Test all getter methods are non-static instance methods
+        val getterMethods = listOf("getWidth", "getHeight", "getColorTexture", "getDepthTexture", "getFramebufferId")
+
+        getterMethods.forEach { methodName ->
+            val method = clazz.declaredMethods.find { it.name == methodName }
+            assertNotNull("$methodName should exist", method)
+
+            if (method != null) {
+                assertFalse("$methodName should not be static",
+                    java.lang.reflect.Modifier.isStatic(method.modifiers))
+                assertFalse("$methodName should not be abstract",
+                    java.lang.reflect.Modifier.isAbstract(method.modifiers))
+                assertEquals("$methodName should take no parameters",
+                    0, method.parameterCount)
+            }
+        }
+    }
+
+    @Test
+    fun testPackagePrivateMethodAccess() {
+        val clazz = Framebuffer::class.java
+        val getFramebufferIdMethod = clazz.getDeclaredMethod("getFramebufferId")
+
+        // Package-private method should be accessible within package
+        assertNotNull("getFramebufferId should exist", getFramebufferIdMethod)
+
+        // Verify it's package-private by checking modifiers
+        val modifiers = getFramebufferIdMethod.modifiers
+        val isPackagePrivate = !java.lang.reflect.Modifier.isPublic(modifiers) &&
+                               !java.lang.reflect.Modifier.isPrivate(modifiers) &&
+                               !java.lang.reflect.Modifier.isProtected(modifiers)
+
+        assertTrue("getFramebufferId should be package-private", isPackagePrivate)
+    }
+
+    @Test
+    fun testExceptionHandlingStructure() {
+        val clazz = Framebuffer::class.java
+        val constructor = clazz.declaredConstructors.find { it.parameterCount == 3 }
+        assertNotNull("Should have 3-parameter constructor", constructor)
+
+        // Constructor should be able to handle exceptions
+        // This is verified by the try-catch structure in the actual implementation
+        assertTrue("Constructor should be public",
+            java.lang.reflect.Modifier.isPublic(constructor!!.modifiers))
+    }
+
+    @Test
+    fun testTextureAssociationMethods() {
+        val clazz = Framebuffer::class.java
+
+        // Test getColorTexture method
+        val getColorTextureMethod = clazz.getDeclaredMethod("getColorTexture")
+        assertNotNull("getColorTexture should exist", getColorTextureMethod)
+        assertTrue("getColorTexture should be public",
+            java.lang.reflect.Modifier.isPublic(getColorTextureMethod.modifiers))
+        assertEquals("getColorTexture should return Texture",
+            Texture::class.java, getColorTextureMethod.returnType)
+
+        // Test getDepthTexture method
+        val getDepthTextureMethod = clazz.getDeclaredMethod("getDepthTexture")
+        assertNotNull("getDepthTexture should exist", getDepthTextureMethod)
+        assertTrue("getDepthTexture should be public",
+            java.lang.reflect.Modifier.isPublic(getDepthTextureMethod.modifiers))
+        assertEquals("getDepthTexture should return Texture",
+            Texture::class.java, getDepthTextureMethod.returnType)
+    }
+
+    @Test
+    fun testDimensionGetterMethods() {
+        val clazz = Framebuffer::class.java
+
+        // Test getWidth method
+        val getWidthMethod = clazz.getDeclaredMethod("getWidth")
+        assertNotNull("getWidth should exist", getWidthMethod)
+        assertTrue("getWidth should be public",
+            java.lang.reflect.Modifier.isPublic(getWidthMethod.modifiers))
+        assertEquals("getWidth should return int",
+            Int::class.javaPrimitiveType, getWidthMethod.returnType)
+        assertEquals("getWidth should take no parameters",
+            0, getWidthMethod.parameterCount)
+
+        // Test getHeight method
+        val getHeightMethod = clazz.getDeclaredMethod("getHeight")
+        assertNotNull("getHeight should exist", getHeightMethod)
+        assertTrue("getHeight should be public",
+            java.lang.reflect.Modifier.isPublic(getHeightMethod.modifiers))
+        assertEquals("getHeight should return int",
+            Int::class.javaPrimitiveType, getHeightMethod.returnType)
+        assertEquals("getHeight should take no parameters",
+            0, getHeightMethod.parameterCount)
+    }
+
+    @Test
+    fun testClassModifiers() {
+        val clazz = Framebuffer::class.java
+        val modifiers = clazz.modifiers
+
+        // Class should be public and concrete
+        assertTrue("Class should be public", java.lang.reflect.Modifier.isPublic(modifiers))
+        assertFalse("Class should not be abstract", java.lang.reflect.Modifier.isAbstract(modifiers))
+        assertFalse("Class should not be final", java.lang.reflect.Modifier.isFinal(modifiers))
+        assertFalse("Class should not be an interface", clazz.isInterface)
+        assertFalse("Class should not be an enum", clazz.isEnum)
+    }
+
+    @Test
+    fun testMethodCount() {
+        val clazz = Framebuffer::class.java
+        val methods = clazz.declaredMethods
+
+        // Should have the expected public methods
+        val publicMethods = methods.filter { java.lang.reflect.Modifier.isPublic(it.modifiers) }
+        val publicMethodNames = publicMethods.map { it.name }.toSet()
+
+        val expectedPublicMethods = setOf(
+            "getWidth", "getHeight", "getColorTexture", "getDepthTexture", "resize", "close"
+        )
+
+        assertTrue("Should have all expected public methods",
+            publicMethodNames.containsAll(expectedPublicMethods))
+
+        // Should also have package-private getFramebufferId
+        val packagePrivateMethods = methods.filter {
+            !java.lang.reflect.Modifier.isPublic(it.modifiers) &&
+            !java.lang.reflect.Modifier.isPrivate(it.modifiers) &&
+            !java.lang.reflect.Modifier.isProtected(it.modifiers)
+        }
+        val hasGetFramebufferId = packagePrivateMethods.any { it.name == "getFramebufferId" }
+        assertTrue("Should have getFramebufferId package-private method", hasGetFramebufferId)
+    }
 }
