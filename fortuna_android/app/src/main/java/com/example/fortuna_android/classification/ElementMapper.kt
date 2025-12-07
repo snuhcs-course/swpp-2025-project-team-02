@@ -263,32 +263,4 @@ class ElementMapper(private val context: Context) {
             Log.d(TAG, "Word match: '$original' -> ${element.displayName}")
         }
     }
-
-    /**
-     * Get all available elements
-     */
-    fun getAllElements(): List<Element> = Element.values().toList()
-
-    /**
-     * Check if mapper is properly initialized
-     */
-    fun isReady(): Boolean = isInitialized
-
-    /**
-     * Get mapping statistics for debugging
-     */
-    fun getMappingStats(): String {
-        val stats = mutableMapOf<Element, Int>()
-        labelToElementMap.values.forEach { element ->
-            stats[element] = stats.getOrDefault(element, 0) + 1
-        }
-
-        return buildString {
-            appendLine("Element Mapping Statistics:")
-            stats.forEach { (element, count) ->
-                appendLine("  ${element.displayName}: $count items")
-            }
-            appendLine("  Total: ${labelToElementMap.size} mappings")
-        }
-    }
 }
