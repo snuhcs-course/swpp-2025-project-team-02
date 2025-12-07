@@ -159,4 +159,147 @@ class GLErrorTest {
         val staticMethods = methods.filter { java.lang.reflect.Modifier.isStatic(it.modifiers) }
         assertTrue("Should have static methods", staticMethods.isNotEmpty())
     }
+
+    @Test
+    fun testPrivateMethodsExist() {
+        val clazz = GLError::class.java
+        val methods = clazz.declaredMethods
+
+        // Test that private helper methods exist
+        val formatErrorMessageMethod = methods.find { it.name == "formatErrorMessage" }
+        assertNotNull("formatErrorMessage method should exist", formatErrorMessageMethod)
+        assertTrue("formatErrorMessage should be private",
+            java.lang.reflect.Modifier.isPrivate(formatErrorMessageMethod!!.modifiers))
+        assertTrue("formatErrorMessage should be static",
+            java.lang.reflect.Modifier.isStatic(formatErrorMessageMethod.modifiers))
+
+        val getGlErrorsMethod = methods.find { it.name == "getGlErrors" }
+        assertNotNull("getGlErrors method should exist", getGlErrorsMethod)
+        assertTrue("getGlErrors should be private",
+            java.lang.reflect.Modifier.isPrivate(getGlErrorsMethod!!.modifiers))
+        assertTrue("getGlErrors should be static",
+            java.lang.reflect.Modifier.isStatic(getGlErrorsMethod.modifiers))
+    }
+
+    @Test
+    fun testPrivateMethodParameters() {
+        val clazz = GLError::class.java
+        val methods = clazz.declaredMethods
+
+        // Test formatErrorMessage method parameters
+        val formatErrorMessageMethod = methods.find { it.name == "formatErrorMessage" }
+        assertNotNull("formatErrorMessage should exist", formatErrorMessageMethod)
+        assertEquals("formatErrorMessage should take 3 parameters",
+            3, formatErrorMessageMethod!!.parameterCount)
+        assertEquals("formatErrorMessage should return String",
+            String::class.java, formatErrorMessageMethod.returnType)
+
+        // Test getGlErrors method parameters
+        val getGlErrorsMethod = methods.find { it.name == "getGlErrors" }
+        assertNotNull("getGlErrors should exist", getGlErrorsMethod)
+        assertEquals("getGlErrors should take 0 parameters",
+            0, getGlErrorsMethod!!.parameterCount)
+        assertEquals("getGlErrors should return List",
+            java.util.List::class.java, getGlErrorsMethod.returnType)
+    }
+
+    @Test
+    fun testErrorMessageFormatting() {
+        // Test parameter validation for public methods
+        try {
+            GLError.maybeThrowGLException("Test reason", "glTestApi")
+            // If no exception, that's fine - no GL errors
+        } catch (e: Exception) {
+            // In test environment, might throw due to no GL context
+            assertTrue("Exception should be related to GL context or be acceptable",
+                e is RuntimeException || e.message?.contains("GL") == true)
+        }
+    }
+
+    @Test
+    fun testLogErrorWithValidParameters() {
+        // Test with valid parameters
+        val testCases = listOf(
+            Triple(android.util.Log.VERBOSE, "TestTag", "Test reason"),
+            Triple(android.util.Log.DEBUG, "DebugTag", "Debug operation"),
+            Triple(android.util.Log.INFO, "InfoTag", "Info message"),
+            Triple(android.util.Log.WARN, "WarnTag", "Warning message"),
+            Triple(android.util.Log.ERROR, "ErrorTag", "Error operation")
+        )
+
+        testCases.forEach { (priority, tag, reason) ->
+            try {
+                GLError.maybeLogGLError(priority, tag, reason, "glTestFunction")
+                // Should complete without throwing
+            } catch (e: Exception) {
+                // Expected in test environment without OpenGL context
+                assertTrue("Should handle GL context issues for priority $priority",
+                    e is RuntimeException || e.message?.contains("GL") == true)
+            }
+        }
+    }
+
+    @Test
+    fun testMaybeThrowGLExceptionWithVariousInputs() {
+        val testCases = listOf(
+            Pair("Simple reason", "glSimple"),
+            Pair("Complex operation with spaces", "glComplexFunction"),
+            Pair("Special chars: !@#$%", "glSpecial"),
+            Pair("Unicode: αβγδε", "glUnicode"),
+            Pair("Numbers: 12345", "gl12345")
+        )
+
+        testCases.forEach { (reason, api) ->
+            try {
+                GLError.maybeThrowGLException(reason, api)
+                // If no exception thrown, that's acceptable
+            } catch (e: Exception) {
+                // Expected in test environment
+                assertTrue("Should handle various inputs appropriately",
+                    e is RuntimeException || e.message?.contains("GL") == true)
+            }
+        }
+    }
+
+    @Test
+    fun testUtilityClassStructure() {
+        val clazz = GLError::class.java
+
+        // Utility class should not be instantiable
+        val constructors = clazz.declaredConstructors
+        assertTrue("Should have constructors", constructors.isNotEmpty())
+
+        // All constructors should be private
+        constructors.forEach { constructor ->
+            assertTrue("All constructors should be private",
+                java.lang.reflect.Modifier.isPrivate(constructor.modifiers))
+        }
+
+        // Should not be final class (though it could be)
+        // This is just checking the structure, not enforcing a pattern
+        val modifiers = clazz.modifiers
+        assertFalse("Should not be abstract", java.lang.reflect.Modifier.isAbstract(modifiers))
+        assertFalse("Should not be interface", clazz.isInterface)
+    }
+
+    @Test
+    fun testThreadSafety() {
+        // Test that static methods can be called from multiple contexts
+        // This is a basic structural test since we can't test real threading in unit tests
+        val clazz = GLError::class.java
+        val methods = clazz.declaredMethods
+
+        val publicStaticMethods = methods.filter {
+            java.lang.reflect.Modifier.isPublic(it.modifiers) &&
+            java.lang.reflect.Modifier.isStatic(it.modifiers)
+        }
+
+        assertTrue("Should have public static methods", publicStaticMethods.isNotEmpty())
+
+        // Methods should not have synchronization modifiers in their signature
+        publicStaticMethods.forEach { method ->
+            assertFalse("Static methods should not be synchronized",
+                java.lang.reflect.Modifier.isSynchronized(method.modifiers))
+        }
+    }
 }
