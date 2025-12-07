@@ -316,4 +316,230 @@ class TutorialOverlayFragmentTest {
         assertTrue("Should work with different context instances",
             appPrefs.getBoolean("test_key", false))
     }
+
+    // ========== Pure Function Tests - calculateDialogueAdvance ==========
+
+    @Test
+    fun `test calculateDialogueAdvance advances when not at last dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act
+        val result = fragment.calculateDialogueAdvance(0, 5)
+
+        // Assert
+        assertTrue("Should advance", result.shouldAdvance)
+        assertEquals("Next index should be 1", 1, result.nextIndex)
+    }
+
+    @Test
+    fun `test calculateDialogueAdvance through all dialogues`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+        val totalDialogues = fragment.dialogues.size
+
+        // Act & Assert
+        for (i in 0 until totalDialogues - 1) {
+            val result = fragment.calculateDialogueAdvance(i, totalDialogues)
+            assertTrue("Should advance from dialogue $i", result.shouldAdvance)
+            assertEquals("Next index should be ${i + 1}", i + 1, result.nextIndex)
+        }
+    }
+
+    @Test
+    fun `test calculateDialogueAdvance does not advance at last dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+        val totalDialogues = fragment.dialogues.size
+
+        // Act
+        val result = fragment.calculateDialogueAdvance(totalDialogues - 1, totalDialogues)
+
+        // Assert
+        assertFalse("Should not advance at last dialogue", result.shouldAdvance)
+        assertEquals("Index should remain at last", totalDialogues - 1, result.nextIndex)
+    }
+
+    @Test
+    fun `test calculateDialogueAdvance with edge cases`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Single dialogue case
+        val singleResult = fragment.calculateDialogueAdvance(0, 1)
+        assertFalse("Should not advance with single dialogue", singleResult.shouldAdvance)
+
+        // Two dialogues case
+        val twoResult1 = fragment.calculateDialogueAdvance(0, 2)
+        assertTrue("Should advance from first of two", twoResult1.shouldAdvance)
+        assertEquals("Next should be 1", 1, twoResult1.nextIndex)
+
+        val twoResult2 = fragment.calculateDialogueAdvance(1, 2)
+        assertFalse("Should not advance from last of two", twoResult2.shouldAdvance)
+    }
+
+    // ========== Pure Function Tests - getSpotlightTarget ==========
+
+    @Test
+    fun `test getSpotlightTarget returns NONE for first dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act
+        val result = fragment.getSpotlightTarget(0)
+
+        // Assert
+        assertEquals("First dialogue should have no spotlight",
+            TutorialOverlayFragment.SpotlightTarget.NONE, result)
+    }
+
+    @Test
+    fun `test getSpotlightTarget returns FORTUNE_CARD_ELEMENT for second dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act
+        val result = fragment.getSpotlightTarget(1)
+
+        // Assert
+        assertEquals("Second dialogue should highlight fortune card element",
+            TutorialOverlayFragment.SpotlightTarget.FORTUNE_CARD_ELEMENT, result)
+    }
+
+    @Test
+    fun `test getSpotlightTarget returns FORTUNE_SCORE for third dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act
+        val result = fragment.getSpotlightTarget(2)
+
+        // Assert
+        assertEquals("Third dialogue should highlight fortune score",
+            TutorialOverlayFragment.SpotlightTarget.FORTUNE_SCORE, result)
+    }
+
+    @Test
+    fun `test getSpotlightTarget returns ELEMENT_BALANCE for fourth dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act
+        val result = fragment.getSpotlightTarget(3)
+
+        // Assert
+        assertEquals("Fourth dialogue should highlight element balance",
+            TutorialOverlayFragment.SpotlightTarget.ELEMENT_BALANCE, result)
+    }
+
+    @Test
+    fun `test getSpotlightTarget returns NONE for fifth dialogue and beyond`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act & Assert
+        assertEquals("Fifth dialogue should have no spotlight",
+            TutorialOverlayFragment.SpotlightTarget.NONE, fragment.getSpotlightTarget(4))
+        assertEquals("Invalid index should have no spotlight",
+            TutorialOverlayFragment.SpotlightTarget.NONE, fragment.getSpotlightTarget(100))
+        assertEquals("Negative index should have no spotlight",
+            TutorialOverlayFragment.SpotlightTarget.NONE, fragment.getSpotlightTarget(-1))
+    }
+
+    // ========== Pure Function Tests - getDialogueForIndex ==========
+
+    @Test
+    fun `test getDialogueForIndex returns correct dialogue`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act & Assert
+        for (i in fragment.dialogues.indices) {
+            val dialogue = fragment.getDialogueForIndex(i)
+            assertNotNull("Dialogue at index $i should not be null", dialogue)
+            assertEquals("Dialogue should match", fragment.dialogues[i], dialogue)
+        }
+    }
+
+    @Test
+    fun `test getDialogueForIndex returns null for invalid index`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act & Assert
+        assertNull("Dialogue at -1 should be null", fragment.getDialogueForIndex(-1))
+        assertNull("Dialogue beyond size should be null", fragment.getDialogueForIndex(100))
+    }
+
+    // ========== Data Class Tests ==========
+
+    @Test
+    fun `test DialogueAdvanceResult data class`() {
+        // Act
+        val result1 = TutorialOverlayFragment.DialogueAdvanceResult(true, 1)
+        val result2 = TutorialOverlayFragment.DialogueAdvanceResult(true, 1)
+        val result3 = TutorialOverlayFragment.DialogueAdvanceResult(false, 0)
+
+        // Assert
+        assertEquals("Equal results should be equal", result1, result2)
+        assertNotEquals("Different results should not be equal", result1, result3)
+        assertTrue("shouldAdvance should be true", result1.shouldAdvance)
+        assertEquals("nextIndex should be 1", 1, result1.nextIndex)
+    }
+
+    // ========== Enum Tests ==========
+
+    @Test
+    fun `test SpotlightTarget enum values`() {
+        // Assert all values exist
+        val values = TutorialOverlayFragment.SpotlightTarget.values()
+        assertEquals("Should have 4 spotlight target types", 4, values.size)
+        assertTrue("Should contain NONE", values.contains(TutorialOverlayFragment.SpotlightTarget.NONE))
+        assertTrue("Should contain FORTUNE_CARD_ELEMENT", values.contains(TutorialOverlayFragment.SpotlightTarget.FORTUNE_CARD_ELEMENT))
+        assertTrue("Should contain FORTUNE_SCORE", values.contains(TutorialOverlayFragment.SpotlightTarget.FORTUNE_SCORE))
+        assertTrue("Should contain ELEMENT_BALANCE", values.contains(TutorialOverlayFragment.SpotlightTarget.ELEMENT_BALANCE))
+    }
+
+    // ========== Internal Fields Tests ==========
+
+    @Test
+    fun `test dialogues list has correct count`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Assert
+        assertEquals("Dialogues should have 5 items", 5, fragment.dialogues.size)
+    }
+
+    @Test
+    fun `test currentDialogueIndex initial value`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Assert
+        assertEquals("Initial dialogue index should be 0", 0, fragment.currentDialogueIndex)
+    }
+
+    @Test
+    fun `test currentDialogueIndex can be modified`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Act
+        fragment.currentDialogueIndex = 2
+
+        // Assert
+        assertEquals("Dialogue index should be 2", 2, fragment.currentDialogueIndex)
+    }
+
+    @Test
+    fun `test all dialogues contain content`() {
+        // Arrange
+        val fragment = TutorialOverlayFragment()
+
+        // Assert
+        fragment.dialogues.forEachIndexed { index, dialogue ->
+            assertTrue("Dialogue at index $index should not be empty", dialogue.isNotEmpty())
+        }
+    }
 }
