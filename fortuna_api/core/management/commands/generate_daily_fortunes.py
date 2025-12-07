@@ -206,11 +206,10 @@ class Command(BaseCommand):
             base_datetime = datetime.combine(base_date, datetime.min.time())
 
             # This will schedule background AI generation via tasks.py
-            # Images are skipped in batch to improve performance
             result = fortune_service.generate_fortune(
                 user=user,
                 date=base_datetime,
-                generate_image=False  # Skip image generation in batch
+                generate_image=True 
             )
 
             if result.status == 'success':
